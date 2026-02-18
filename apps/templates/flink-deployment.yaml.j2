@@ -1,0 +1,364 @@
+---
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: {{ deployment_name }}
+  namespace: {{ namespace }}
+  labels:
+    app: flink-sigma-detector
+    pipeline-id: "{{ pipeline_id }}"
+    managed-by: admin-panel
+spec:
+  # Docker image for PyFlink job
+  image: {{ flink_image }}
+  imagePullPolicy: {{ image_pull_policy }}
+  flinkVersion: v2_1
+
+  # ServiceAccount for Flink pods
+  serviceAccount: flink
+
+  # Flink Configuration
+  flinkConfiguration:
+    # Autoscaling (configurable per pipeline)
+    job.autoscaler.enabled: "{{ autoscaler_enabled | lower }}"
+    job.autoscaler.scaling.enabled: "{{ autoscaler_enabled | lower }}"
+    {% if autoscaler_enabled %}
+    job.autoscaler.stabilization.interval: 1m
+    job.autoscaler.metrics.window: 5m
+    job.autoscaler.target.utilization: "0.6"
+    job.autoscaler.target.utilization.boundary: "0.2"
+    job.autoscaler.restart.time: 2m
+    job.autoscaler.catch-up.duration: 5m
+    job.autoscaler.scale-down.interval: 30m
+    # Autoscaler parallelism bounds
+    job.autoscaler.vertex.min-parallelism: "{{ autoscaler_min_parallelism }}"
+    job.autoscaler.vertex.max-parallelism: "{{ autoscaler_max_parallelism }}"
+    # Resource quotas to prevent scaling beyond cluster capacity
+    job.autoscaler.quota.cpu: "{{ autoscaler_quota_cpu }}"
+    job.autoscaler.quota.memory: "{{ autoscaler_quota_memory }}"
+    {% endif %}
+
+    # Parallelism settings (max-parallelism affects state key groups)
+    # IMPORTANT: Cannot be changed after checkpoint exists without losing state.
+    # 720 is a highly composite number with 30 divisors (1,2,3,4,5,6,8,9,10,12,15,16,18,20,24,30,36,40,45,48,60,72,80,90,120,144,180,240,360,720)
+    # This enables even state distribution for any parallelism value that divides 720.
+    pipeline.max-parallelism: "720"
+
+    # Adaptive scheduler for in-place rescaling (Flink 1.18+/2.1)
+    jobmanager.scheduler: adaptive
+
+    # High Availability (Kubernetes native)
+    high-availability.type: kubernetes
+    high-availability.storageDir: file:///mnt/ha/{{ pipeline_id }}
+
+    # State Backend and Checkpointing
+    state.backend.type: rocksdb
+    state.checkpoints.dir: file:///mnt/checkpoints/{{ pipeline_id }}
+    execution.checkpointing.savepoint-dir: file:///mnt/savepoints/{{ pipeline_id }}
+    execution.checkpointing.incremental: "true"
+    execution.checkpointing.interval: {{ checkpoint_interval_sec }}s
+    execution.checkpointing.min-pause: {{ (checkpoint_interval_sec // 2) | int }}s
+    execution.checkpointing.timeout: 10min
+    execution.checkpointing.mode: EXACTLY_ONCE
+    execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+
+    # RocksDB Performance Tuning (conservative)
+    state.backend.rocksdb.writebuffer.size: 64MB
+    state.backend.rocksdb.writebuffer.count: "3"
+    state.backend.rocksdb.block.cache-size: 256MB
+    state.backend.rocksdb.block.blocksize: 4KB
+    state.backend.rocksdb.compaction.style: LEVEL
+    state.backend.rocksdb.thread.num: "4"
+
+    # TaskManager Configuration
+    taskmanager.numberOfTaskSlots: "{{ parallelism }}"
+    taskmanager.cpu.cores: "{{ taskmanager_cpu }}"
+    taskmanager.memory.process.size: {{ taskmanager_memory }}
+    taskmanager.memory.managed.fraction: "0.4"
+
+    # JobManager Configuration
+    jobmanager.memory.process.size: {{ jobmanager_memory }}
+
+    # Java 17 compatibility
+    env.java.opts: "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+
+    # Networking
+    rest.port: "8081"
+    rest.bind-address: "0.0.0.0"
+
+    # Metrics (Prometheus)
+    metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    metrics.reporter.prom.port: "9249"
+
+  # JobManager Spec
+  jobManager:
+    replicas: 1
+
+    podTemplate:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          app: flink-sigma-detector
+          component: jobmanager
+          pipeline-id: "{{ pipeline_id }}"
+      spec:
+        serviceAccountName: flink
+        securityContext:
+          fsGroup: 9999  # Flink user GID
+        nodeSelector:
+          spec-node-ns-pod-disk: pvc-security
+        initContainers:
+          - name: prepare-volumes
+            image: busybox:latest
+            command:
+              - sh
+              - -c
+              - |
+                mkdir -p /mnt/checkpoints/{{ pipeline_id }}
+                mkdir -p /mnt/ha/{{ pipeline_id }}/job-result-store
+                mkdir -p /mnt/savepoints/{{ pipeline_id }}
+                chmod -R 777 /mnt/checkpoints/{{ pipeline_id }} /mnt/ha/{{ pipeline_id }} /mnt/savepoints/{{ pipeline_id }}
+                echo "Volumes prepared for {{ deployment_name }}"
+            volumeMounts:
+              {% if kafka_auth_method != "PLAINTEXT" %}
+              - name: kafka-ssl-certs
+                mountPath: /certs
+              {% endif %}
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+              - name: ha-storage
+                mountPath: /mnt/ha
+              - name: savepoints
+                mountPath: /mnt/savepoints
+        containers:
+          - name: flink-main-container
+            env:
+              # Pipeline-specific parameters
+              - name: JOB_ID
+                value: "{{ job_id }}"
+              - name: KAFKA_INPUT_TOPICS
+                value: "{{ input_topics | join(',') }}"
+              - name: KAFKA_OUTPUT_TOPIC
+                value: "{{ output_topic }}"
+              - name: OUTPUT_MODE
+                value: "{{ output_mode }}"
+              - name: APPLY_PARSER_TO_OUTPUT_EVENTS
+                value: "{{ apply_parser_to_output_events | lower }}"
+              - name: FLINK_PARALLELISM
+                value: "{{ parallelism }}"
+              - name: KAFKA_CONSUMER_GROUP
+                value: "flink-{{ pipeline_id }}"
+              # Window configuration
+              - name: WINDOW_SIZE_SECONDS
+                value: "{{ window_size_sec }}"
+              # Autoscaler settings
+              - name: AUTOSCALER_ENABLED
+                value: "{{ autoscaler_enabled | lower }}"
+              - name: AUTOSCALER_MAX_PARALLELISM
+                value: "{{ autoscaler_max_parallelism }}"
+              # Kafka topics for rules and metrics (from pipeline settings)
+              - name: KAFKA_RULES_TOPIC
+                value: "{{ rules_topic }}"
+              - name: KAFKA_METRICS_TOPIC
+                value: "{{ metrics_topic }}"
+            envFrom:
+              - configMapRef:
+                  name: flink-config
+              - secretRef:
+                  name: flink-sigma-config
+            volumeMounts:
+              {% if kafka_auth_method != "PLAINTEXT" %}
+              - name: kafka-ssl-certs
+                mountPath: /certs
+              {% endif %}
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+              - name: ha-storage
+                mountPath: /mnt/ha
+              - name: savepoints
+                mountPath: /mnt/savepoints
+        volumes:
+          {% if kafka_auth_method != "PLAINTEXT" %}
+          - name: kafka-ssl-certs
+            secret:
+              secretName: kafka-ssl
+              defaultMode: 420
+          {% endif %}
+          - name: checkpoints
+            persistentVolumeClaim:
+              claimName: flink-checkpoints-pvc
+          - name: ha-storage
+            persistentVolumeClaim:
+              claimName: flink-ha-pvc
+          - name: savepoints
+            persistentVolumeClaim:
+              claimName: flink-savepoints-pvc
+
+  # TaskManager Spec
+  taskManager:
+    replicas: {{ taskmanager_replicas }}
+
+    podTemplate:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          app: flink-sigma-detector
+          component: taskmanager
+          pipeline-id: "{{ pipeline_id }}"
+      spec:
+        serviceAccountName: flink
+        securityContext:
+          fsGroup: 9999
+        nodeSelector:
+          spec-node-ns-pod-disk: pvc-security
+        initContainers:
+          - name: prepare-volumes
+            image: busybox:latest
+            command:
+              - sh
+              - -c
+              - |
+                mkdir -p /mnt/checkpoints/{{ pipeline_id }}
+                mkdir -p /mnt/ha/{{ pipeline_id }}/job-result-store
+                mkdir -p /mnt/savepoints/{{ pipeline_id }}
+                chmod -R 777 /mnt/checkpoints/{{ pipeline_id }} /mnt/ha/{{ pipeline_id }} /mnt/savepoints/{{ pipeline_id }}
+                echo "Volumes prepared for {{ deployment_name }}"
+            volumeMounts:
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+              - name: ha-storage
+                mountPath: /mnt/ha
+              - name: savepoints
+                mountPath: /mnt/savepoints
+        containers:
+          - name: flink-main-container
+            env:
+              # Pipeline-specific parameters
+              - name: JOB_ID
+                value: "{{ job_id }}"
+              - name: KAFKA_INPUT_TOPICS
+                value: "{{ input_topics | join(',') }}"
+              - name: KAFKA_OUTPUT_TOPIC
+                value: "{{ output_topic }}"
+              - name: OUTPUT_MODE
+                value: "{{ output_mode }}"
+              - name: APPLY_PARSER_TO_OUTPUT_EVENTS
+                value: "{{ apply_parser_to_output_events | lower }}"
+              - name: FLINK_PARALLELISM
+                value: "{{ parallelism }}"
+              - name: KAFKA_CONSUMER_GROUP
+                value: "flink-{{ pipeline_id }}"
+              # Window configuration
+              - name: WINDOW_SIZE_SECONDS
+                value: "{{ window_size_sec }}"
+              # Autoscaler settings
+              - name: AUTOSCALER_ENABLED
+                value: "{{ autoscaler_enabled | lower }}"
+              - name: AUTOSCALER_MAX_PARALLELISM
+                value: "{{ autoscaler_max_parallelism }}"
+              # Kafka topics for rules and metrics (from pipeline settings)
+              - name: KAFKA_RULES_TOPIC
+                value: "{{ rules_topic }}"
+              - name: KAFKA_METRICS_TOPIC
+                value: "{{ metrics_topic }}"
+            envFrom:
+              - configMapRef:
+                  name: flink-config
+              - secretRef:
+                  name: flink-sigma-config
+            volumeMounts:
+              {% if kafka_auth_method != "PLAINTEXT" %}
+              - name: kafka-ssl-certs
+                mountPath: /certs
+              {% endif %}
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+              - name: ha-storage
+                mountPath: /mnt/ha
+              - name: savepoints
+                mountPath: /mnt/savepoints
+        volumes:
+          {% if kafka_auth_method != "PLAINTEXT" %}
+          - name: kafka-ssl-certs
+            secret:
+              secretName: kafka-ssl
+              defaultMode: 420
+          {% endif %}
+          - name: checkpoints
+            persistentVolumeClaim:
+              claimName: flink-checkpoints-pvc
+          - name: ha-storage
+            persistentVolumeClaim:
+              claimName: flink-ha-pvc
+          - name: savepoints
+            persistentVolumeClaim:
+              claimName: flink-savepoints-pvc
+
+  # PyFlink Job Configuration
+  job:
+    # PyFlink jar
+    jarURI: local:///opt/flink/opt/flink-python_2.12-1.20.0.jar
+    entryClass: org.apache.flink.client.python.PythonDriver
+
+    # Args for PyFlink module
+    args:
+      - "-pyclientexec"
+      - "/usr/bin/python3"
+      - "-py"
+      - "/opt/flink/usrlib/app/main.py"
+
+    # Parallelism (dynamic per pipeline)
+    parallelism: {{ parallelism }}
+
+    # Upgrade mode for checkpoint restoration
+    # last-state: Uses HA metadata + latest checkpoint for fast recovery
+    upgradeMode: last-state
+
+    # Initial state
+    state: running
+
+    # Savepoint trigger
+    savepointTriggerNonce: 0
+
+  # Deployment Mode
+  mode: native
+
+  # Logging Configuration (Flink K8s Operator native)
+  # Ref: .claude/docs/kubernetes-operator/operations/metrics-logging.md
+  logConfiguration:
+    log4j-console.properties: |+
+      # Root logger - INFO for production observability
+      rootLogger.level = INFO
+      rootLogger.appenderRef.console.ref = ConsoleAppender
+
+      # Console appender with structured pattern for Loki/Fluent Bit
+      appender.console.name = ConsoleAppender
+      appender.console.type = Console
+      appender.console.target = SYSTEM_OUT
+      appender.console.layout.type = PatternLayout
+      appender.console.layout.pattern = %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%t] %c{1.} - %m%n
+
+      # Flink core - INFO for checkpoint/state monitoring
+      logger.flink.name = org.apache.flink
+      logger.flink.level = INFO
+
+      # Kafka connector - WARN to reduce noise
+      logger.kafka.name = org.apache.kafka
+      logger.kafka.level = WARN
+
+      logger.kafkaShaded.name = org.apache.flink.kafka.shaded
+      logger.kafkaShaded.level = WARN
+
+      # Pekko/Akka networking - WARN
+      logger.pekko.name = org.apache.pekko
+      logger.pekko.level = WARN
+
+      # Py4J bridge - WARN
+      logger.py4j.name = py4j
+      logger.py4j.level = WARN
+
+      # Beam (if used) - WARN
+      logger.beam.name = org.apache.beam
+      logger.beam.level = WARN
