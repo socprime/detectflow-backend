@@ -27,6 +27,8 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     PATH="/app/.venv/bin:$PATH"
 
+RUN python -m pip install --no-cache-dir setuptools==82.0.0
+
 # Copy dependency files first (for better caching)
 COPY --chown=appuser:appuser pyproject.toml uv.lock ./
 

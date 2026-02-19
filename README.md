@@ -4,6 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.121.3-green.svg)](https://fastapi.tiangolo.com/)
 
 Backend API for managing real-time pipelines with Sigma detection rules, built on Apache Flink and Kafka.
+This project is a component of SOC Prime DetectFlow OSS. See its [README](https://github.com/socprime/detectflow-main) for more details and instructions.
 
 ## Overview
 
@@ -185,8 +186,8 @@ uv run alembic downgrade -1
 ### Docker
 
 ```bash
-docker build -t etl-admin-panel .
-docker run -p 8000:8000 --env-file .env etl-admin-panel
+docker build -t detectflow-backend .
+docker run -p 8000:8000 --env-file .env detectflow-backend
 ```
 
 ## Architecture
