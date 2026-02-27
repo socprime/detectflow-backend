@@ -20,7 +20,7 @@ from apps.core.database import get_db
 from apps.core.exceptions import BadRequestError
 from apps.core.models import User
 from apps.core.schemas import ErrorResponse
-from apps.modules.kafka.parsers import KafkaParsersSyncService
+from apps.modules.kafka.parsers import KafkaParsersEventsReader
 from apps.modules.postgre.config import ConfigDAO
 from apps.modules.postgre.rule import RuleDAO
 from apps.modules.utils import get_fields_from_sigma
@@ -195,7 +195,7 @@ async def _get_sigma_fields(repository_ids: list[str], db: AsyncSession) -> list
 
 async def _get_event_fields(topics: list[str], parser_query: str) -> list[str]:
     parser_manager = SchemaParserManager()
-    kafka_manager = KafkaParsersSyncService()
+    kafka_manager = KafkaParsersEventsReader()
     parser_config = parser_manager.query_parser(query=parser_query)
     parsed_events: list[dict] = []
     for topic in topics:

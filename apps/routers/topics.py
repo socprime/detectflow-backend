@@ -22,7 +22,7 @@ from apps.core.schemas import (
     TopicsEventsRequest,
     TopicsResponse,
 )
-from apps.modules.kafka.parsers import KafkaParsersSyncService
+from apps.modules.kafka.parsers import KafkaParsersEventsReader
 from apps.modules.kafka.topics import get_topics_from_kafka
 
 router = APIRouter(prefix="/api/v1", tags=["Topics"])
@@ -171,7 +171,7 @@ async def get_topics_events(
             detail=f"Topics not found: {', '.join(invalid_topics)}",
         )
 
-    kafka_service = KafkaParsersSyncService()
+    kafka_service = KafkaParsersEventsReader()
     events: list[TopicEventItem] = []
 
     tasks = [kafka_service.get_events(topic=topic, limit=10) for topic in request.topics]

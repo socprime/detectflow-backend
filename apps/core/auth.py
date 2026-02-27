@@ -20,6 +20,7 @@ from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.core.database import get_db
+from apps.core.enums import UserRole
 from apps.core.models import User
 from apps.core.settings import settings
 from apps.modules.postgre.user import UserDAO
@@ -245,8 +246,6 @@ async def get_current_admin_user(
     Raises:
         HTTPException: If user is not admin.
     """
-    from apps.core.enums import UserRole
-
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

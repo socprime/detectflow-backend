@@ -37,6 +37,7 @@ class PipelineDAO(BaseDAO[Pipeline]):
         PipelineSortField.EVENTS_UNTAGGED.value: (Pipeline, "events_untagged"),
         PipelineSortField.CREATED.value: (Pipeline, "created"),
         PipelineSortField.ENABLED.value: (Pipeline, "enabled"),
+        PipelineSortField.STATUS.value: (Pipeline, "status"),
         # Special handlers for computed/related fields
         PipelineSortField.SOURCE_TOPICS.value: "source_topics",  # Sort by first element
         PipelineSortField.LOG_SOURCE.value: "log_source",  # Needs join
@@ -177,9 +178,14 @@ class PipelineDAO(BaseDAO[Pipeline]):
             return query.order_by(sort_column.desc() if is_desc else sort_column.asc())
 
         if config == "log_source":
-            # Sort by log source name (needs outerjoin)
-            query = query.outerjoin(LogSource, Pipeline.log_source_id == LogSource.id)
-            sort_column = func.coalesce(LogSource.name, "")
+            # Sort by log source name using scalar subquery (avoids join duplicates)
+            log_source_name = (
+                select(LogSource.name)
+                .where(LogSource.id == Pipeline.log_source_id)
+                .correlate(Pipeline)
+                .scalar_subquery()
+            )
+            sort_column = func.coalesce(log_source_name, "")
             return query.order_by(sort_column.desc() if is_desc else sort_column.asc())
 
         if config == "filters":

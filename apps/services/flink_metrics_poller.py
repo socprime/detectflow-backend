@@ -27,21 +27,21 @@ logger = get_logger(__name__)
 class PipelineMetricsCache:
     """Cached metrics for a single pipeline.
 
-    Stores both raw Flink metrics and calculated EPS rates for tagged/untagged events.
-    EPS rates are calculated from the delta of custom gauges between polls.
+    EPS values are read DIRECTLY from Flink output rate gauges:
+    - outputTaggedPerSecond: tagged events written to output topic
+    - outputUntaggedPerSecond: untagged events written to output (0 if matched_only)
+
+    This provides accurate real-time rates without delta calculation artifacts
+    that caused spiky dashboard behavior (0 → spike → 0 pattern).
     """
 
     pipeline_id: UUID
     metrics: FlinkJobMetrics | None
     last_updated: datetime
     error: str | None = None
-    # Calculated EPS from custom gauges (accurate, not based on IOMetrics)
-    tagged_eps: float = 0.0  # Rate of matched events per second
-    untagged_eps: float = 0.0  # Rate of unmatched events per second
-    # Previous counter values for rate calculation
-    _prev_matched_events: int = 0
-    _prev_total_events: int = 0
-    _prev_timestamp: datetime | None = None
+    # Output rate gauges from Flink (events ACTUALLY WRITTEN to output topic)
+    tagged_eps: float = 0.0  # Tagged events/sec written to output
+    untagged_eps: float = 0.0  # Untagged events/sec (0 if matched_only mode)
 
 
 class FlinkMetricsPoller:
@@ -162,14 +162,15 @@ class FlinkMetricsPoller:
         MetricsConsumerService via Kafka topic. This poller only caches real-time
         metrics (EPS, state, lag) for dashboard display.
 
-        Calculates accurate tagged_eps/untagged_eps from custom Flink gauges.
+        Uses REAL rate gauges from Flink (matchedEventsPerSecond, totalEventsPerSecond)
+        which are calculated at the end of each processing window. This eliminates
+        the spiky behavior caused by delta calculation with misaligned poll/window intervals.
 
         Args:
             pipeline_id: Pipeline UUID
             deployment_name: FlinkDeployment name (optional)
         """
         now = datetime.now(UTC)
-        prev_cache = self.metrics_cache.get(pipeline_id)
 
         try:
             metrics = await self._flink_service.get_pipeline_metrics(
@@ -177,24 +178,16 @@ class FlinkMetricsPoller:
                 deployment_name=deployment_name,
             )
 
-            # Calculate EPS from custom gauges (delta / time)
+            # Read output rate gauges directly from Flink (no calculation needed!)
+            # These represent events ACTUALLY WRITTEN to output topic
             tagged_eps = 0.0
             untagged_eps = 0.0
 
-            if metrics and prev_cache and prev_cache._prev_timestamp:
-                time_delta = (now - prev_cache._prev_timestamp).total_seconds()
-                if time_delta > 0:
-                    # Delta of matched events
-                    matched_delta = metrics.matched_events - prev_cache._prev_matched_events
-                    total_delta = metrics.total_events - prev_cache._prev_total_events
+            if metrics:
+                tagged_eps = metrics.output_tagged_per_second
+                untagged_eps = metrics.output_untagged_per_second  # Will be 0 if matched_only mode
 
-                    # Handle counter resets (job restart)
-                    if matched_delta >= 0 and total_delta >= 0:
-                        tagged_eps = matched_delta / time_delta
-                        untagged_delta = total_delta - matched_delta
-                        untagged_eps = max(0, untagged_delta / time_delta)
-
-            # Update cache with metrics and calculated EPS
+            # Update cache with metrics and rate gauge values
             self.metrics_cache[pipeline_id] = PipelineMetricsCache(
                 pipeline_id=pipeline_id,
                 metrics=metrics,
@@ -202,14 +195,11 @@ class FlinkMetricsPoller:
                 error=None if metrics else "No running job found",
                 tagged_eps=tagged_eps,
                 untagged_eps=untagged_eps,
-                _prev_matched_events=metrics.matched_events if metrics else 0,
-                _prev_total_events=metrics.total_events if metrics else 0,
-                _prev_timestamp=now,
             )
 
         except Exception as e:
             logger.debug(f"Failed to poll metrics for pipeline {pipeline_id}: {e}")
-            # Update cache with error but preserve previous counter values for next poll
+            # Update cache with error
             self.metrics_cache[pipeline_id] = PipelineMetricsCache(
                 pipeline_id=pipeline_id,
                 metrics=None,
@@ -217,9 +207,6 @@ class FlinkMetricsPoller:
                 error=str(e),
                 tagged_eps=0.0,
                 untagged_eps=0.0,
-                _prev_matched_events=prev_cache._prev_matched_events if prev_cache else 0,
-                _prev_total_events=prev_cache._prev_total_events if prev_cache else 0,
-                _prev_timestamp=prev_cache._prev_timestamp if prev_cache else None,
             )
 
     def get_metrics(self, pipeline_id: UUID) -> FlinkJobMetrics | None:

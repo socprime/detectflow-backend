@@ -34,9 +34,11 @@ class FlinkJobMetrics:
     # Total records (accumulated)
     total_records_in: int = 0
     total_records_out: int = 0
-    # Custom counters from SigmaMatcherBroadcastFunction (for events_tagged/untagged)
+    # Custom counters from SigmaMatcherBroadcastFunction (cumulative, for Kafka metrics)
     matched_events: int = 0  # Events that matched at least one Sigma rule
-    total_events: int = 0  # Total events processed (output)
+    total_events: int = 0  # Total events processed
+    output_tagged_per_second: float = 0.0
+    output_untagged_per_second: float = 0.0
 
 
 @dataclass
@@ -394,8 +396,13 @@ class FlinkRestClient:
             # Get EPS from subtask metrics (more accurate than IOMetrics)
             input_eps, output_eps = await self._get_throughput_metrics(job_id, vertices)
 
-            # Get custom counters (matchedEvents, totalEvents) from Sigma processor
-            matched_events, total_events = await self._get_custom_counters(job_id, vertices)
+            # Get custom counters and output rate gauges from Sigma processor
+            (
+                matched_events,
+                total_events,
+                output_tagged_eps,
+                output_untagged_eps,
+            ) = await self._get_custom_counters(job_id, vertices)
 
             return FlinkJobMetrics(
                 job_id=job_id,
@@ -407,6 +414,8 @@ class FlinkRestClient:
                 total_records_out=total_records_out,
                 matched_events=matched_events,
                 total_events=total_events,
+                output_tagged_per_second=output_tagged_eps,
+                output_untagged_per_second=output_untagged_eps,
             )
 
         except Exception as e:
@@ -473,25 +482,27 @@ class FlinkRestClient:
 
         return input_eps, output_eps
 
-    async def _get_custom_counters(self, job_id: str, vertices: list[dict]) -> tuple[int, int]:
-        """Get event counters from Sigma processor vertex.
+    async def _get_custom_counters(self, job_id: str, vertices: list[dict]) -> tuple[int, int, float, float]:
+        """Get event counters and output rate gauges from Sigma processor vertex.
 
-        Uses custom Flink gauges (matchedEvents, totalEvents) which are registered
-        in SigmaMatcherBroadcastFunction.open(). These track actual matched events
-        independently of output_mode setting.
+        Uses custom Flink gauges registered in SigmaMatcherBroadcastFunction.open():
+        - matchedEvents, totalEvents: Cumulative counters (for Kafka metrics consumer)
+        - outputTaggedPerSecond, outputUntaggedPerSecond: Output rate gauges (for dashboard)
 
-        Note: PyFlink counters don't expose via REST API, but gauges do.
-        The Flink job registers these as gauges to make them accessible.
+        Output rate gauges represent events ACTUALLY WRITTEN to output topic.
+        outputUntaggedPerSecond will be 0 if output_mode == "matched_only".
 
         Args:
             job_id: Flink job ID
             vertices: List of vertex dicts from job details
 
         Returns:
-            Tuple of (matched_events, total_events)
+            Tuple of (matched_events, total_events, output_tagged_eps, output_untagged_eps)
         """
         matched_events = 0
         total_events = 0
+        output_tagged_eps = 0.0
+        output_untagged_eps = 0.0
 
         try:
             for vertex in vertices:
@@ -501,10 +512,13 @@ class FlinkRestClient:
                 # Sigma Detection Processor has our metrics
                 if "sigma" in name.lower() and "processor" in name.lower():
                     try:
-                        # Custom gauges registered in SigmaMatcherBroadcastFunction
                         metrics_to_fetch = [
+                            # Cumulative counters (for Kafka metrics consumer)
                             "Sigma_Detection_Processor.matchedEvents",
                             "Sigma_Detection_Processor.totalEvents",
+                            # Output rate gauges (for dashboard)
+                            "Sigma_Detection_Processor.outputTaggedPerSecond",
+                            "Sigma_Detection_Processor.outputUntaggedPerSecond",
                         ]
 
                         # Get aggregated sum across all subtasks
@@ -514,12 +528,16 @@ class FlinkRestClient:
 
                         matched_events = int(aggregated.get("Sigma_Detection_Processor.matchedEvents", 0))
                         total_events = int(aggregated.get("Sigma_Detection_Processor.totalEvents", 0))
+                        output_tagged_eps = aggregated.get("Sigma_Detection_Processor.outputTaggedPerSecond", 0.0)
+                        output_untagged_eps = aggregated.get("Sigma_Detection_Processor.outputUntaggedPerSecond", 0.0)
 
                         logger.debug(
-                            "Got event counters from custom gauges",
+                            "Got Sigma processor metrics",
                             extra={
                                 "matched_events": matched_events,
                                 "total_events": total_events,
+                                "output_tagged_eps": output_tagged_eps,
+                                "output_untagged_eps": output_untagged_eps,
                             },
                         )
 
@@ -530,7 +548,7 @@ class FlinkRestClient:
         except Exception as e:
             logger.debug(f"Failed to get custom counters: {e}")
 
-        return matched_events, total_events
+        return matched_events, total_events, output_tagged_eps, output_untagged_eps
 
 
 class FlinkMetricsService:

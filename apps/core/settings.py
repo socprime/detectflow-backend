@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     autoscaler_quota_cpu: float | None = None  # CPU quota for autoscaler
     autoscaler_quota_memory_gb: float | None = None  # Memory quota in GB for autoscaler
 
+    # Flink node selector for pod scheduling (key=value for nodeSelector in pod specs)
+    flink_node_selector_key: str = "spec-node-ns-pod-disk"
+    flink_node_selector_value: str = "pvc-security"
+
 
 # Create a singleton instance
 settings = Settings()

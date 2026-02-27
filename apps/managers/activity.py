@@ -10,6 +10,7 @@ from apps.core.database import AsyncSessionLocal
 from apps.core.logger import get_logger
 from apps.core.models import AuditLog
 from apps.core.schemas import ActivityEvent, ActivityItem
+from apps.modules.postgre.audit import AuditLogDAO
 
 logger = get_logger(__name__)
 
@@ -120,8 +121,6 @@ class ActivityService:
 
         # Otherwise, fetch from database (fallback for server restart)
         try:
-            from apps.modules.postgre.audit import AuditLogDAO
-
             async with AsyncSessionLocal() as db:
                 audit_dao = AuditLogDAO(db)
                 audit_logs = await audit_dao.get_recent(limit=limit)

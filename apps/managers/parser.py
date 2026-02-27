@@ -5,12 +5,12 @@ import yaml
 from schema_parser.manager import ParserManager as SchemaParserManager
 
 from apps.core.schemas import ParserRunResultItem
-from apps.modules.kafka.parsers import KafkaParsersSyncService
+from apps.modules.kafka.parsers import KafkaParsersEventsReader
 
 
 class ParserManager:
     parser_manager = SchemaParserManager()
-    kafka_manager = KafkaParsersSyncService()
+    kafka_manager = KafkaParsersEventsReader()
 
     async def test_parser_config(
         self, topics: list[str], parser_config: dict, field_mapping: str | None = None

@@ -14,7 +14,7 @@ from apps.modules.kafka.base import BaseKafkaAsyncClient, BaseKafkaSyncClient
 logger = get_logger(__name__)
 
 
-class KafkaParsersSyncService(BaseKafkaAsyncClient):
+class KafkaParsersEventsReader(BaseKafkaAsyncClient):
     def __init__(self):
         super().__init__(
             group_id="admin-panel-backend-parsers-tester",
