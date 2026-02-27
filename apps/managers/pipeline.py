@@ -249,6 +249,9 @@ class KubernetesService:
             autoscaler_quota_memory=quota_memory,
             # Kafka authentication (for SSL certificate volumes)
             kafka_auth_method=settings.kafka_auth_method,
+            # Node selector for pod scheduling
+            node_selector_key=settings.flink_node_selector_key,
+            node_selector_value=settings.flink_node_selector_value,
         )
 
         # Parse YAML to dict
@@ -388,6 +391,9 @@ class KubernetesService:
             autoscaler_quota_memory=quota_memory,
             # Kafka authentication (for SSL certificate volumes)
             kafka_auth_method=settings.kafka_auth_method,
+            # Node selector for pod scheduling
+            node_selector_key=settings.flink_node_selector_key,
+            node_selector_value=settings.flink_node_selector_value,
         )
 
         manifest = yaml.safe_load(manifest_yaml)
@@ -924,7 +930,7 @@ class KubernetesService:
                         "spec": {
                             "restartPolicy": "Never",
                             "nodeSelector": {
-                                "spec-node-ns-pod-disk": "pvc-security",
+                                settings.flink_node_selector_key: settings.flink_node_selector_value,
                             },
                             "containers": [
                                 {

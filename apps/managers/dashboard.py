@@ -30,6 +30,7 @@ from apps.core.schemas import (
 )
 from apps.managers.activity import activity_service
 from apps.managers.pipeline_status import pipeline_status_manager
+from apps.services.flink_metrics_poller import flink_metrics_poller
 
 logger = get_logger(__name__)
 
@@ -76,8 +77,6 @@ class DashboardService:
         Returns:
             FlinkJobMetrics or None if not available
         """
-        from apps.services.flink_metrics_poller import flink_metrics_poller
-
         return flink_metrics_poller.get_metrics(pipeline_id)
 
     async def get_dashboard_data(self) -> DashboardData:
@@ -106,8 +105,6 @@ class DashboardService:
         Returns:
             Complete snapshot with health status
         """
-        from apps.services.flink_metrics_poller import flink_metrics_poller
-
         data = await self.get_dashboard_data()
 
         return DashboardSnapshotResponse(
@@ -127,8 +124,6 @@ class DashboardService:
         Returns:
             DashboardGraphData for visualization
         """
-        from apps.services.flink_metrics_poller import flink_metrics_poller
-
         # Get unique source topics from enabled pipelines only (using UNNEST for array)
         source_topics_query = await db.execute(
             select(func.unnest(Pipeline.source_topics).label("topic")).where(Pipeline.enabled.is_(True)).distinct()
@@ -254,8 +249,6 @@ class DashboardService:
         Returns:
             List of pipeline stats for the modal table
         """
-        from apps.services.flink_metrics_poller import flink_metrics_poller
-
         # Get all enabled pipelines with repositories eagerly loaded
         pipelines_query = await db.execute(
             select(Pipeline).where(Pipeline.enabled.is_(True)).options(selectinload(Pipeline.repositories))
@@ -336,8 +329,6 @@ class DashboardService:
         Args:
             pipeline_id: Specific pipeline to invalidate, or None for all
         """
-        from apps.services.flink_metrics_poller import flink_metrics_poller
-
         if pipeline_id:
             self._pipeline_cache.pop(pipeline_id, None)
             flink_metrics_poller.clear_cache(pipeline_id)

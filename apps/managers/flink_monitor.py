@@ -14,13 +14,15 @@ Architecture:
 import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from uuid import UUID
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.clients.flink_rest import FlinkRestClient
 from apps.core.database import AsyncSessionLocal
+from apps.core.enums import get_status_level
 from apps.core.logger import get_logger
 from apps.core.models import Pipeline
 from apps.core.settings import settings
@@ -305,7 +307,7 @@ class FlinkMonitorService:
         old_status: str,
         new_status: str,
     ) -> None:
-        """Emit activity event for status change.
+        """Emit activity event for status change and update DB.
 
         Args:
             pipeline_id: Pipeline UUID string
@@ -313,7 +315,14 @@ class FlinkMonitorService:
             old_status: Previous status
             new_status: New status
         """
-        from apps.core.enums import get_status_level
+        # Update status in database first - if this fails, don't emit activity event
+        db_updated = await self._update_pipeline_status(pipeline_id, new_status)
+        if not db_updated:
+            logger.warning(
+                "Skipping activity event due to DB update failure",
+                extra={"pipeline_id": pipeline_id, "new_status": new_status},
+            )
+            return
 
         # Determine severity based on new status
         severity = get_status_level(new_status)
@@ -345,6 +354,32 @@ class FlinkMonitorService:
                 "Failed to emit status change event",
                 extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
+
+    async def _update_pipeline_status(self, pipeline_id: str, status: str) -> bool:
+        """Update pipeline status in database.
+
+        Args:
+            pipeline_id: Pipeline UUID string
+            status: New status value
+
+        Returns:
+            True if update succeeded, False otherwise
+        """
+        try:
+            async with AsyncSessionLocal() as db:
+                await db.execute(update(Pipeline).where(Pipeline.id == UUID(pipeline_id)).values(status=status))
+                await db.commit()
+                logger.debug(
+                    "Pipeline status updated in DB",
+                    extra={"pipeline_id": pipeline_id, "status": status},
+                )
+                return True
+        except Exception as e:
+            logger.error(
+                "Failed to update pipeline status in DB",
+                extra={"pipeline_id": pipeline_id, "status": status, "error": str(e)},
+            )
+            return False
 
     async def _check_exceptions(
         self,

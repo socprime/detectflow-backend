@@ -1,12 +1,12 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     ADMIN = "admin"
     USER = "user"
 
 
-class PipelineSortField(str, Enum):
+class PipelineSortField(StrEnum):
     """Allowed sort fields for pipeline list endpoint."""
 
     NAME = "name"
@@ -19,9 +19,10 @@ class PipelineSortField(str, Enum):
     EVENTS_UNTAGGED = "events_untagged"
     CREATED = "created"
     ENABLED = "enabled"
+    STATUS = "status"
 
 
-class PipelineRuleSortField(str, Enum):
+class PipelineRuleSortField(StrEnum):
     """Allowed sort fields for pipeline rules endpoint."""
 
     NAME = "name"
@@ -32,7 +33,7 @@ class PipelineRuleSortField(str, Enum):
     UPDATED = "updated"
 
 
-class AuditSeverity(str, Enum):
+class AuditSeverity(StrEnum):
     """Severity levels for audit log entries."""
 
     INFO = "info"

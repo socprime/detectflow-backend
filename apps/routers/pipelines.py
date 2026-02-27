@@ -65,7 +65,7 @@ async def get_pipelines(
     and real-time statistics (events tagged/untagged).
 
     Sort options: name, source_topics, destination_topic, log_source, filters, rules,
-    events_tagged, events_untagged, created, enabled
+    events_tagged, events_untagged, created, enabled, status
     """
     skip = (page - 1) * limit
     pagination = {

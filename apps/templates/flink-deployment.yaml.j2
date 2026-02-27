@@ -107,7 +107,7 @@ spec:
         securityContext:
           fsGroup: 9999  # Flink user GID
         nodeSelector:
-          spec-node-ns-pod-disk: pvc-security
+          {{ node_selector_key }}: {{ node_selector_value }}
         initContainers:
           - name: prepare-volumes
             image: busybox:latest
@@ -212,7 +212,7 @@ spec:
         securityContext:
           fsGroup: 9999
         nodeSelector:
-          spec-node-ns-pod-disk: pvc-security
+          {{ node_selector_key }}: {{ node_selector_value }}
         initContainers:
           - name: prepare-volumes
             image: busybox:latest
@@ -302,7 +302,7 @@ spec:
     jarURI: local:///opt/flink/opt/flink-python_2.12-1.20.0.jar
     entryClass: org.apache.flink.client.python.PythonDriver
 
-    # Args for PyFlink module
+    # Args для PyFlink module
     args:
       - "-pyclientexec"
       - "/usr/bin/python3"
