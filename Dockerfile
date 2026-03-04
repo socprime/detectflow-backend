@@ -8,7 +8,6 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        gcc \
         postgresql-client \
         netcat-openbsd \
         curl \
@@ -27,8 +26,6 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
     PATH="/app/.venv/bin:$PATH"
-
-RUN python -m pip install --no-cache-dir setuptools==82.0.0
 
 # Copy dependency files first (for better caching)
 COPY --chown=appuser:appuser pyproject.toml uv.lock ./
