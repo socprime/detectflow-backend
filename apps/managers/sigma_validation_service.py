@@ -1,4 +1,4 @@
-"""Sigma rule validation service (TDM-11649).
+"""Sigma rule validation service .
 
 This service validates Sigma rules against the current rule loader module version.
 Rules that cannot be processed by the Flink job are marked as unsupported.
