@@ -72,7 +72,7 @@ class KafkaRulesSyncService(BaseKafkaSyncClient):
             else:
                 logger.debug(f"Rule delivered to Kafka: key={msg.key()}")
 
-        # Filter out unsupported rules 
+        # Filter out unsupported rules
         # Only Rule model has is_supported attribute, TdmRule always passes through
         supported_rules = []
         skipped_count = 0

@@ -111,7 +111,7 @@ class RulesOrchestrator:
 
         rule = await self.rule_repo.create(repository_id=repository_id, **rule_data)
 
-        # Validate rule 
+        # Validate rule
         validation_service = SigmaValidationService(self.db)
         await validation_service.validate_rule(rule, force=True)
 
@@ -231,7 +231,7 @@ class RulesOrchestrator:
 
         rule = await self.rule_repo.update(rule_id, **update_data)
 
-        # Re-validate if body was changed 
+        # Re-validate if body was changed
         if "body" in update_data:
             validation_service = SigmaValidationService(self.db)
             await validation_service.validate_rule(rule, force=True)
@@ -333,7 +333,7 @@ class RulesOrchestrator:
             raise NotFoundError(f"Pipeline {pipeline_id} and/or rule {rule_id} not found")
         rule = await self.rule_repo.get_by_id(rule_id)
         if rule:
-            # Only send to Kafka if rule is supported 
+            # Only send to Kafka if rule is supported
             if rule.is_supported:
                 logger.info(f"Sending rule {rule_id} to Kafka for pipeline {pipeline_id}")
                 await self.kafka.send_rules(str(pipeline_id), [rule])
@@ -376,7 +376,7 @@ class RulesOrchestrator:
         Handle Pipeline Enable event: Sync all enabled rules to Kafka.
 
         This is called when a pipeline is enabled/resumed. It:
-        1. If needs_revalidation=True: Re-validates all rules for the pipeline 
+        1. If needs_revalidation=True: Re-validates all rules for the pipeline
         2. Syncs enabled + supported rules to Kafka
         3. Deletes disabled/unsupported rules from Kafka
 
@@ -386,7 +386,7 @@ class RulesOrchestrator:
         """
         rules, _ = await self.pipeline_rule_repo.get_by_pipeline(pipeline_id, limit=100000)
 
-        # Re-validate all rules only if version changed 
+        # Re-validate all rules only if version changed
         if needs_revalidation:
             all_rules = [pr.rule for pr in rules if pr.rule]
             if all_rules:
@@ -576,7 +576,7 @@ class RulesOrchestrator:
         # Convert deleted_rule_ids to strings for Kafka
         deleted_rule_ids_str = [str(rule_id) for rule_id in deleted_rule_ids]
 
-        # Fetch DB rules to check is_supported status 
+        # Fetch DB rules to check is_supported status
         all_rule_ids = [UUID(rule.id) for rule in new_rules] + [UUID(rule.id) for rule in updated_rules]
         db_rules_list = await self.rule_repo.get_by_ids(all_rule_ids) if all_rule_ids else []
         db_rules_map = {str(rule.id): rule for rule in db_rules_list}
@@ -665,7 +665,7 @@ class RulesOrchestrator:
         ]
         await self.rule_repo.upsert_many(rules_data)
 
-        # Validate upserted rules 
+        # Validate upserted rules
         rule_ids = [UUID(rule.id) for rule in rules]
         db_rules = await self.rule_repo.get_by_ids(rule_ids)
         if db_rules:

@@ -891,7 +891,7 @@ class PipelineOrchestrator:
 
     async def _sync_kafka_data_on_enable(self, pipeline_id: UUID, updated: Pipeline) -> None:
         """Sync rules, filters, parser, and custom_fields to Kafka on enable/resume."""
-        # Check if re-validation needed 
+        # Check if re-validation needed
         needs_revalidation = updated.needs_restart or False
 
         await self._get_rules_orchestrator().handle_pipeline_enable(pipeline_id, needs_revalidation=needs_revalidation)
@@ -1248,11 +1248,11 @@ class PipelineOrchestrator:
             enabled=pipeline.enabled,
         )
 
-        # Get rule validation counts 
+        # Get rule validation counts
         validation_service = SigmaValidationService(self.db)
         supported_rules_count, total_rules_count = await validation_service.get_supported_rules_count(pipeline_id)
 
-        # Build warnings list 
+        # Build warnings list
         warnings: list[str] = []
         if total_rules_count > 0 and supported_rules_count == 0:
             warnings.append("All rules in this pipeline are unsupported. No events will be tagged.")
@@ -1334,7 +1334,7 @@ class PipelineOrchestrator:
         for pipeline in pipelines:
             filters_count = len(pipeline.filters) if pipeline.filters else 0
             rules_count = len(pipeline.pipeline_rules) if hasattr(pipeline, "pipeline_rules") else 0
-            # Count supported rules 
+            # Count supported rules
             supported_rules_count = sum(1 for pr in (pipeline.pipeline_rules or []) if pr.rule and pr.rule.is_supported)
 
             repositories = (

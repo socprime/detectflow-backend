@@ -1,7 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from apps.managers.sigma_validation_service import SigmaValidationService
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -20,6 +19,7 @@ from apps.core.settings import settings
 from apps.managers.activity import activity_service
 from apps.managers.dashboard import dashboard_service
 from apps.managers.flink_monitor import flink_monitor_service
+from apps.managers.sigma_validation_service import SigmaValidationService
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.activity_consumer import activity_consumer
 from apps.modules.kafka.metrics import metrics_consumer

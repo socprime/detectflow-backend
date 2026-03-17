@@ -59,7 +59,7 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
             query = query.join(Rule, PipelineRule.rule_id == Rule.id).where(Rule.name.ilike(f"%{search}%"))
             has_rule_join = True
 
-        # Apply supported/unsupported filter 
+        # Apply supported/unsupported filter
         if supported_filter != "all":
             if not has_rule_join:
                 query = query.join(Rule, PipelineRule.rule_id == Rule.id)

@@ -617,7 +617,7 @@ class RuleListItem(BaseModel):
     updated: str
     enabled: bool
     tagged_events: int
-    # Sigma validation fields 
+    # Sigma validation fields
     is_supported: bool = True
     unsupported_reason: str | None = None
 
@@ -630,7 +630,7 @@ class PipelineRulesListResponse(BaseModel):
     offset: int
     order: str
     data: list[RuleListItem]
-    # Rule validation summary 
+    # Rule validation summary
     supported_count: int = Field(0, description="Count of supported rules in this pipeline")
     unsupported_count: int = Field(0, description="Count of unsupported rules in this pipeline")
 
@@ -974,7 +974,7 @@ class RuleDetailResponse(BaseModel, extra="ignore"):
     product: str | None = None
     service: str | None = None
     category: str | None = None
-    # Sigma validation fields 
+    # Sigma validation fields
     is_supported: bool = True
     unsupported_reason: str | None = None
 
@@ -992,7 +992,7 @@ class RuleListResponse(BaseModel):
     data: list[RuleDetailResponse]
 
 
-# Sigma Validation Schemas 
+# Sigma Validation Schemas
 class SigmaValidateRequest(BaseModel):
     """Request to validate a sigma rule."""
 
