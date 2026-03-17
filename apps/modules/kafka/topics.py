@@ -5,7 +5,9 @@ import asyncio
 from confluent_kafka import KafkaException
 from confluent_kafka.admin import AdminClient
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
+from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.base import BaseKafkaSyncClient
 
 logger = get_logger(__name__)
@@ -92,12 +94,28 @@ class KafkaTopicsService(BaseKafkaSyncClient):
                 "Kafka error while fetching topics",
                 extra={"error": str(e)},
             )
+            if ErrorTracker.should_log("kafka_topics_fetch"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="kafka",
+                    details=f"Kafka error while fetching topics: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             raise
         except Exception as e:
             logger.error(
                 "Unexpected error while fetching topics from Kafka",
                 extra={"error": str(e)},
             )
+            if ErrorTracker.should_log("kafka_topics_fetch_unexpected"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="kafka",
+                    details=f"Unexpected error while fetching topics from Kafka: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             raise
 
 

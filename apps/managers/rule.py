@@ -15,6 +15,7 @@ from apps.clients.tdm_api import (
 from apps.core.exceptions import NotFoundError, RepositoryNotLocalError
 from apps.core.logger import get_logger
 from apps.core.models import Repository, Rule, User
+from apps.managers.sigma_validation_service import SigmaValidationService
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.rules import KafkaRulesSyncService
 from apps.modules.postgre.config import ConfigDAO
@@ -49,8 +50,19 @@ class RulesOrchestrator:
         self,
         pagination: dict,
         repository_id: UUID | None = None,
+        search_fields: list[str] | None = None,
     ) -> tuple[list[Rule], int]:
-        """Get paginated list of rules with optional repository filter."""
+        """Get paginated list of rules with optional repository and search field filters.
+
+        Args:
+            pagination: Dict with keys: skip, limit, search, sort, order (from pagination dependency).
+            repository_id: If set, only rules from this repository are returned.
+            search_fields: Rule fields to apply search to. Allowed: name, product, service, category.
+                If None or empty, defaults to ["name", "product", "service", "category"].
+
+        Returns:
+            Tuple of (list of Rule models, total count).
+        """
         filters = {}
         if repository_id:
             filters["repository_id"] = repository_id
@@ -60,7 +72,7 @@ class RulesOrchestrator:
             limit=pagination["limit"],
             filters=filters if filters else None,
             search=pagination["search"],
-            search_fields=["name", "product", "service", "category"],
+            search_fields=search_fields or ["name", "product", "service", "category"],
             sort=pagination["sort"],
             order=pagination["order"],
         )
@@ -99,12 +111,18 @@ class RulesOrchestrator:
 
         rule = await self.rule_repo.create(repository_id=repository_id, **rule_data)
 
+        # Validate rule 
+        validation_service = SigmaValidationService(self.db)
+        await validation_service.validate_rule(rule, force=True)
+
         pipelines = await self.pipeline_repo.get_by_repository_id(repository_id)
 
         await self._add_rules_to_pipelines(pipeline_ids=[pipeline.id for pipeline in pipelines], rule_ids=[rule.id])
 
+        # Only send to Kafka if rule is supported AND pipeline is enabled (BUG #2 fix)
         for pipeline in pipelines:
-            await self.kafka.send_rules(str(pipeline.id), [rule])
+            if pipeline.enabled and rule.is_supported:
+                await self.kafka.send_rules(str(pipeline.id), [rule])
 
         await activity_producer.log_action(
             action="create",
@@ -115,7 +133,9 @@ class RulesOrchestrator:
             details=f"Created rule {rule.name}",
         )
 
-        return rule
+        # Refresh rule to load all attributes after flush operations (avoids MissingGreenlet)
+        refreshed_rule = await self.rule_repo.get_by_id(rule.id)
+        return refreshed_rule if refreshed_rule else rule
 
     async def _add_rules_to_pipelines(self, pipeline_ids: list[UUID | str], rule_ids: list[UUID | str]) -> None:
         pipeline_rules_data = []
@@ -211,11 +231,21 @@ class RulesOrchestrator:
 
         rule = await self.rule_repo.update(rule_id, **update_data)
 
-        # Send rules to Kafka for pipelines where it is enabled
+        # Re-validate if body was changed 
+        if "body" in update_data:
+            validation_service = SigmaValidationService(self.db)
+            await validation_service.validate_rule(rule, force=True)
+
+        # Sync to Kafka for pipelines where rule is enabled (BUG #1 fix)
         pipeline_rules = await self.pipeline_rule_repo.get_by_rule_id(rule_id)
         for pr in pipeline_rules:
             if pr.enabled:
-                await self.kafka.send_rules(str(pr.pipeline_id), [rule])
+                if rule.is_supported:
+                    # Send supported rule to Kafka
+                    await self.kafka.send_rules(str(pr.pipeline_id), [rule])
+                else:
+                    # Delete unsupported rule from Kafka (rule became unsupported after body update)
+                    await self.kafka.delete_rules(str(pr.pipeline_id), [str(rule.id)])
 
         await activity_producer.log_action(
             action="update",
@@ -226,7 +256,9 @@ class RulesOrchestrator:
             details=f"Updated rule {rule.name}",
         )
 
-        return rule
+        # Refresh rule to load all attributes after flush operations (avoids MissingGreenlet)
+        refreshed_rule = await self.rule_repo.get_by_id(rule.id)
+        return refreshed_rule if refreshed_rule else rule
 
     # ==========================================
     # REPOSITORY OPERATIONS
@@ -275,7 +307,11 @@ class RulesOrchestrator:
 
         rules = await self.rule_repo.get_all_by_repository(repository_ids)
         await self._add_rules_to_pipelines(pipeline_ids=[pipeline_id], rule_ids=[rule.id for rule in rules])
-        await self.kafka.send_rules(str(pipeline_id), rules)
+
+        # Only send supported rules to Kafka (ISSUE #4 fix)
+        supported_rules = [rule for rule in rules if rule.is_supported]
+        if supported_rules:
+            await self.kafka.send_rules(str(pipeline_id), supported_rules)
 
     async def handle_pipeline_deletion(self, pipeline_id: UUID) -> None:
         """
@@ -290,32 +326,87 @@ class RulesOrchestrator:
         if rules:
             await self.kafka.delete_rules(str(pipeline_id), [str(r.id) for r in rules])
 
-    async def enable_rule_in_pipeline(self, pipeline_id: UUID, rule_id: UUID) -> None:
+    async def enable_rule_in_pipeline(self, pipeline_id: UUID, rule_id: UUID, user: User) -> None:
         logger.info(f"Enabling rule {rule_id} in pipeline {pipeline_id}")
-        await self.pipeline_rule_repo.update_rule_status(pipeline_id, rule_id, True)
+        rows_updated = await self.pipeline_rule_repo.update_rule_status(pipeline_id, rule_id, True)
+        if rows_updated == 0:
+            raise NotFoundError(f"Pipeline {pipeline_id} and/or rule {rule_id} not found")
         rule = await self.rule_repo.get_by_id(rule_id)
         if rule:
-            logger.info(f"Sending rule {rule_id} to Kafka for pipeline {pipeline_id}")
-            await self.kafka.send_rules(str(pipeline_id), [rule])
+            # Only send to Kafka if rule is supported 
+            if rule.is_supported:
+                logger.info(f"Sending rule {rule_id} to Kafka for pipeline {pipeline_id}")
+                await self.kafka.send_rules(str(pipeline_id), [rule])
+            else:
+                logger.info(f"Rule {rule_id} is unsupported, not sending to Kafka")
+
+            await activity_producer.log_action(
+                action="toggle",
+                entity_type="pipeline_rule",
+                entity_id=str(rule_id),
+                entity_name=rule.name,
+                user=user,
+                details=f"Enabled rule '{rule.name}' in pipeline",
+                changes={"pipeline_id": str(pipeline_id), "enabled": {"old": False, "new": True}},
+            )
         else:
             logger.warning(f"Rule {rule_id} not found in database, cannot send to Kafka")
 
-    async def disable_rule_in_pipeline(self, pipeline_id: UUID, rule_id: UUID) -> None:
-        await self.pipeline_rule_repo.update_rule_status(pipeline_id, rule_id, False)
+    async def disable_rule_in_pipeline(self, pipeline_id: UUID, rule_id: UUID, user: User) -> None:
+        rule = await self.rule_repo.get_by_id(rule_id)
+        rule_name = rule.name if rule else str(rule_id)
+
+        rows_updated = await self.pipeline_rule_repo.update_rule_status(pipeline_id, rule_id, False)
+        if rows_updated == 0:
+            raise NotFoundError(f"Pipeline {pipeline_id} and/or rule {rule_id} not found")
         await self.kafka.delete_rules(str(pipeline_id), [str(rule_id)])
 
-    async def handle_pipeline_enable(self, pipeline_id: UUID) -> None:
+        await activity_producer.log_action(
+            action="toggle",
+            entity_type="pipeline_rule",
+            entity_id=str(rule_id),
+            entity_name=rule_name,
+            user=user,
+            details=f"Disabled rule '{rule_name}' in pipeline",
+            changes={"pipeline_id": str(pipeline_id), "enabled": {"old": True, "new": False}},
+        )
+
+    async def handle_pipeline_enable(self, pipeline_id: UUID, needs_revalidation: bool = False) -> None:
         """
         Handle Pipeline Enable event: Sync all enabled rules to Kafka.
+
+        This is called when a pipeline is enabled/resumed. It:
+        1. If needs_revalidation=True: Re-validates all rules for the pipeline 
+        2. Syncs enabled + supported rules to Kafka
+        3. Deletes disabled/unsupported rules from Kafka
+
+        Args:
+            pipeline_id: UUID of the pipeline
+            needs_revalidation: If True, re-validate all rules (when module version changed)
         """
         rules, _ = await self.pipeline_rule_repo.get_by_pipeline(pipeline_id, limit=100000)
-        enabled_rules: list[Rule] = [rule.rule for rule in rules if rule.enabled]
-        disabled_rules: list[Rule] = [rule.rule for rule in rules if not rule.enabled]
+
+        # Re-validate all rules only if version changed 
+        if needs_revalidation:
+            all_rules = [pr.rule for pr in rules if pr.rule]
+            if all_rules:
+                validation_service = SigmaValidationService(self.db)
+                await validation_service.validate_rules_batch(all_rules, force=True)
+                logger.info(
+                    f"Re-validated {len(all_rules)} rules for pipeline {pipeline_id} due to module version change"
+                )
+
+        # Separate enabled and disabled rules, filter by is_supported
+        enabled_rules: list[Rule] = [pr.rule for pr in rules if pr.enabled and pr.rule and pr.rule.is_supported]
+        disabled_rules: list[Rule] = [pr.rule for pr in rules if not pr.enabled and pr.rule]
+        # Also add unsupported rules to "delete" list (don't send to Flink)
+        unsupported_rules: list[Rule] = [pr.rule for pr in rules if pr.enabled and pr.rule and not pr.rule.is_supported]
 
         if enabled_rules:
             await self.kafka.send_rules(str(pipeline_id), enabled_rules)
-        if disabled_rules:
-            await self.kafka.delete_rules(str(pipeline_id), [str(rule.id) for rule in disabled_rules])
+        if disabled_rules or unsupported_rules:
+            rules_to_delete = disabled_rules + unsupported_rules
+            await self.kafka.delete_rules(str(pipeline_id), [str(rule.id) for rule in rules_to_delete])
 
     async def handle_pipeline_update(
         self,
@@ -347,29 +438,71 @@ class RulesOrchestrator:
     # REPOSITORY SYNC OPERATIONS
     # ==========================================
 
-    async def sync_api_repos(self) -> None:
+    async def sync_api_repos(self) -> bool:
+        """Sync API repositories from SOCPrime TDM (only those with sync_enabled=True).
+
+        Returns:
+            True if there were repos to update, False if none.
+
         # TODO: process kafka updates in the end to avoid inconsistency between database and kafka
         # Get all API repositories, but only sync those with sync_enabled=True
         all_current_repos, _ = await self.repository_repo.get_all(filters={"type": "api"}, limit=1000)
         # Filter to only repos with sync_enabled=True
         current_repos = [repo for repo in all_current_repos if repo.sync_enabled is True]
 
-        tdm_api_client = TDMAPIClient(api_key=await self.config_repo.get_api_key())
-        tdm_repos = await tdm_api_client.get_repositories()
+        Logs sync_start at beginning, sync on success with stats, sync_failed on error.
+        """
+        await activity_producer.log_action(
+            action="sync_start",
+            entity_type="repository",
+            details="Starting TDM API repositories sync",
+            source="system",
+        )
 
-        current_repo_ids = {str(repo.id) for repo in current_repos}
-        tdm_repo_ids = {repo.id for repo in tdm_repos}
+        try:
+            # TODO: process kafka updates in the end to avoid inconsistency between database and kafka
+            # Get all API repositories, but only sync those with sync_enabled=True
+            all_current_repos, _ = await self.repository_repo.get_all(filters={"type": "api"}, limit=1000)
+            # Filter to only repos with sync_enabled=True
+            current_repos = [repo for repo in all_current_repos if repo.sync_enabled is True]
+            # If no repos to sync, return False
+            if not current_repos:
+                return False
 
-        # Delete repositories that no longer exist in SOCPrime API
-        deleted_repos = current_repo_ids - tdm_repo_ids
-        for repo_id in deleted_repos:
-            await self._delete_repository(UUID(repo_id))
+            tdm_api_client = TDMAPIClient(api_key=await self.config_repo.get_api_key())
+            tdm_repos = await tdm_api_client.get_repositories()
 
-        # Update repositories that exist in both DB and SOCPrime API
-        # Only process repos that have sync_enabled=True
-        repos_to_update = [repo for repo in tdm_repos if repo.id in current_repo_ids]
-        self._enrich_tdm_repos_with_last_synced_rule_date(repos_to_update, current_repos)
-        await self._update_api_repos(repos_to_update)
+            current_repo_ids = {str(repo.id) for repo in current_repos}
+            tdm_repo_ids = {repo.id for repo in tdm_repos}
+
+            # Delete repositories that no longer exist in SOCPrime API
+            deleted_repos = current_repo_ids - tdm_repo_ids
+            for repo_id in deleted_repos:
+                await self._delete_repository(UUID(repo_id))
+
+            # Update repositories that exist in both DB and SOCPrime API
+            # Only process repos that have sync_enabled=True
+            repos_to_update = [repo for repo in tdm_repos if repo.id in current_repo_ids]
+            self._enrich_tdm_repos_with_last_synced_rule_date(repos_to_update, current_repos)
+            await self._update_api_repos(repos_to_update)
+
+            await activity_producer.log_action(
+                action="sync",
+                entity_type="repository",
+                details=f"TDM API sync completed: {len(repos_to_update)} repos synced, {len(deleted_repos)} repos deleted",
+                source="system",
+            )
+        except Exception as e:
+            await activity_producer.log_action(
+                action="sync_failed",
+                entity_type="repository",
+                details=f"TDM API sync failed: {str(e)}",
+                source="system",
+                severity="error",
+            )
+            raise
+
+        return bool(repos_to_update)
 
     def _enrich_tdm_repos_with_last_synced_rule_date(
         self, tdm_repos: list[TdmRepository], current_repos: list[Repository]
@@ -435,22 +568,53 @@ class RulesOrchestrator:
             new_rules: List of new rules to add
             deleted_rule_ids: List of rule IDs (as strings or UUIDs) to delete
             updated_rules: List of updated rules to sync
+
+        Note: Rules are fetched from DB after validation to check is_supported status.
         """
         pipeline_ids = await self.pipeline_rule_repo.get_pipelines_by_repository_id(repo_id)
 
         # Convert deleted_rule_ids to strings for Kafka
         deleted_rule_ids_str = [str(rule_id) for rule_id in deleted_rule_ids]
 
+        # Fetch DB rules to check is_supported status 
+        all_rule_ids = [UUID(rule.id) for rule in new_rules] + [UUID(rule.id) for rule in updated_rules]
+        db_rules_list = await self.rule_repo.get_by_ids(all_rule_ids) if all_rule_ids else []
+        db_rules_map = {str(rule.id): rule for rule in db_rules_list}
+
         for pipeline_id in pipeline_ids:
             await self.kafka.delete_rules(str(pipeline_id), deleted_rule_ids_str)
 
+            # Add new rules to pipeline_rules table
             await self._add_rules_to_pipelines(pipeline_ids=[pipeline_id], rule_ids=[rule.id for rule in new_rules])
-            await self.kafka.send_rules(str(pipeline_id), new_rules)
 
+            # Only send supported new rules to Kafka
+            supported_new_rules = [
+                db_rules_map[rule.id]
+                for rule in new_rules
+                if rule.id in db_rules_map and db_rules_map[rule.id].is_supported
+            ]
+            if supported_new_rules:
+                await self.kafka.send_rules(str(pipeline_id), supported_new_rules)
+
+            # Only send supported enabled updated rules to Kafka
             enabled_rules_ids = await self.pipeline_rule_repo.get_enabled_rules_ids(pipeline_id)
             enabled_rules_ids = {str(rule_id) for rule_id in enabled_rules_ids}
-            updated_enabled_rules = [rule for rule in updated_rules if rule.id in enabled_rules_ids]
-            await self.kafka.send_rules(str(pipeline_id), updated_enabled_rules)
+            supported_updated_rules = [
+                db_rules_map[rule.id]
+                for rule in updated_rules
+                if rule.id in enabled_rules_ids and rule.id in db_rules_map and db_rules_map[rule.id].is_supported
+            ]
+            if supported_updated_rules:
+                await self.kafka.send_rules(str(pipeline_id), supported_updated_rules)
+
+            # Delete unsupported rules from Kafka (they might have become unsupported after update)
+            unsupported_rule_ids = [
+                rule.id
+                for rule in updated_rules
+                if rule.id in enabled_rules_ids and rule.id in db_rules_map and not db_rules_map[rule.id].is_supported
+            ]
+            if unsupported_rule_ids:
+                await self.kafka.delete_rules(str(pipeline_id), unsupported_rule_ids)
 
     async def _fetch_tdm_rule_ids(self, tdm_repos: list[TdmRepository]) -> dict[str, list[str]]:
         semaphore = asyncio.Semaphore(5)
@@ -484,6 +648,10 @@ class RulesOrchestrator:
         return await asyncio.gather(*fetch_tasks)
 
     async def _upsert_rules(self, repo_id: str, rules: list[TdmRule]) -> None:
+        """Upsert rules from TDM API and validate them ."""
+        if not rules:
+            return
+
         rules_data = [
             {
                 "id": rule.id,
@@ -496,3 +664,10 @@ class RulesOrchestrator:
             for rule in rules
         ]
         await self.rule_repo.upsert_many(rules_data)
+
+        # Validate upserted rules 
+        rule_ids = [UUID(rule.id) for rule in rules]
+        db_rules = await self.rule_repo.get_by_ids(rule_ids)
+        if db_rules:
+            validation_service = SigmaValidationService(self.db)
+            await validation_service.validate_rules_batch(db_rules, force=True)

@@ -44,6 +44,39 @@ class AuditLogDAO(BaseDAO[AuditLog]):
         await self.session.flush()
         return audit_log
 
+    async def create_batch(self, events: list[ActivityEvent]) -> int:
+        """Create multiple audit log entries in a single transaction.
+
+        Args:
+            events: List of ActivityEvents from Kafka batch
+
+        Returns:
+            Number of created records
+        """
+        if not events:
+            return 0
+
+        audit_logs = [
+            AuditLog(
+                id=UUID(event.id),
+                timestamp=event.timestamp,
+                action=event.action,
+                entity_type=event.entity_type,
+                entity_id=event.entity_id,
+                entity_name=event.entity_name,
+                user_id=UUID(event.user_id) if event.user_id else None,
+                user_email=event.user_email,
+                details=event.details,
+                changes=event.changes,
+                source=event.source,
+                severity=event.severity,
+            )
+            for event in events
+        ]
+        self.session.add_all(audit_logs)
+        await self.session.flush()
+        return len(audit_logs)
+
     async def get_recent(self, limit: int = 5) -> list[AuditLog]:
         """Get most recent audit logs.
 

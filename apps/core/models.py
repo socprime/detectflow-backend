@@ -82,6 +82,10 @@ class Rule(Base):
     product = Column(String(255), nullable=True)
     service = Column(String(255), nullable=True)
     category = Column(String(255), nullable=True)
+    is_supported = Column(Boolean, default=True, nullable=False, server_default="true")
+    unsupported_reason = Column(String(512), nullable=True)
+    validated_at = Column(DateTime(timezone=True), nullable=True)
+    validated_with_version = Column(String(50), nullable=True)
 
     repository = relationship("Repository", back_populates="rules")
 
@@ -91,7 +95,7 @@ class Pipeline(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     name = Column(String(255), nullable=False)
-    enabled = Column(Boolean, server_default="true")
+    enabled = Column(Boolean, server_default="true", index=True)
 
     # Topic references (Strings directly from Kafka)
     # source_topics: Array of input topics (Flink unions them)
@@ -130,6 +134,7 @@ class Pipeline(Base):
     autoscaler_min_parallelism = Column(Integer, nullable=True)  # Min parallelism for autoscaler
     autoscaler_max_parallelism = Column(Integer, nullable=True)  # Max parallelism for autoscaler
 
+    needs_restart = Column(Boolean, default=False, nullable=False, server_default="false")
     log_source = relationship("LogSource", backref="pipelines")
     pipeline_rules = relationship("PipelineRule", back_populates="pipeline")
     repositories = relationship("Repository", secondary="pipeline_repositories", back_populates="pipelines")
@@ -306,3 +311,17 @@ class User(Base):
     must_change_password = Column(Boolean, server_default="false")
     created = Column(DateTime(timezone=True), server_default=func.now())
     updated = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+
+class RuleLoaderModuleVersion(Base):
+    """Tracks rule loader module versions for sigma validation .
+
+    When a new version is deployed, rules need to be re-validated against the new schema.
+    """
+
+    __tablename__ = "rule_loader_module_versions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    version = Column(String(50), nullable=False)
+    is_current = Column(Boolean, default=False, nullable=False, server_default="false")
+    created = Column(DateTime(timezone=True), server_default=func.now())

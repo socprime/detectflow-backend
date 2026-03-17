@@ -443,7 +443,7 @@ class RepositoriesManager:
                     id=UUID(repo_id),
                     name=repo["name"],
                     type="external",
-                    sync_enabled=True,
+                    sync_enabled=False,
                     last_synced_rule_date=None,
                     source_link=repo["source_link"],
                 )

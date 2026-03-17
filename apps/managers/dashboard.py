@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 
 from apps.clients.flink_rest import FlinkJobMetrics
 from apps.core.database import AsyncSessionLocal
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Pipeline, Repository, Rule, pipeline_repositories
 from apps.core.schemas import (
@@ -30,6 +31,7 @@ from apps.core.schemas import (
 )
 from apps.managers.activity import activity_service
 from apps.managers.pipeline_status import pipeline_status_manager
+from apps.modules.kafka.activity import activity_producer
 from apps.services.flink_metrics_poller import flink_metrics_poller
 
 logger = get_logger(__name__)
@@ -82,22 +84,31 @@ class DashboardService:
     async def get_dashboard_data(self) -> DashboardData:
         """Get complete dashboard data for SSE/REST.
 
+        IMPORTANT: DB session is closed BEFORE making HTTP calls to Flink/K8s
+        to avoid holding connections during slow external API calls.
+        This prevents pool exhaustion with multiple SSE clients.
+
         Returns:
             DashboardData with graph, pipeline stats, and recent activity
         """
+        # Phase 1: Fetch all data from DB (short-lived session)
         async with AsyncSessionLocal() as db:
-            # Execute sequentially - AsyncSession doesn't support concurrent operations
             graph_data = await self._get_graph_data(db)
-            pipeline_stats = await self._get_pipeline_stats(db)
+            # Get pipelines data only - status will be fetched outside DB session
+            pipelines_data = await self._get_pipelines_for_stats(db)
 
-            # Get recent activity from ActivityService
-            recent_activity = await activity_service.get_recent()
+        # Phase 2: Fetch Flink/K8s status OUTSIDE DB session (HTTP calls)
+        # This is the slow part - can take 3-30 seconds for 50+ pipelines
+        pipeline_stats = await self._build_pipeline_stats(pipelines_data)
 
-            return DashboardData(
-                graph=graph_data,
-                pipelines_stats=pipeline_stats,
-                recent_activity=recent_activity,
-            )
+        # Phase 3: Get recent activity (separate short-lived session inside)
+        recent_activity = await activity_service.get_recent()
+
+        return DashboardData(
+            graph=graph_data,
+            pipelines_stats=pipeline_stats,
+            recent_activity=recent_activity,
+        )
 
     async def get_snapshot(self) -> DashboardSnapshotResponse:
         """Get dashboard snapshot for REST endpoint.
@@ -166,45 +177,41 @@ class DashboardService:
         dest_topic_untagged_eps = defaultdict(float)
         total_events_eps = 0.0
         total_tagged_eps = 0.0
+        total_untagged_eps = 0.0
 
         for pipeline in enabled_pipelines:
             cache_entry = flink_metrics_poller.get_cache_entry(pipeline.id)
-            if not cache_entry or not cache_entry.metrics:
+            if not cache_entry:
                 continue
 
-            metrics = cache_entry.metrics
             pipeline_info = self._pipeline_cache.get(pipeline.id, {})
             source_topics_list = pipeline_info.get("source_topics") or pipeline.source_topics or []
             dest_topic_name = pipeline_info.get("destination_topic") or pipeline.destination_topic
 
-            # Distribute input EPS evenly across source topics (approximation)
-            # NOTE: source_topics.eps uses IOMetrics (input_eps), while tagged_eps/untagged_eps
-            # use custom Flink gauges. These are measured at different points in the pipeline,
-            # so there may be slight inconsistencies. Ideally:
-            #   source_topics.eps ≈ tagged_eps + untagged_eps
-            # For full consistency, consider using: total_events_eps = tagged_eps + untagged_eps
-            if source_topics_list and metrics.input_eps > 0:
-                eps_per_topic = metrics.input_eps / len(source_topics_list)
+            # Use input_eps from cache (custom Flink gauge)
+            input_eps = cache_entry.input_eps
+            if source_topics_list and input_eps > 0:
+                eps_per_topic = input_eps / len(source_topics_list)
                 for source_topic_name in source_topics_list:
-                    source_topic_eps[source_topic_name] += eps_per_topic
-                total_events_eps += metrics.input_eps
+                    source_topic_eps[source_topic_name] += round(eps_per_topic, 2)
+                total_events_eps += input_eps
 
             if dest_topic_name:
-                # Use accurate tagged_eps/untagged_eps calculated from custom Flink gauges
-                # These represent actual matched/unmatched events per second
+                # Use tagged_eps/untagged_eps from cache (custom Flink gauges)
                 tagged_eps = cache_entry.tagged_eps
                 untagged_eps = cache_entry.untagged_eps
 
-                dest_topic_tagged_eps[dest_topic_name] += tagged_eps
-                dest_topic_untagged_eps[dest_topic_name] += untagged_eps
+                dest_topic_tagged_eps[dest_topic_name] += round(tagged_eps, 2)
+                dest_topic_untagged_eps[dest_topic_name] += round(untagged_eps, 2)
                 total_tagged_eps += tagged_eps
+                total_untagged_eps += untagged_eps
 
         # Build response
         source_topics_stats = [
             SourceTopicStats(
                 id=topic_name,
                 name=topic_name,
-                eps=source_topic_eps.get(topic_name, 0.0),
+                eps=round(source_topic_eps.get(topic_name, 0.0), 2),
             )
             for topic_name in source_topics
         ]
@@ -213,8 +220,8 @@ class DashboardService:
             DestinationTopicStats(
                 id=topic_name,
                 name=topic_name,
-                tagged_eps=dest_topic_tagged_eps.get(topic_name, 0.0),
-                untagged_eps=dest_topic_untagged_eps.get(topic_name, 0.0),
+                tagged_eps=round(dest_topic_tagged_eps.get(topic_name, 0.0), 2),
+                untagged_eps=round(dest_topic_untagged_eps.get(topic_name, 0.0), 2),
             )
             for topic_name in dest_topics
         ]
@@ -237,17 +244,21 @@ class DashboardService:
             pipelines_count=pipelines_count,
             total_events_eps=round(total_events_eps, 2),
             total_tagged_eps=round(total_tagged_eps, 2),
+            total_untagged_eps=round(total_untagged_eps, 2),
             total_rules=total_rules,
         )
 
-    async def _get_pipeline_stats(self, db: AsyncSession) -> list[PipelineStatsItem]:
-        """Get per-pipeline statistics.
+    async def _get_pipelines_for_stats(self, db: AsyncSession) -> list[dict]:
+        """Get pipeline data from DB for stats calculation.
+
+        This method only fetches data from DB - no HTTP calls.
+        HTTP calls for status are made separately outside the DB session.
 
         Args:
             db: Database session
 
         Returns:
-            List of pipeline stats for the modal table
+            List of pipeline data dicts with all needed fields
         """
         # Get all enabled pipelines with repositories eagerly loaded
         pipelines_query = await db.execute(
@@ -255,40 +266,73 @@ class DashboardService:
         )
         pipelines = pipelines_query.scalars().all()
 
-        stats = []
+        pipelines_data = []
         for pipeline in pipelines:
-            # Get metrics from Flink poller cache
-            metrics = flink_metrics_poller.get_metrics(pipeline.id)
-
-            # Get EPS from cached metrics
-            input_eps = metrics.input_eps if metrics else 0.0
-            output_eps = metrics.output_eps if metrics else 0.0
-
-            # Get topic lag from cached metrics (pending_records)
-            topic_lag = metrics.pending_records if metrics and metrics.pending_records else 0
-
             # Get topic names from cache or fallback to DB
             cached_info = self._pipeline_cache.get(pipeline.id, {})
             source_topics = cached_info.get("source_topics") or pipeline.source_topics or []
             destination_topic = cached_info.get("destination_topic") or pipeline.destination_topic or ""
+            repository_ids = cached_info.get("repository_ids") or [str(r.id) for r in pipeline.repositories] or []
 
-            # Get real-time Flink deployment status (Flink REST -> K8s fallback)
-            flink_status, status_details = await pipeline_status_manager.get_status_details(
-                pipeline_id=str(pipeline.id),
-                deployment_name=pipeline.deployment_name,
-                enabled=pipeline.enabled,
+            pipelines_data.append(
+                {
+                    "id": pipeline.id,
+                    "name": pipeline.name,
+                    "deployment_name": pipeline.deployment_name,
+                    "enabled": pipeline.enabled,
+                    "source_topics": source_topics,
+                    "destination_topic": destination_topic,
+                    "save_untagged": pipeline.save_untagged or False,
+                    "repository_ids": repository_ids,
+                }
             )
 
-            # Get repository IDs from cache or pipeline relationship
-            repository_ids = cached_info.get("repository_ids") or [str(r.id) for r in pipeline.repositories] or []
+        return pipelines_data
+
+    async def _build_pipeline_stats(self, pipelines_data: list[dict]) -> list[PipelineStatsItem]:
+        """Build pipeline stats from pre-fetched data.
+
+        This method makes HTTP calls to Flink/K8s for status.
+        It runs OUTSIDE the DB session to avoid holding connections.
+
+        Args:
+            pipelines_data: List of pipeline data dicts from _get_pipelines_for_stats
+
+        Returns:
+            List of pipeline stats for the modal table
+        """
+        stats = []
+        for pipeline_data in pipelines_data:
+            pipeline_id = pipeline_data["id"]
+
+            # Get cache entry from Flink poller (includes EPS from custom gauges)
+            cache_entry = flink_metrics_poller.get_cache_entry(pipeline_id)
+            metrics = cache_entry.metrics if cache_entry else None
+
+            # Get EPS from cache entry (custom Flink gauges)
+            input_eps = cache_entry.input_eps if cache_entry else 0.0
+            # output_eps = tagged + untagged (total output events per second)
+            output_eps = (cache_entry.tagged_eps + cache_entry.untagged_eps) if cache_entry else 0.0
+
+            # Get topic lag from cached metrics (pending_records)
+            topic_lag = metrics.pending_records if metrics and metrics.pending_records else 0
+
+            # Get real-time Flink deployment status (Flink REST -> K8s fallback)
+            # This is the HTTP call that was blocking the DB session before
+            flink_status, status_details = await pipeline_status_manager.get_status_details(
+                pipeline_id=str(pipeline_id),
+                deployment_name=pipeline_data["deployment_name"],
+                enabled=pipeline_data["enabled"],
+            )
 
             stats.append(
                 PipelineStatsItem(
-                    id=str(pipeline.id),
-                    name=pipeline.name,
-                    source_topics=source_topics,
-                    destination_topic=destination_topic,
-                    repository_ids=repository_ids,
+                    id=str(pipeline_id),
+                    name=pipeline_data["name"],
+                    source_topics=pipeline_data["source_topics"],
+                    destination_topic=pipeline_data["destination_topic"],
+                    save_untagged=pipeline_data["save_untagged"],
+                    repository_ids=pipeline_data["repository_ids"],
                     input_eps=round(input_eps, 2),
                     output_eps=round(output_eps, 2),
                     topic_lag=topic_lag,
@@ -322,6 +366,14 @@ class DashboardService:
                 )
         except Exception as e:
             logger.exception(f"Failed to refresh pipeline cache: {e}")
+            if ErrorTracker.should_log("dashboard_cache_refresh"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="dashboard",
+                    details=f"Failed to refresh pipeline cache: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
 
     def invalidate_pipeline_cache(self, pipeline_id: UUID | None = None) -> None:
         """Invalidate pipeline cache.

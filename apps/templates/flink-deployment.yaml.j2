@@ -9,12 +9,12 @@ metadata:
     pipeline-id: "{{ pipeline_id }}"
     managed-by: admin-panel
 spec:
-  # Docker image for PyFlink job
+  # Docker image для PyFlink job
   image: {{ flink_image }}
   imagePullPolicy: {{ image_pull_policy }}
   flinkVersion: v2_1
 
-  # ServiceAccount for Flink pods
+  # ServiceAccount для Flink pods
   serviceAccount: flink
 
   # Flink Configuration
@@ -51,7 +51,7 @@ spec:
     high-availability.type: kubernetes
     high-availability.storageDir: file:///mnt/ha/{{ pipeline_id }}
 
-    # State Backend and Checkpointing
+    # State Backend і Checkpointing
     state.backend.type: rocksdb
     state.checkpoints.dir: file:///mnt/checkpoints/{{ pipeline_id }}
     execution.checkpointing.savepoint-dir: file:///mnt/savepoints/{{ pipeline_id }}
@@ -178,6 +178,16 @@ spec:
                 mountPath: /mnt/ha
               - name: savepoints
                 mountPath: /mnt/savepoints
+            startupProbe:
+              httpGet:
+                path: /config
+                port: 8081
+                scheme: HTTP
+              initialDelaySeconds: 5
+              timeoutSeconds: 60
+              periodSeconds: 60
+              successThreshold: 1
+              failureThreshold: 5
         volumes:
           {% if kafka_auth_method != "PLAINTEXT" %}
           - name: kafka-ssl-certs
@@ -187,13 +197,13 @@ spec:
           {% endif %}
           - name: checkpoints
             persistentVolumeClaim:
-              claimName: flink-checkpoints-pvc
+              claimName: {{ checkpoints_pvc }}
           - name: ha-storage
             persistentVolumeClaim:
-              claimName: flink-ha-pvc
+              claimName: {{ ha_pvc }}
           - name: savepoints
             persistentVolumeClaim:
-              claimName: flink-savepoints-pvc
+              claimName: {{ savepoints_pvc }}
 
   # TaskManager Spec
   taskManager:
@@ -288,13 +298,13 @@ spec:
           {% endif %}
           - name: checkpoints
             persistentVolumeClaim:
-              claimName: flink-checkpoints-pvc
+              claimName: {{ checkpoints_pvc }}
           - name: ha-storage
             persistentVolumeClaim:
-              claimName: flink-ha-pvc
+              claimName: {{ ha_pvc }}
           - name: savepoints
             persistentVolumeClaim:
-              claimName: flink-savepoints-pvc
+              claimName: {{ savepoints_pvc }}
 
   # PyFlink Job Configuration
   job:

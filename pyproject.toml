@@ -1,6 +1,6 @@
 [project]
 name = "detectflow-backend"
-version = "0.9.4"
+version = "1.0.0"
 description = "DetectFlow Backend API for managing pipelines, rules, and repositories"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -35,7 +35,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-schema-parser = { git = "https://github.com/socprime/detectflow-parser.git", tag = "v0.2.3" }
+schema-parser = { git = "https://github.com/socprime/detectflow-parser.git", tag = "v0.3.2" }
 
 [build-system]
 requires = ["hatchling"]

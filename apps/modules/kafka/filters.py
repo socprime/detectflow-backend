@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from confluent_kafka import Producer
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Filter
 from apps.core.settings import settings
@@ -114,6 +115,12 @@ class KafkaFiltersSyncService(BaseKafkaSyncClient):
         def on_delivery(err, msg):
             if err:
                 logger.error(f"Failed to deliver filter message: {err}")
+                # Track error for audit logging
+                if ErrorTracker.should_log(f"kafka_filters_deliver_{pipeline_id}"):
+                    logger.error(
+                        "Filter delivery failure tracked for audit",
+                        extra={"pipeline_id": pipeline_id, "error": str(err)},
+                    )
                 raise RuntimeError(f"Failed to deliver message: {err}")
 
         logger.info(f"Sending {len(filters)} filters to Kafka for pipeline {pipeline_id}")
@@ -145,6 +152,12 @@ class KafkaFiltersSyncService(BaseKafkaSyncClient):
         def on_delivery(err, msg):
             if err:
                 logger.error(f"Failed to deliver delete message: {err}")
+                # Track error for audit logging
+                if ErrorTracker.should_log(f"kafka_filters_delete_{pipeline_id}"):
+                    logger.error(
+                        "Filter delete delivery failure tracked for audit",
+                        extra={"pipeline_id": pipeline_id, "error": str(err)},
+                    )
                 raise RuntimeError(f"Failed to deliver message: {err}")
 
         logger.info(f"Deleting {len(filter_ids)} filters from Kafka for pipeline {pipeline_id}")

@@ -1,7 +1,8 @@
 """Repository management endpoints.
 
-This module provides REST API endpoints for managing rule repositories,
-including SOCPrime TDM API integration and local repository management.
+This module provides REST API endpoints for managing rule repositories:
+SOCPrime TDM API, external (GitHub), and local repositories.
+Includes sync triggers and status via the scheduler service.
 """
 
 import asyncio
@@ -32,6 +33,7 @@ from apps.core.schemas import (
     SocprimeRepositoryResponse,
 )
 from apps.managers.repositories import RepositoriesManager
+from apps.modules.kafka.activity import activity_producer
 from apps.services.scheduler import get_scheduler_service
 
 router = APIRouter(prefix="/api/v1", tags=["Repositories"])
@@ -61,7 +63,7 @@ def get_repository_type_display(repo_type: str) -> str:
 )
 @router.post("/sync-repositories/", include_in_schema=False, status_code=status.HTTP_202_ACCEPTED)
 async def sync_repositories(
-    _: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Start syncing repositories from SOCPrime TDM API.
@@ -72,6 +74,15 @@ async def sync_repositories(
     scheduler = get_scheduler_service()
     if scheduler.is_sync_running:
         raise ConflictError("Sync is already running")
+
+    await activity_producer.log_action(
+        action="sync_start",
+        entity_type="repository",
+        user=current_user,
+        details="Manual repository sync triggered",
+        source="user",
+    )
+
     asyncio.create_task(scheduler.run_sync_in_background())
     return {"message": "Sync started in background"}
 
@@ -92,15 +103,10 @@ async def get_sync_status(
     Get the current repository sync status.
 
     **Status values:** `idle`, `running`, `completed`, `failed`
+    Returns separate status for each sync type: `api_repos`, `git_hub_repos`.
     """
     scheduler = get_scheduler_service()
-    sync_status = scheduler.sync_status
-    return {
-        "status": sync_status.status,
-        "started_at": sync_status.started_at,
-        "completed_at": sync_status.completed_at,
-        "error": sync_status.error,
-    }
+    return scheduler.sync_statuses
 
 
 @router.get(

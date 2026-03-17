@@ -116,9 +116,12 @@ class ActivityConsumerService(BaseKafkaAsyncClient):
                 "Failed to connect to Kafka",
                 extra={"error": str(e), "bootstrap_servers": settings.kafka_bootstrap_servers},
             )
+            # Note: Cannot use activity_producer here as this IS the activity consumer
+            # Just log to file - this error will be visible in container logs
             raise
         except Exception as e:
             logger.error("Failed to start ActivityConsumerService", extra={"error": str(e)})
+            # Note: Cannot use activity_producer here as this IS the activity consumer
             raise
 
     async def stop(self) -> None:
@@ -144,24 +147,55 @@ class ActivityConsumerService(BaseKafkaAsyncClient):
         logger.info("ActivityConsumerService stopped")
 
     async def _consume_loop(self) -> None:
-        """Main consumption loop - runs until stopped."""
+        """Main consumption loop - runs until stopped.
+
+        Uses batch processing: collects all messages from getmany(),
+        parses them, stores in DB with single transaction, then notifies callbacks.
+        """
         logger.info("Starting activity consumption loop")
 
         while self.is_running:
             try:
-                # Use getmany with timeout instead of async for
+                # Get batch of messages
                 messages = await self.consumer.getmany(timeout_ms=1000, max_records=100)
 
+                # Collect all valid events from the batch
+                events: list[ActivityEvent] = []
                 for _tp, msgs in messages.items():
                     for message in msgs:
                         if not self.is_running:
                             break
+                        event = self._parse_message(message.value)
+                        if event:
+                            events.append(event)
 
-                        logger.debug(
-                            "Received activity message",
-                            extra={"partition": message.partition, "offset": message.offset},
-                        )
-                        await self._process_message(message.value)
+                if not events:
+                    continue
+
+                # Store all events in a single transaction
+                await self._store_events_batch(events)
+
+                self.last_message_time = datetime.now(UTC)
+
+                logger.info(
+                    "Processed activity batch",
+                    extra={"count": len(events)},
+                )
+
+                # Notify callbacks for each event
+                for event in events:
+                    for callback in self._on_activity_callbacks:
+                        try:
+                            # Support both sync and async callbacks
+                            if asyncio.iscoroutinefunction(callback):
+                                await callback(event)
+                            else:
+                                callback(event)
+                        except Exception as e:
+                            logger.error(
+                                "Error in activity callback",
+                                extra={"error": str(e), "event_id": event.id},
+                            )
 
             except asyncio.CancelledError:
                 logger.info("Activity consumption loop cancelled")
@@ -173,83 +207,55 @@ class ActivityConsumerService(BaseKafkaAsyncClient):
                 logger.error("Unexpected error in consumption loop", extra={"error": str(e)})
                 await asyncio.sleep(5)
 
-    async def _process_message(self, value: str | None) -> None:
-        """Process a single Kafka message.
+    def _parse_message(self, value: str | None) -> ActivityEvent | None:
+        """Parse a single Kafka message into ActivityEvent.
 
         Args:
             value: Message value (JSON activity event data)
+
+        Returns:
+            Parsed ActivityEvent or None if parsing failed
         """
         if not value:
-            return
+            return None
 
         try:
-            # Parse JSON
             raw_data = json.loads(value)
-
-            # Validate with Pydantic
-            event = ActivityEvent.model_validate(raw_data)
-
-            self.last_message_time = datetime.now(UTC)
-
-            # Store in database
-            await self._store_event(event)
-
-            logger.info(
-                "Processed activity event",
-                extra={
-                    "event_id": event.id,
-                    "action": event.action,
-                    "entity_type": event.entity_type,
-                    "source": event.source,
-                },
-            )
-
-            # Notify all registered callbacks (for SSE)
-            for callback in self._on_activity_callbacks:
-                try:
-                    await callback(event)
-                except Exception as e:
-                    logger.error(
-                        "Error in activity callback",
-                        extra={"error": str(e), "event_id": event.id},
-                    )
-
+            return ActivityEvent.model_validate(raw_data)
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse activity JSON: {e}")
+            return None
         except ValidationError as e:
             logger.warning(f"Failed to validate activity event schema: {e}")
-        except Exception as e:
-            logger.exception(f"Error processing activity message: {e}")
+            return None
 
-    async def _store_event(self, event: ActivityEvent) -> None:
-        """Store activity event in PostgreSQL.
+    async def _store_events_batch(self, events: list[ActivityEvent]) -> None:
+        """Store multiple activity events in PostgreSQL using single transaction.
 
         Args:
-            event: Validated ActivityEvent
+            events: List of validated ActivityEvents
         """
+        if not events:
+            return
+
         try:
             async with AsyncSessionLocal() as db:
                 try:
                     audit_dao = AuditLogDAO(db)
-                    await audit_dao.create_from_event(event)
+                    count = await audit_dao.create_batch(events)
                     await db.commit()
+                    logger.debug(
+                        "Batch stored activity events",
+                        extra={"count": count},
+                    )
                 except Exception:
                     await db.rollback()
                     raise
 
-            logger.debug(
-                "Stored activity event in PostgreSQL",
-                extra={
-                    "event_id": event.id,
-                    "action": event.action,
-                    "entity_type": event.entity_type,
-                },
-            )
-
         except Exception as e:
             logger.error(
-                "Failed to store activity event in PostgreSQL",
-                extra={"event_id": event.id, "error": str(e)},
+                "Failed to batch store activity events",
+                extra={"count": len(events), "error": str(e)},
             )
 
     @property

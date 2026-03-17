@@ -81,6 +81,71 @@ class MetricsDAO:
             },
         )
 
+    async def append_metrics_batch(self, metrics: list[tuple[UUID, KafkaMetricMessage]]) -> int:
+        """Append multiple metrics in a single transaction.
+
+        Args:
+            metrics: List of (pipeline_id, metric) tuples
+
+        Returns:
+            Number of processed metrics
+        """
+        if not metrics:
+            return 0
+
+        # 1. Batch insert history records
+        history_records = [
+            PipelineMetric(
+                pipeline_id=pipeline_id,
+                window_total_events=metric.window_total_events,
+                window_matched_events=metric.window_matched_events,
+                window_duration_seconds=metric.window_duration_seconds,
+                throughput_eps=metric.window_throughput_eps,
+                event_parsing_errors=metric.errors.event_parsing_errors,
+                rule_parsing_errors=metric.errors.rule_parsing_errors,
+                matching_errors=metric.errors.matching_errors,
+            )
+            for pipeline_id, metric in metrics
+        ]
+        self.session.add_all(history_records)
+
+        # 2. Aggregate totals per pipeline and batch update
+        pipeline_deltas: dict[UUID, tuple[int, int]] = {}
+        for pipeline_id, metric in metrics:
+            tagged = metric.window_matched_events
+            untagged = metric.window_total_events - metric.window_matched_events
+            if pipeline_id in pipeline_deltas:
+                old_tagged, old_untagged = pipeline_deltas[pipeline_id]
+                pipeline_deltas[pipeline_id] = (old_tagged + tagged, old_untagged + untagged)
+            else:
+                pipeline_deltas[pipeline_id] = (tagged, untagged)
+
+        # Execute updates (one per unique pipeline)
+        for pipeline_id, (tagged, untagged) in pipeline_deltas.items():
+            await self.session.execute(
+                update(Pipeline)
+                .where(Pipeline.id == pipeline_id)
+                .values(
+                    events_tagged=Pipeline.events_tagged + tagged,
+                    events_untagged=Pipeline.events_untagged + untagged,
+                )
+            )
+
+        # 3. Upsert rule metrics
+        for pipeline_id, metric in metrics:
+            if metric.rules and metric.rules.matched_rules:
+                await self._upsert_rule_metrics(pipeline_id, metric)
+
+        logger.debug(
+            "Batch appended metrics",
+            extra={
+                "count": len(metrics),
+                "pipelines": len(pipeline_deltas),
+            },
+        )
+
+        return len(metrics)
+
     async def _upsert_rule_metrics(self, pipeline_id: UUID, metric: KafkaMetricMessage) -> None:
         """Upsert per-rule match counters using PostgreSQL ON CONFLICT.
 

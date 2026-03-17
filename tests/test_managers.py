@@ -7,7 +7,7 @@ from uuid import UUID
 import pytest
 
 from apps.core.exceptions import DuplicateEntityError, NotFoundError
-from apps.core.schemas import UserCreateRequest
+from apps.core.schemas import UserCreateRequest, UserUpdateRequest
 
 # ==========================================
 # USERS MANAGER TESTS
@@ -179,6 +179,114 @@ class TestUsersManager:
 
             with pytest.raises(NotFoundError):
                 await manager.delete(user_id, admin_user)
+
+    @pytest.mark.asyncio
+    async def test_update_success(self, mock_db, mock_user_dao, mock_activity_producer, sample_user, admin_user):
+        """Should update user and log activity."""
+        mock_user_dao.get_by_id.return_value = sample_user
+        mock_user_dao.get_by_email.return_value = None
+
+        updated_user = MagicMock()
+        updated_user.id = sample_user.id
+        updated_user.email = "newemail@example.com"
+        updated_user.full_name = "Updated Name"
+        mock_user_dao.update.return_value = updated_user
+
+        request = UserUpdateRequest(
+            full_name="Updated Name",
+            email="newemail@example.com",
+        )
+
+        with (
+            patch("apps.managers.users.UserDAO", return_value=mock_user_dao),
+            patch("apps.managers.users.activity_producer", mock_activity_producer),
+        ):
+            from apps.managers.users import UsersManager
+
+            manager = UsersManager(mock_db)
+            manager.user_repo = mock_user_dao
+
+            result = await manager.update(sample_user.id, request, admin_user)
+
+            assert result == updated_user
+            mock_user_dao.update.assert_called_once()
+            mock_activity_producer.log_action.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_update_not_found(self, mock_db, mock_user_dao, admin_user):
+        """Should raise NotFoundError when user not found."""
+        mock_user_dao.get_by_id.return_value = None
+        user_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
+        request = UserUpdateRequest(full_name="Updated Name")
+
+        with patch("apps.managers.users.UserDAO", return_value=mock_user_dao):
+            from apps.managers.users import UsersManager
+
+            manager = UsersManager(mock_db)
+            manager.user_repo = mock_user_dao
+
+            with pytest.raises(NotFoundError) as exc_info:
+                await manager.update(user_id, request, admin_user)
+
+            assert str(user_id) in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_update_with_same_email_no_error(
+        self, mock_db, mock_user_dao, mock_activity_producer, sample_user, admin_user
+    ):
+        """Should NOT raise error when updating user with their same email.
+
+        Regression test for bug: previously the duplicate check did not
+        exclude the user being updated, causing false positives.
+        """
+        mock_user_dao.get_by_id.return_value = sample_user
+        # get_by_email returns the same user (same email lookup)
+        mock_user_dao.get_by_email.return_value = sample_user
+        mock_user_dao.update.return_value = sample_user
+
+        # Update with the same email the user already has
+        request = UserUpdateRequest(email=sample_user.email)
+
+        with (
+            patch("apps.managers.users.UserDAO", return_value=mock_user_dao),
+            patch("apps.managers.users.activity_producer", mock_activity_producer),
+        ):
+            from apps.managers.users import UsersManager
+
+            manager = UsersManager(mock_db)
+            manager.user_repo = mock_user_dao
+
+            # Should NOT raise DuplicateEntityError
+            result = await manager.update(sample_user.id, request, admin_user)
+
+            assert result == sample_user
+            mock_user_dao.update.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_update_with_duplicate_email_raises_error(self, mock_db, mock_user_dao, sample_user, admin_user):
+        """Should raise DuplicateEntityError when updating with another user's email."""
+        # Create another user who owns the email we're trying to use
+        other_user = MagicMock()
+        other_user.id = UUID("660e8400-e29b-41d4-a716-446655440001")
+        other_user.email = "other@example.com"
+
+        mock_user_dao.get_by_id.return_value = sample_user
+        # get_by_email returns the other user who owns this email
+        mock_user_dao.get_by_email.return_value = other_user
+
+        request = UserUpdateRequest(email="other@example.com")
+
+        with patch("apps.managers.users.UserDAO", return_value=mock_user_dao):
+            from apps.managers.users import UsersManager
+
+            manager = UsersManager(mock_db)
+            manager.user_repo = mock_user_dao
+
+            with pytest.raises(DuplicateEntityError) as exc_info:
+                await manager.update(sample_user.id, request, admin_user)
+
+            assert "email" in str(exc_info.value.detail)
 
 
 # ==========================================

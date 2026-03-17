@@ -7,8 +7,10 @@ from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaError
 from confluent_kafka import Producer
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.settings import settings
+from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.base import BaseKafkaAsyncClient, BaseKafkaSyncClient
 
 logger = get_logger(__name__)
@@ -88,9 +90,27 @@ class KafkaParsersEventsReader(BaseKafkaAsyncClient):
 
         except KafkaError as e:
             logger.error("Kafka error while getting events", extra={"error": str(e), "topic": topic})
+            if ErrorTracker.should_log(f"kafka_parsers_events_{topic}"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="kafka",
+                    entity_id=topic,
+                    details=f"Kafka error while getting parser test events from topic {topic}: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             raise
         except Exception as e:
             logger.error("Unexpected error while getting events", extra={"error": str(e), "topic": topic})
+            if ErrorTracker.should_log(f"kafka_parsers_events_unexpected_{topic}"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="kafka",
+                    entity_id=topic,
+                    details=f"Unexpected error while getting parser test events from topic {topic}: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             raise
         finally:
             if consumer:

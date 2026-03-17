@@ -131,7 +131,7 @@ class PipelineDAO(BaseDAO[Pipeline]):
         """
         query = select(Pipeline).options(
             selectinload(Pipeline.log_source),
-            selectinload(Pipeline.pipeline_rules),
+            selectinload(Pipeline.pipeline_rules).selectinload(PipelineRule.rule),
             selectinload(Pipeline.repositories),
         )
 

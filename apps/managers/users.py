@@ -112,17 +112,16 @@ class UsersManager:
 
         Raises:
             NotFoundError: If user not found
-            HTTPException: If email already exists
+            DuplicateEntityError: If email already exists
         """
         existing_user = await self.user_repo.get_by_id(user_id)
         if not existing_user:
             raise NotFoundError(f"User with id {user_id} not found")
 
-        # Check if email is being updated and if it's already taken
-        email_changed = request.email and request.email.lower() != existing_user.email
-        if email_changed:
+        # Check if email is already taken by another user
+        if request.email:
             email_user = await self.user_repo.get_by_email(request.email)
-            if email_user:
+            if email_user and email_user.id != user_id:
                 raise DuplicateEntityError("User", f"email {request.email}")
 
         update_data = {}

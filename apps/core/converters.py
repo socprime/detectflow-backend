@@ -34,6 +34,8 @@ class RuleConverter:
             category=rule.category if rule.category else None,
             created=rule.created,
             updated=rule.updated,
+            is_supported=rule.is_supported,
+            unsupported_reason=rule.unsupported_reason,
         )
 
     @staticmethod

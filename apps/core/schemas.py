@@ -49,23 +49,23 @@ def validate_yaml(value: str | None) -> str | None:
 
 
 def validate_uuid4(value: str | UUID | None) -> str | None:
-    """Validate UUID4 format.
+    """Валідація UUID4 формату.
 
     Args:
-        value: Value to validate (can be None, str or UUID object).
+        value: Значення для валідації (може бути None, str або UUID об'єкт).
 
     Returns:
-        Valid value as string or None.
+        Валідне значення у вигляді рядка або None.
 
     Raises:
-        ValueError: If value is not a valid UUID4.
+        ValueError: Якщо значення не є валідним UUID4.
     """
     if value is None:
         return value
-    # If already a UUID object, convert to string
+    # Якщо це вже UUID об'єкт, конвертуємо в рядок
     if isinstance(value, UUID):
         return str(value)
-    # If string, validate
+    # Якщо це рядок, перевіряємо валідність
     try:
         UUID(value)
         return value
@@ -147,6 +147,7 @@ class DashboardGraphData(BaseModel):
     pipelines_count: int
     total_events_eps: float = Field(description="Total input events per second")
     total_tagged_eps: float = Field(description="Total tagged events per second")
+    total_untagged_eps: float = Field(default=0.0, description="Total untagged events per second")
     total_rules: int
 
 
@@ -157,6 +158,7 @@ class PipelineStatsItem(BaseModel):
     name: str
     source_topics: list[str] = Field(description="Kafka input topics (can be multiple)")
     destination_topic: str
+    save_untagged: bool = Field(description="Whether to save untagged events")
     repository_ids: list[str] = Field(default_factory=list, description="Repository IDs for mapping")
     input_eps: float = Field(description="Input events per second")
     output_eps: float = Field(description="Output (matched) events per second")
@@ -251,10 +253,14 @@ class KafkaMetricMatchedRule(BaseModel):
 
 
 class KafkaMetricRules(BaseModel):
-    """Rules metrics from Kafka."""
+    """Rules metrics from Kafka.
 
-    total: int
-    triggered_unique: int
+    Note: total and triggered_unique are optional for backward compatibility.
+    Flink simplified message only sends matched_rules.
+    """
+
+    total: int = 0
+    triggered_unique: int = 0
     top_by_matches: list[KafkaMetricRuleTop] = Field(default_factory=list)
     slow_rules_top_3: list[KafkaMetricSlowRule] = Field(default_factory=list)
     avg_time_per_rule_ms: float = 0.0
@@ -525,8 +531,12 @@ class PipelineListItem(BaseModel):
     log_source: list[dict[str, str]]
     filters: int
     rules: int
+    supported_rules: int = Field(0, description="Count of supported rules ")
     events_tagged: int
     events_untagged: int
+    needs_restart: bool = Field(
+        False, description="Pipeline needs restart due to rule loader module update "
+    )
     created: str
     updated: str
 
@@ -585,6 +595,11 @@ class PipelineDetailResponse(BaseModel):
     autoscaler_min_parallelism: int | None = None
     autoscaler_max_parallelism: int | None = None
 
+    warnings: list[str] = Field(default_factory=list, description="Pipeline warnings (e.g., no supported rules)")
+    supported_rules_count: int = Field(0, description="Count of supported (valid) rules")
+    total_rules_count: int = Field(0, description="Total count of rules")
+    needs_restart: bool = Field(False, description="Pipeline needs restart due to rule loader module update")
+
 
 class PipelineStatisticsDetailResponse(BaseModel):
     events_tagged: int
@@ -602,6 +617,9 @@ class RuleListItem(BaseModel):
     updated: str
     enabled: bool
     tagged_events: int
+    # Sigma validation fields 
+    is_supported: bool = True
+    unsupported_reason: str | None = None
 
 
 class PipelineRulesListResponse(BaseModel):
@@ -612,6 +630,9 @@ class PipelineRulesListResponse(BaseModel):
     offset: int
     order: str
     data: list[RuleListItem]
+    # Rule validation summary 
+    supported_count: int = Field(0, description="Count of supported rules in this pipeline")
+    unsupported_count: int = Field(0, description="Count of unsupported rules in this pipeline")
 
 
 class PipelineSimpleResponse(BaseModel):
@@ -953,6 +974,9 @@ class RuleDetailResponse(BaseModel, extra="ignore"):
     product: str | None = None
     service: str | None = None
     category: str | None = None
+    # Sigma validation fields 
+    is_supported: bool = True
+    unsupported_reason: str | None = None
 
 
 class RuleFullDetailResponse(RuleDetailResponse):
@@ -966,6 +990,59 @@ class RuleListResponse(BaseModel):
     sort: str
     order: str
     data: list[RuleDetailResponse]
+
+
+# Sigma Validation Schemas 
+class SigmaValidateRequest(BaseModel):
+    """Request to validate a sigma rule."""
+
+    sigma_text: str = Field(description="Sigma rule YAML text to validate")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "sigma_text": "title: Test Rule\nstatus: experimental\nlogsource:\n  product: windows\ndetection:\n  selection:\n    EventID: 4104\n  condition: selection"
+                }
+            ]
+        }
+    }
+
+
+class SigmaValidateResponse(BaseModel):
+    """Response from sigma rule validation."""
+
+    is_supported: bool = Field(description="Whether the rule is supported by the current matcher")
+    unsupported_reason: str | None = Field(None, description="Reason why the rule is not supported")
+    unsupported_labels: list[str] = Field(
+        default_factory=list, description="List of unsupported features found in the rule"
+    )
+    validator_version: str | None = Field(None, description="Version of the sigma validator used")
+
+
+class SigmaValidateBulkRequest(BaseModel):
+    """Request to validate multiple sigma rules."""
+
+    rules: list[SigmaValidateRequest] = Field(description="List of sigma rules to validate", max_length=100)
+
+
+class SigmaValidateBulkItemResponse(BaseModel):
+    """Validation result for a single rule in bulk validation."""
+
+    index: int = Field(description="Index of the rule in the request list (0-based)")
+    is_supported: bool = Field(description="Whether the rule is supported")
+    unsupported_reason: str | None = Field(None, description="Reason why the rule is not supported")
+    unsupported_labels: list[str] = Field(default_factory=list, description="List of unsupported features")
+
+
+class SigmaValidateBulkResponse(BaseModel):
+    """Response from bulk sigma rule validation."""
+
+    total: int = Field(description="Total number of rules validated")
+    supported: int = Field(description="Number of supported rules")
+    unsupported: int = Field(description="Number of unsupported rules")
+    validator_version: str | None = Field(None, description="Version of the sigma validator used")
+    results: list[SigmaValidateBulkItemResponse] = Field(description="Validation results per rule")
 
 
 # Parsers Schemas

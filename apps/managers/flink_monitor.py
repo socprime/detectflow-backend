@@ -23,8 +23,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from apps.clients.flink_rest import FlinkRestClient
 from apps.core.database import AsyncSessionLocal
 from apps.core.enums import get_status_level
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Pipeline
+from apps.core.schemas import StatusDetails
 from apps.core.settings import settings
 from apps.managers.pipeline_status import pipeline_status_manager
 from apps.modules.kafka.activity import activity_producer
@@ -164,20 +166,41 @@ class FlinkMonitorService:
                 await self._check_all_pipelines()
             except Exception as e:
                 logger.exception("Error in monitor loop", extra={"error": str(e)})
+                if ErrorTracker.should_log("monitor_loop"):
+                    await activity_producer.log_action(
+                        action="error",
+                        entity_type="monitor",
+                        details=f"Error in Flink monitor loop: {str(e)}",
+                        source="system",
+                        severity="error",
+                    )
 
             await asyncio.sleep(self.CHECK_INTERVAL_SECONDS)
 
     async def _check_all_pipelines(self) -> None:
         """Check all enabled pipelines for status changes and exceptions."""
         try:
+            # Get pipelines and close session immediately to avoid holding
+            # connection during long HTTP calls to Flink REST API
             async with AsyncSessionLocal() as db:
                 pipelines = await self._get_enabled_pipelines(db)
 
-                for pipeline in pipelines:
-                    await self._check_pipeline(pipeline)
+            # Process pipelines without holding DB session
+            # Each pipeline check involves multiple HTTP calls (5s timeout each)
+            # Status updates create their own short-lived sessions when needed
+            for pipeline in pipelines:
+                await self._check_pipeline(pipeline)
 
         except Exception as e:
             logger.error("Failed to check pipelines", extra={"error": str(e)})
+            if ErrorTracker.should_log("monitor_check_pipelines"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="monitor",
+                    details=f"Failed to check pipelines in monitor: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
 
     async def _get_enabled_pipelines(self, db: AsyncSession) -> list[Pipeline]:
         """Get all enabled pipelines from database.
@@ -199,22 +222,23 @@ class FlinkMonitorService:
         """
         pipeline_id = str(pipeline.id)
 
-        # Get current status from Flink/K8s
-        status = await pipeline_status_manager.get_status(
+        # Get current status with full details from Flink/K8s
+        status_str, status_details = await pipeline_status_manager.get_status_details(
             pipeline_id=pipeline_id,
             deployment_name=pipeline.deployment_name,
             enabled=pipeline.enabled,
         )
 
-        # Check for status change
+        # Check for status change (creates short-lived session only when update needed)
         await self._check_status_change(
             pipeline_id=pipeline_id,
             pipeline_name=pipeline.name,
-            new_status=status.status,
+            new_status=status_str,
+            status_details=status_details,
         )
 
         # Additional checks only for running jobs with deployment
-        if status.status == "running" and pipeline.deployment_name:
+        if status_str == "running" and pipeline.deployment_name:
             # Check for exceptions (OOM, etc.)
             await self._check_exceptions(
                 pipeline_id=pipeline_id,
@@ -262,6 +286,7 @@ class FlinkMonitorService:
         pipeline_id: str,
         pipeline_name: str,
         new_status: str,
+        status_details: StatusDetails | None = None,
     ) -> None:
         """Check if pipeline status changed and emit activity event.
 
@@ -269,6 +294,7 @@ class FlinkMonitorService:
             pipeline_id: Pipeline UUID string
             pipeline_name: Pipeline name for display
             new_status: New status from Flink/K8s
+            status_details: Optional status details with warnings and error info
         """
         previous_state = self._states.get(pipeline_id)
 
@@ -298,6 +324,7 @@ class FlinkMonitorService:
             pipeline_name=pipeline_name,
             old_status=old_status,
             new_status=new_status,
+            status_details=status_details,
         )
 
     async def _emit_status_change(
@@ -306,6 +333,7 @@ class FlinkMonitorService:
         pipeline_name: str,
         old_status: str,
         new_status: str,
+        status_details: StatusDetails | None = None,
     ) -> None:
         """Emit activity event for status change and update DB.
 
@@ -314,6 +342,7 @@ class FlinkMonitorService:
             pipeline_name: Pipeline name
             old_status: Previous status
             new_status: New status
+            status_details: Optional status details with warnings and error info
         """
         # Update status in database first - if this fails, don't emit activity event
         db_updated = await self._update_pipeline_status(pipeline_id, new_status)
@@ -327,6 +356,14 @@ class FlinkMonitorService:
         # Determine severity based on new status
         severity = get_status_level(new_status)
 
+        # Build changes dict with status and optional warnings/error
+        changes: dict = {"status": {"old": old_status, "new": new_status}}
+        if status_details:
+            if status_details.warnings:
+                changes["warnings"] = status_details.warnings
+            if status_details.error:
+                changes["error"] = status_details.error
+
         try:
             await activity_producer.log_action(
                 action="status_change",
@@ -335,7 +372,7 @@ class FlinkMonitorService:
                 entity_name=pipeline_name,
                 user=None,  # System event
                 details=f"Pipeline status changed: {old_status} → {new_status}",
-                changes={"status": {"old": old_status, "new": new_status}},
+                changes=changes,
                 source="system",
                 severity=severity,
             )
@@ -358,6 +395,8 @@ class FlinkMonitorService:
     async def _update_pipeline_status(self, pipeline_id: str, status: str) -> bool:
         """Update pipeline status in database.
 
+        Creates a short-lived session to avoid holding connections during HTTP calls.
+
         Args:
             pipeline_id: Pipeline UUID string
             status: New status value
@@ -373,12 +412,21 @@ class FlinkMonitorService:
                     "Pipeline status updated in DB",
                     extra={"pipeline_id": pipeline_id, "status": status},
                 )
-                return True
+            return True
         except Exception as e:
             logger.error(
                 "Failed to update pipeline status in DB",
                 extra={"pipeline_id": pipeline_id, "status": status, "error": str(e)},
             )
+            if ErrorTracker.should_log(f"monitor_db_update_{pipeline_id}"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="database",
+                    entity_id=pipeline_id,
+                    details=f"Failed to update pipeline status in DB: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             return False
 
     async def _check_exceptions(
