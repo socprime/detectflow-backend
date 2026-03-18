@@ -440,7 +440,7 @@ wheels = [
 
 [[package]]
 name = "detectflow-backend"
-version = "0.9.4"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiokafka" },
@@ -493,7 +493,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
-    { name = "schema-parser", git = "https://github.com/socprime/detectflow-parser.git?tag=v0.2.3" },
+    { name = "schema-parser", git = "https://github.com/socprime/detectflow-parser.git?tag=v0.3.2" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.44" },
     { name = "uvicorn", specifier = ">=0.38.0" },
 ]
@@ -1274,8 +1274,8 @@ wheels = [
 
 [[package]]
 name = "schema-parser"
-version = "0.2.3"
-source = { git = "https://github.com/socprime/detectflow-parser.git?tag=v0.2.3#a4964c46342427266177f015de37579ad8afab20" }
+version = "0.3.2"
+source = { git = "https://github.com/socprime/detectflow-parser.git?tag=v0.3.2#5d2e84cd203a986a4338920af9cbdf9ec877a4be" }
 dependencies = [
     { name = "flatten-dict" },
     { name = "orjson" },

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.exceptions import ConflictError, NotFoundError
 from apps.core.logger import get_logger
 from apps.core.models import LogSource, User
@@ -150,6 +151,15 @@ class LogSourcesManager:
                     "Failed to sync log source parser to Kafka (non-critical)",
                     extra={"log_source_id": str(log_source_id), "error": str(e)},
                 )
+                if ErrorTracker.should_log(f"kafka_sync_parser_{log_source_id}"):
+                    await activity_producer.log_action(
+                        action="warning",
+                        entity_type="kafka_sync",
+                        entity_id=str(log_source_id),
+                        details=f"Failed to sync log source parser to Kafka (non-critical): {str(e)}",
+                        source="system",
+                        severity="warning",
+                    )
 
         # Activity logging (was missing!)
         await activity_producer.log_action(

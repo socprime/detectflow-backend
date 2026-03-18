@@ -12,11 +12,13 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from apps.core.auth import get_current_active_user, get_current_active_user_from_cookie
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import User
 from apps.core.schemas import DashboardSnapshotResponse, ErrorResponse
 from apps.core.settings import settings
 from apps.managers.dashboard import dashboard_service
+from apps.modules.kafka.activity import activity_producer
 
 logger = get_logger(__name__)
 
@@ -42,6 +44,14 @@ async def _sse_event_generator(request: Request):
         yield f"data: {json.dumps(event_data)}\n\n"
     except Exception as e:
         logger.error("Failed to send initial SSE data", extra={"error": str(e)})
+        if ErrorTracker.should_log("sse_initial"):
+            await activity_producer.log_action(
+                action="error",
+                entity_type="dashboard",
+                details=f"Failed to send initial SSE data: {str(e)}",
+                source="system",
+                severity="error",
+            )
 
     # Stream updates
     while True:
@@ -69,6 +79,14 @@ async def _sse_event_generator(request: Request):
             break
         except Exception as e:
             logger.error("Error generating SSE event", extra={"error": str(e)})
+            if ErrorTracker.should_log("sse_event"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="dashboard",
+                    details=f"Error generating SSE event: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             # Send error event
             error_event = {
                 "type": "error",

@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from confluent_kafka import Producer
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.settings import settings
 from apps.modules.kafka.base import BaseKafkaSyncClient
@@ -82,6 +83,12 @@ class KafkaCustomFieldsSyncService(BaseKafkaSyncClient):
         def on_delivery(err, msg):
             if err:
                 logger.error(f"Failed to deliver custom_fields message: {err}")
+                # Track error for audit logging
+                if ErrorTracker.should_log(f"kafka_custom_fields_deliver_{pipeline_id}"):
+                    logger.error(
+                        "Custom fields delivery failure tracked for audit",
+                        extra={"pipeline_id": pipeline_id, "error": str(err)},
+                    )
                 raise RuntimeError(f"Failed to deliver message: {err}")
 
         logger.info(f"Sending custom_fields to Kafka for pipeline {pipeline_id}")
@@ -109,6 +116,12 @@ class KafkaCustomFieldsSyncService(BaseKafkaSyncClient):
         def on_delivery(err, msg):
             if err:
                 logger.error(f"Failed to deliver delete message: {err}")
+                # Track error for audit logging
+                if ErrorTracker.should_log(f"kafka_custom_fields_delete_{pipeline_id}"):
+                    logger.error(
+                        "Custom fields delete delivery failure tracked for audit",
+                        extra={"pipeline_id": pipeline_id, "error": str(err)},
+                    )
                 raise RuntimeError(f"Failed to deliver message: {err}")
 
         logger.info(f"Deleting custom_fields from Kafka for pipeline {pipeline_id}")

@@ -127,6 +127,8 @@ class ActivityService:
                 return [self.from_db(log) for log in audit_logs]
         except Exception as e:
             logger.error(f"Failed to fetch recent activity from database: {e}")
+            # Note: Cannot log to activity_producer here - this IS the activity service
+            # Error is logged to file, which is sufficient
             return []
 
 

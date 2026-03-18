@@ -18,12 +18,15 @@ from uuid import UUID
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaConnectionError, KafkaError
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from apps.core.database import AsyncSessionLocal
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Pipeline
 from apps.core.schemas import KafkaMetricMessage
 from apps.core.settings import settings
+from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.base import BaseKafkaAsyncClient
 from apps.modules.postgre.metrics import MetricsDAO
 
@@ -119,9 +122,29 @@ class MetricsConsumerService(BaseKafkaAsyncClient):
                 "Failed to connect to Kafka",
                 extra={"error": str(e), "bootstrap_servers": settings.kafka_bootstrap_servers},
             )
+            if ErrorTracker.should_log("kafka_connect_metrics"):
+                asyncio.create_task(
+                    activity_producer.log_action(
+                        action="error",
+                        entity_type="kafka",
+                        details=f"MetricsConsumer failed to connect to Kafka: {str(e)}",
+                        source="system",
+                        severity="error",
+                    )
+                )
             raise
         except Exception as e:
             logger.error("Failed to start MetricsConsumerService", extra={"error": str(e)})
+            if ErrorTracker.should_log("kafka_start_metrics"):
+                asyncio.create_task(
+                    activity_producer.log_action(
+                        action="error",
+                        entity_type="kafka",
+                        details=f"MetricsConsumer failed to start: {str(e)}",
+                        source="system",
+                        severity="error",
+                    )
+                )
             raise
 
     async def stop(self) -> None:
@@ -147,162 +170,229 @@ class MetricsConsumerService(BaseKafkaAsyncClient):
         logger.info("MetricsConsumerService stopped")
 
     async def _consume_loop(self) -> None:
-        """Main consumption loop - runs until stopped."""
+        """Main consumption loop - runs until stopped.
+
+        Uses batch processing: collects all messages from getmany(),
+        parses them, resolves pipeline IDs, stores in DB with single transaction,
+        then notifies callbacks.
+        """
         logger.info("Starting metrics consumption loop")
 
         while self.is_running:
             try:
-                # Use getmany with timeout instead of async for
-                # This is more reliable for message delivery
+                # Get batch of messages
                 messages = await self.consumer.getmany(timeout_ms=1000, max_records=100)
 
+                # Parse all messages first (no DB access yet)
+                parsed_metrics: list[KafkaMetricMessage] = []
                 for _tp, msgs in messages.items():
                     for message in msgs:
                         if not self.is_running:
                             break
+                        metric = self._parse_message(message.value)
+                        if metric:
+                            parsed_metrics.append(metric)
 
-                        logger.debug(
-                            "Received Kafka message",
-                            extra={"partition": message.partition, "offset": message.offset},
-                        )
-                        await self._process_message(message.key, message.value)
+                if not parsed_metrics:
+                    continue
+
+                # Resolve pipeline IDs and store metrics in batch
+                await self._process_metrics_batch(parsed_metrics)
+
+                self.last_message_time = datetime.now(UTC)
+
+                logger.debug(
+                    "Processed metrics batch",
+                    extra={"count": len(parsed_metrics)},
+                )
 
             except asyncio.CancelledError:
                 logger.info("Consumption loop cancelled")
                 break
             except KafkaError as e:
                 logger.error("Kafka error in consumption loop", extra={"error": str(e)})
-                # Wait before retry
+                if ErrorTracker.should_log("kafka_consume_metrics"):
+                    await activity_producer.log_action(
+                        action="error",
+                        entity_type="kafka",
+                        details=f"MetricsConsumer Kafka error in consumption loop: {str(e)}",
+                        source="system",
+                        severity="error",
+                    )
                 await asyncio.sleep(5)
             except Exception as e:
                 logger.error("Unexpected error in consumption loop", extra={"error": str(e)})
+                if ErrorTracker.should_log("kafka_consume_metrics_unexpected"):
+                    await activity_producer.log_action(
+                        action="error",
+                        entity_type="kafka",
+                        details=f"MetricsConsumer unexpected error in consumption loop: {str(e)}",
+                        source="system",
+                        severity="error",
+                    )
                 await asyncio.sleep(5)
 
-    async def _process_message(self, key: str | None, value: str | None) -> None:
-        """Process a single Kafka message.
+    def _parse_message(self, value: str | None) -> KafkaMetricMessage | None:
+        """Parse a single Kafka message into KafkaMetricMessage.
 
         Args:
-            key: Message key (job_id)
             value: Message value (JSON metric data)
+
+        Returns:
+            Parsed KafkaMetricMessage or None if parsing failed
         """
         if not value:
-            return
+            return None
 
         try:
-            # Parse JSON
             raw_data = json.loads(value)
-
-            # Validate with Pydantic
-            metric = KafkaMetricMessage.model_validate(raw_data)
-
-            self.last_message_time = datetime.now(UTC)
-
-            # Find pipeline_id from job_id (cache lookup + DB fallback)
-            pipeline_id = await self._get_pipeline_id(metric.job_id)
-
-            if pipeline_id:
-                # Store in database
-                await self._store_metric(pipeline_id, metric)
-
-                logger.info(
-                    "Processed metric",
-                    extra={
-                        "pipeline_id": str(pipeline_id),
-                        "eps": metric.window_throughput_eps,
-                        "events": metric.window_total_events,
-                    },
-                )
-
-                # Notify all registered callbacks
-                for callback in self._on_metric_callbacks:
-                    try:
-                        await callback(pipeline_id, metric)
-                    except Exception as e:
-                        logger.error(
-                            "Error in metric callback",
-                            extra={"error": str(e), "pipeline_id": str(pipeline_id)},
-                        )
-            else:
-                logger.warning(
-                    "Received metric for unknown pipeline",
-                    extra={"job_id": metric.job_id},
-                )
-
+            return KafkaMetricMessage.model_validate(raw_data)
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse metric JSON: {e}")
+            return None
         except ValidationError as e:
             logger.warning(f"Failed to validate metric schema: {e}")
-        except Exception as e:
-            logger.exception(f"Error processing metric message: {e}")
+            return None
 
-    async def _get_pipeline_id(self, job_id: str) -> UUID | None:
-        """Get pipeline UUID from job_id (which is also the pipeline ID).
+    async def _process_metrics_batch(self, metrics: list[KafkaMetricMessage]) -> None:
+        """Process a batch of metrics: resolve pipeline IDs and store in DB.
 
-        The job_id in metrics is the pipeline UUID, but we verify it exists.
+        Args:
+            metrics: List of parsed KafkaMetricMessage objects
+        """
+        if not metrics:
+            return
+
+        # Resolve pipeline IDs (uses cache, only hits DB for cache misses)
+        metrics_with_ids: list[tuple[UUID, KafkaMetricMessage]] = []
+        unknown_job_ids: set[str] = set()
+
+        for metric in metrics:
+            pipeline_id = self._get_pipeline_id_from_cache(metric.job_id)
+            if pipeline_id:
+                metrics_with_ids.append((pipeline_id, metric))
+            else:
+                unknown_job_ids.add(metric.job_id)
+
+        # Batch lookup for cache misses
+        if unknown_job_ids:
+            resolved_ids = await self._resolve_pipeline_ids_batch(list(unknown_job_ids))
+            # Re-process metrics that had cache misses
+            for metric in metrics:
+                if metric.job_id in unknown_job_ids:
+                    pipeline_id = resolved_ids.get(metric.job_id)
+                    if pipeline_id:
+                        metrics_with_ids.append((pipeline_id, metric))
+                    else:
+                        logger.warning(
+                            "Received metric for unknown pipeline",
+                            extra={"job_id": metric.job_id},
+                        )
+
+        if not metrics_with_ids:
+            return
+
+        # Store all metrics in a single transaction
+        await self._store_metrics_batch(metrics_with_ids)
+
+        # Notify callbacks
+        for pipeline_id, metric in metrics_with_ids:
+            for callback in self._on_metric_callbacks:
+                try:
+                    await callback(pipeline_id, metric)
+                except Exception as e:
+                    logger.error(
+                        "Error in metric callback",
+                        extra={"error": str(e), "pipeline_id": str(pipeline_id)},
+                    )
+
+    def _get_pipeline_id_from_cache(self, job_id: str) -> UUID | None:
+        """Get pipeline UUID from cache only.
 
         Args:
             job_id: The job_id from Kafka metric (pipeline UUID string)
 
         Returns:
-            Pipeline UUID if found, None otherwise
+            Pipeline UUID if in cache, None otherwise
         """
-        # Check cache first
-        if job_id in self._pipeline_id_cache:
-            return self._pipeline_id_cache[job_id]
+        return self._pipeline_id_cache.get(job_id)
 
-        # Try to parse as UUID and verify in DB
-        try:
-            pipeline_uuid = UUID(job_id)
-
-            async with AsyncSessionLocal() as db:
-                pipeline = await db.get(Pipeline, pipeline_uuid)
-                if pipeline:
-                    self._pipeline_id_cache[job_id] = pipeline_uuid
-                    return pipeline_uuid
-
-        except (ValueError, TypeError):
-            # Not a valid UUID
-            pass
-
-        return None
-
-    async def _store_metric(self, pipeline_id: UUID, metric: KafkaMetricMessage) -> None:
-        """Store metrics in PostgreSQL including pipeline totals.
-
-        Updates:
-        - pipeline.events_tagged/events_untagged: Accumulated counters (from window metrics)
-        - pipeline_metrics: Time-series history
-        - pipeline_rule_metrics: Per-rule match counters
+    async def _resolve_pipeline_ids_batch(self, job_ids: list[str]) -> dict[str, UUID]:
+        """Resolve multiple job_ids to pipeline UUIDs in a single DB query.
 
         Args:
-            pipeline_id: Pipeline UUID
-            metric: Validated metric data
+            job_ids: List of job_id strings to resolve
+
+        Returns:
+            Dict mapping job_id to pipeline UUID (only found pipelines)
         """
+        if not job_ids:
+            return {}
+
+        # Parse valid UUIDs
+        uuid_map: dict[str, UUID] = {}
+        for job_id in job_ids:
+            try:
+                uuid_map[job_id] = UUID(job_id)
+            except (ValueError, TypeError):
+                pass
+
+        if not uuid_map:
+            return {}
+
+        result: dict[str, UUID] = {}
+        try:
+            async with AsyncSessionLocal() as db:
+                query = select(Pipeline.id).where(Pipeline.id.in_(uuid_map.values()))
+                db_result = await db.execute(query)
+                existing_ids = {row[0] for row in db_result.fetchall()}
+
+                for job_id, pipeline_uuid in uuid_map.items():
+                    if pipeline_uuid in existing_ids:
+                        result[job_id] = pipeline_uuid
+                        self._pipeline_id_cache[job_id] = pipeline_uuid
+
+        except Exception as e:
+            logger.error(f"Failed to resolve pipeline IDs: {e}")
+
+        return result
+
+    async def _store_metrics_batch(self, metrics: list[tuple[UUID, KafkaMetricMessage]]) -> None:
+        """Store multiple metrics in PostgreSQL using single transaction.
+
+        Args:
+            metrics: List of (pipeline_id, metric) tuples
+        """
+        if not metrics:
+            return
+
         try:
             async with AsyncSessionLocal() as db:
                 try:
                     metrics_dao = MetricsDAO(db)
-                    # Store all metrics: history + pipeline totals + per-rule counters
-                    await metrics_dao.append_metric(pipeline_id, metric)
+                    count = await metrics_dao.append_metrics_batch(metrics)
                     await db.commit()
+                    logger.debug(
+                        "Batch stored metrics",
+                        extra={"count": count},
+                    )
                 except Exception:
                     await db.rollback()
                     raise
 
-            logger.debug(
-                "Stored metrics in PostgreSQL",
-                extra={
-                    "pipeline_id": str(pipeline_id),
-                    "tagged": metric.window_matched_events,
-                    "total": metric.window_total_events,
-                },
-            )
-
         except Exception as e:
             logger.error(
-                "Failed to store metrics in PostgreSQL",
-                extra={"pipeline_id": str(pipeline_id), "error": str(e)},
+                "Failed to batch store metrics",
+                extra={"count": len(metrics), "error": str(e)},
             )
+            if ErrorTracker.should_log("metrics_batch_store"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="metrics",
+                    details=f"Failed to batch store metrics: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
 
     @property
     def is_healthy(self) -> bool:

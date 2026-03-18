@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 from kubernetes.client.rest import ApiException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Pipeline, User
 from apps.core.schemas import (
@@ -30,6 +31,7 @@ from apps.managers.parser_sync import ParsersOrchestrator
 from apps.managers.pipeline import KubernetesService
 from apps.managers.pipeline_status import pipeline_status_manager
 from apps.managers.rule import RulesOrchestrator
+from apps.managers.sigma_validation_service import SigmaValidationService
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.postgre.config import ConfigDAO
 from apps.modules.postgre.filter import FilterDAO
@@ -216,6 +218,100 @@ class PipelineOrchestrator:
         self.config_dao = ConfigDAO(db)
         self.k8s = KubernetesService()
 
+    async def _log_kafka_sync_warning(
+        self,
+        pipeline_id: UUID,
+        operation: str,
+        component: str,
+        error: Exception,
+    ) -> None:
+        """Log a non-critical Kafka sync warning with anti-flood protection.
+
+        Args:
+            pipeline_id: Pipeline UUID
+            operation: Operation that failed (e.g., "create", "enable", "update")
+            component: Component that failed (e.g., "filters", "parser", "custom_fields")
+            error: The exception that occurred
+        """
+        error_key = f"kafka_sync_{component}_{pipeline_id}"
+
+        logger.warning(
+            f"Failed to send {component} to Kafka (non-critical)",
+            extra={"pipeline_id": str(pipeline_id), "error": str(error)},
+        )
+
+        if ErrorTracker.should_log(error_key):
+            await activity_producer.log_action(
+                action="warning",
+                entity_type="kafka_sync",
+                entity_id=str(pipeline_id),
+                details=f"Failed to send {component} to Kafka on {operation} (non-critical): {str(error)}",
+                source="system",
+                severity="warning",
+            )
+
+    async def _log_k8s_warning(
+        self,
+        pipeline_id: UUID,
+        operation: str,
+        component: str,
+        error: Exception,
+    ) -> None:
+        """Log a non-critical Kubernetes warning with anti-flood protection.
+
+        Args:
+            pipeline_id: Pipeline UUID
+            operation: Operation that failed (e.g., "restart", "delete")
+            component: Component that failed (e.g., "storage_cleanup", "deployment")
+            error: The exception that occurred
+        """
+        error_key = f"k8s_{component}_{pipeline_id}"
+
+        logger.warning(
+            f"Failed to {component.replace('_', ' ')} (non-critical)",
+            extra={"pipeline_id": str(pipeline_id), "error": str(error)},
+        )
+
+        if ErrorTracker.should_log(error_key):
+            await activity_producer.log_action(
+                action="warning",
+                entity_type="kubernetes",
+                entity_id=str(pipeline_id),
+                details=f"Failed to {component.replace('_', ' ')} on {operation} (non-critical): {str(error)}",
+                source="system",
+                severity="warning",
+            )
+
+    async def _log_flink_warning(
+        self,
+        pipeline_id: UUID,
+        operation: str,
+        error: Exception,
+    ) -> None:
+        """Log a non-critical Flink warning with anti-flood protection.
+
+        Args:
+            pipeline_id: Pipeline UUID
+            operation: Operation that failed (e.g., "delete", "rollback")
+            error: The exception that occurred
+        """
+        error_key = f"flink_{operation}_{pipeline_id}"
+
+        logger.warning(
+            f"Failed to {operation} FlinkDeployment (non-critical)",
+            extra={"pipeline_id": str(pipeline_id), "error": str(error)},
+        )
+
+        if ErrorTracker.should_log(error_key):
+            await activity_producer.log_action(
+                action="warning",
+                entity_type="flink",
+                entity_id=str(pipeline_id),
+                details=f"Failed to {operation} FlinkDeployment (non-critical): {str(error)}",
+                source="system",
+                severity="warning",
+            )
+
     def _get_rules_orchestrator(self) -> RulesOrchestrator:
         """Get RulesOrchestrator instance."""
         return RulesOrchestrator(self.db)
@@ -351,10 +447,7 @@ class PipelineOrchestrator:
                     filter_ids=[UUID(f) for f in request.filters],
                 )
             except Exception as e:
-                logger.warning(
-                    "Failed to send filters to Kafka (non-critical)",
-                    extra={"pipeline_id": str(new_pipeline.id), "error": str(e)},
-                )
+                await self._log_kafka_sync_warning(new_pipeline.id, "create", "filters", e)
 
         # Send custom_fields to Kafka (if pipeline is enabled and has custom_fields)
         if request.enabled and request.custom_fields:
@@ -364,10 +457,7 @@ class PipelineOrchestrator:
                     custom_fields=request.custom_fields,
                 )
             except Exception as e:
-                logger.warning(
-                    "Failed to send custom_fields to Kafka (non-critical)",
-                    extra={"pipeline_id": str(new_pipeline.id), "error": str(e)},
-                )
+                await self._log_kafka_sync_warning(new_pipeline.id, "create", "custom_fields", e)
 
         # Create FlinkDeployment if pipeline is enabled
         if request.enabled:
@@ -442,15 +532,20 @@ class PipelineOrchestrator:
             try:
                 await self._get_parsers_orchestrator().handle_pipeline_creation(pipeline.id)
             except Exception as parser_err:
-                logger.warning(
-                    "Failed to send parser to Kafka (non-critical)",
-                    extra={"pipeline_id": str(pipeline.id), "error": str(parser_err)},
-                )
+                await self._log_kafka_sync_warning(pipeline.id, "create", "parser", parser_err)
 
         except Exception as e:
             logger.error(
                 "Failed to create FlinkDeployment or update DB",
                 extra={"pipeline_id": str(pipeline.id), "error": str(e)},
+            )
+            await activity_producer.log_action(
+                action="error",
+                entity_type="flink",
+                entity_id=str(pipeline.id),
+                details=f"Failed to create FlinkDeployment or update DB: {str(e)}",
+                source="system",
+                severity="error",
             )
 
             # Compensating transaction: cleanup created resources
@@ -468,6 +563,14 @@ class PipelineOrchestrator:
                             "pipeline_id": str(pipeline.id),
                             "rollback_error": str(rollback_error),
                         },
+                    )
+                    await activity_producer.log_action(
+                        action="error",
+                        entity_type="flink",
+                        entity_id=str(pipeline.id),
+                        details=f"Failed to delete FlinkDeployment during rollback: {str(rollback_error)}",
+                        source="system",
+                        severity="error",
                     )
 
             if isinstance(e, HTTPException):
@@ -557,6 +660,14 @@ class PipelineOrchestrator:
                 "Failed to update FlinkDeployment or DB",
                 extra={"pipeline_id": str(pipeline_id), "error": str(e)},
             )
+            await activity_producer.log_action(
+                action="error",
+                entity_type="flink",
+                entity_id=str(pipeline_id),
+                details=f"Failed to update FlinkDeployment or DB: {str(e)}",
+                source="system",
+                severity="error",
+            )
 
             if isinstance(e, HTTPException):
                 raise
@@ -625,10 +736,7 @@ class PipelineOrchestrator:
                     removed_filter_ids=[UUID(fid) for fid in removed_filter_ids],
                 )
             except Exception as filter_err:
-                logger.warning(
-                    "Failed to sync filters on update (non-critical)",
-                    extra={"pipeline_id": str(pipeline_id), "error": str(filter_err)},
-                )
+                await self._log_kafka_sync_warning(pipeline_id, "update", "filters", filter_err)
 
     async def _handle_disable_scenario(self, pipeline_id: UUID) -> None:
         """Handle scenario 1: Disabling pipeline (true → false).
@@ -770,12 +878,23 @@ class PipelineOrchestrator:
                     self.k8s.delete_flink_deployment_by_pipeline_id(str(updated.id))
                 except Exception as rb_error:
                     logger.error("Rollback failed", extra={"error": str(rb_error)})
+                    await activity_producer.log_action(
+                        action="error",
+                        entity_type="flink",
+                        entity_id=str(updated.id),
+                        details=f"Rollback failed on enable: {str(rb_error)}",
+                        source="system",
+                        severity="error",
+                    )
 
             raise
 
     async def _sync_kafka_data_on_enable(self, pipeline_id: UUID, updated: Pipeline) -> None:
         """Sync rules, filters, parser, and custom_fields to Kafka on enable/resume."""
-        await self._get_rules_orchestrator().handle_pipeline_enable(pipeline_id)
+        # Check if re-validation needed
+        needs_revalidation = updated.needs_restart or False
+
+        await self._get_rules_orchestrator().handle_pipeline_enable(pipeline_id, needs_revalidation=needs_revalidation)
 
         if updated.filters:
             try:
@@ -784,18 +903,12 @@ class PipelineOrchestrator:
                     filter_ids=[UUID(f) for f in updated.filters],
                 )
             except Exception as filter_err:
-                logger.warning(
-                    "Failed to send filters on enable (non-critical)",
-                    extra={"pipeline_id": str(pipeline_id), "error": str(filter_err)},
-                )
+                await self._log_kafka_sync_warning(pipeline_id, "enable", "filters", filter_err)
 
         try:
             await self._get_parsers_orchestrator().handle_pipeline_enable(pipeline_id)
         except Exception as parser_err:
-            logger.warning(
-                "Failed to send parser to Kafka (non-critical)",
-                extra={"pipeline_id": str(pipeline_id), "error": str(parser_err)},
-            )
+            await self._log_kafka_sync_warning(pipeline_id, "enable", "parser", parser_err)
 
         if updated.custom_fields:
             try:
@@ -804,10 +917,13 @@ class PipelineOrchestrator:
                     custom_fields=updated.custom_fields,
                 )
             except Exception as custom_fields_err:
-                logger.warning(
-                    "Failed to send custom_fields on enable (non-critical)",
-                    extra={"pipeline_id": str(pipeline_id), "error": str(custom_fields_err)},
-                )
+                await self._log_kafka_sync_warning(pipeline_id, "enable", "custom_fields", custom_fields_err)
+
+        # Clear needs_restart flag AFTER all sync operations (ISSUE #3 fix, TDM-11649)
+        if needs_revalidation:
+            validation_service = SigmaValidationService(self.db)
+            await validation_service.clear_pipeline_restart_flag(pipeline_id)
+            logger.info(f"Cleared needs_restart flag for pipeline {pipeline_id}")
 
     async def _handle_stays_disabled_scenario(self, pipeline_id: UUID) -> None:
         """Handle scenario 3: Pipeline stays disabled."""
@@ -846,10 +962,7 @@ class PipelineOrchestrator:
                     extra={"pipeline_id": str(pipeline_id)},
                 )
             except Exception as cleanup_error:
-                logger.warning(
-                    "Failed to cleanup storage (non-critical)",
-                    extra={"pipeline_id": str(pipeline_id), "error": str(cleanup_error)},
-                )
+                await self._log_k8s_warning(pipeline_id, "restart", "storage_cleanup", cleanup_error)
 
         try:
             # Update deployment spec - Flink Operator handles the upgrade
@@ -890,6 +1003,14 @@ class PipelineOrchestrator:
                 "Failed to update FlinkDeployment",
                 extra={"pipeline_id": str(pipeline_id), "error": str(flink_error)},
             )
+            await activity_producer.log_action(
+                action="error",
+                entity_type="flink",
+                entity_id=str(pipeline_id),
+                details=f"Failed to update FlinkDeployment on restart: {str(flink_error)}",
+                source="system",
+                severity="error",
+            )
 
             # Try to disable pipeline in DB as fallback
             try:
@@ -904,6 +1025,14 @@ class PipelineOrchestrator:
                 logger.error(
                     "Rollback failed",
                     extra={"pipeline_id": str(pipeline_id), "error": str(rollback_error)},
+                )
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="flink",
+                    entity_id=str(pipeline_id),
+                    details=f"Rollback failed on restart: {str(rollback_error)}",
+                    source="system",
+                    severity="error",
                 )
 
             raise
@@ -936,10 +1065,7 @@ class PipelineOrchestrator:
                     changes.new_log_source_id,
                 )
             except Exception as parser_err:
-                logger.warning(
-                    "Failed to sync parser to Kafka (non-critical)",
-                    extra={"pipeline_id": str(pipeline_id), "error": str(parser_err)},
-                )
+                await self._log_kafka_sync_warning(pipeline_id, "hot-reload", "parser", parser_err)
 
         # Sync custom_fields if changed
         if changes.custom_fields_changed:
@@ -950,10 +1076,7 @@ class PipelineOrchestrator:
                     changes.new_custom_fields,
                 )
             except Exception as custom_fields_err:
-                logger.warning(
-                    "Failed to sync custom_fields to Kafka (non-critical)",
-                    extra={"pipeline_id": str(pipeline_id), "error": str(custom_fields_err)},
-                )
+                await self._log_kafka_sync_warning(pipeline_id, "hot-reload", "custom_fields", custom_fields_err)
 
     async def _log_update_activity(
         self,
@@ -1011,20 +1134,14 @@ class PipelineOrchestrator:
             self.k8s.delete_flink_deployment_by_pipeline_id(str(pipeline_id))
             logger.info("FlinkDeployment deleted successfully", extra={"pipeline_id": str(pipeline_id)})
         except Exception as e:
-            logger.warning(
-                "Failed to delete FlinkDeployment (may not exist)",
-                extra={"pipeline_id": str(pipeline_id), "error": str(e)},
-            )
+            await self._log_flink_warning(pipeline_id, "delete", e)
 
         # Cleanup storage
         try:
             self.k8s.cleanup_pipeline_storage(str(pipeline_id))
             logger.info("Storage cleaned up successfully", extra={"pipeline_id": str(pipeline_id)})
         except Exception as cleanup_error:
-            logger.warning(
-                "Failed to cleanup storage (non-critical)",
-                extra={"pipeline_id": str(pipeline_id), "error": str(cleanup_error)},
-            )
+            await self._log_k8s_warning(pipeline_id, "delete", "storage_cleanup", cleanup_error)
 
         # Delete from Kafka
         await self._delete_from_kafka(pipeline_id, existing)
@@ -1033,6 +1150,14 @@ class PipelineOrchestrator:
         deleted = await self.pipeline_repo.delete(pipeline_id)
         if not deleted:
             logger.error("Failed to delete pipeline from database", extra={"pipeline_id": str(pipeline_id)})
+            await activity_producer.log_action(
+                action="error",
+                entity_type="database",
+                entity_id=str(pipeline_id),
+                details="Failed to delete pipeline from database",
+                source="system",
+                severity="error",
+            )
             raise PipelineNotFoundError(str(pipeline_id))
 
         await self.db.commit()
@@ -1060,19 +1185,13 @@ class PipelineOrchestrator:
         try:
             await self._get_parsers_orchestrator().handle_pipeline_deletion(pipeline_id)
         except Exception as parser_err:
-            logger.warning(
-                "Failed to delete parser from Kafka (non-critical)",
-                extra={"pipeline_id": str(pipeline_id), "error": str(parser_err)},
-            )
+            await self._log_kafka_sync_warning(pipeline_id, "delete", "parser", parser_err)
 
         # Delete rules
         try:
             await self._get_rules_orchestrator().handle_pipeline_deletion(pipeline_id)
         except Exception as rules_err:
-            logger.warning(
-                "Failed to delete rules from Kafka (non-critical)",
-                extra={"pipeline_id": str(pipeline_id), "error": str(rules_err)},
-            )
+            await self._log_kafka_sync_warning(pipeline_id, "delete", "rules", rules_err)
 
         # Delete filters
         if existing.filters:
@@ -1082,19 +1201,13 @@ class PipelineOrchestrator:
                     filter_ids=[UUID(f) for f in existing.filters],
                 )
             except Exception as filter_err:
-                logger.warning(
-                    "Failed to delete filters from Kafka (non-critical)",
-                    extra={"pipeline_id": str(pipeline_id), "error": str(filter_err)},
-                )
+                await self._log_kafka_sync_warning(pipeline_id, "delete", "filters", filter_err)
 
         # Delete custom_fields
         try:
             await self._get_custom_fields_orchestrator().handle_pipeline_deletion(pipeline_id)
         except Exception as custom_fields_err:
-            logger.warning(
-                "Failed to delete custom_fields from Kafka (non-critical)",
-                extra={"pipeline_id": str(pipeline_id), "error": str(custom_fields_err)},
-            )
+            await self._log_kafka_sync_warning(pipeline_id, "delete", "custom_fields", custom_fields_err)
 
     async def get_pipeline_details(self, pipeline_id: UUID) -> PipelineDetailResponse:
         """Get detailed information about a pipeline.
@@ -1135,6 +1248,20 @@ class PipelineOrchestrator:
             enabled=pipeline.enabled,
         )
 
+        # Get rule validation counts
+        validation_service = SigmaValidationService(self.db)
+        supported_rules_count, total_rules_count = await validation_service.get_supported_rules_count(pipeline_id)
+
+        # Build warnings list
+        warnings: list[str] = []
+        if total_rules_count > 0 and supported_rules_count == 0:
+            warnings.append("All rules in this pipeline are unsupported. No events will be tagged.")
+        elif total_rules_count > 0 and supported_rules_count < total_rules_count:
+            unsupported_count = total_rules_count - supported_rules_count
+            warnings.append(f"{unsupported_count} rule(s) are unsupported and will not be used for tagging.")
+        if pipeline.needs_restart:
+            warnings.append("Pipeline needs restart due to rule loader module update.")
+
         return PipelineDetailResponse(
             id=str(pipeline.id),
             name=pipeline.name,
@@ -1168,6 +1295,10 @@ class PipelineOrchestrator:
             autoscaler_enabled=pipeline.autoscaler_enabled,
             autoscaler_min_parallelism=pipeline.autoscaler_min_parallelism,
             autoscaler_max_parallelism=pipeline.autoscaler_max_parallelism,
+            warnings=warnings,
+            supported_rules_count=supported_rules_count,
+            total_rules_count=total_rules_count,
+            needs_restart=pipeline.needs_restart,
         )
 
     async def get_pipelines_list(
@@ -1203,6 +1334,8 @@ class PipelineOrchestrator:
         for pipeline in pipelines:
             filters_count = len(pipeline.filters) if pipeline.filters else 0
             rules_count = len(pipeline.pipeline_rules) if hasattr(pipeline, "pipeline_rules") else 0
+            # Count supported rules
+            supported_rules_count = sum(1 for pr in (pipeline.pipeline_rules or []) if pr.rule and pr.rule.is_supported)
 
             repositories = (
                 [{"name": repo.name, "type": repo.type} for repo in pipeline.repositories]
@@ -1240,8 +1373,10 @@ class PipelineOrchestrator:
                     log_source=logsources,
                     filters=filters_count,
                     rules=rules_count,
+                    supported_rules=supported_rules_count,
                     events_tagged=pipeline.events_tagged or 0,
                     events_untagged=pipeline.events_untagged or 0,
+                    needs_restart=pipeline.needs_restart or False,
                     created=pipeline.created.isoformat(),
                     updated=pipeline.updated.isoformat(),
                 )

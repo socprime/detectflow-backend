@@ -7,6 +7,7 @@ from apps.core.constants import SIGMAHQ_URL, SIGMAHQ_UUID
 from apps.core.logger import get_logger
 from apps.core.models import Rule
 from apps.managers.rule import RulesOrchestrator
+from apps.modules.kafka.activity import activity_producer
 from apps.modules.postgre.repository import RepositoryDAO
 from apps.modules.postgre.rule import RuleDAO
 
@@ -21,11 +22,14 @@ class GithubSyncManager:
     """Manager for syncing GitHub repositories with the database."""
 
     @classmethod
-    async def sync_all_enabled_repos(cls, db: AsyncSession) -> None:
+    async def sync_all_enabled_repos(cls, db: AsyncSession) -> bool:
         """Sync all external repositories that have sync_enabled=True.
 
         Args:
             db: Database session
+
+        Returns:
+            True if there were enabled repos to sync, False otherwise.
         """
         repos, _ = await RepositoryDAO(db).get_all(filters={"type": "external"})
         enabled_repos = [repo for repo in repos if repo.sync_enabled is True]
@@ -35,9 +39,19 @@ class GithubSyncManager:
                 await cls.sync_repo(repo.id, db)
             except Exception as e:
                 logger.error(f"Error syncing external repository {repo.id}: {e}", exc_info=True)
+                await activity_producer.log_action(
+                    action="sync_failed",
+                    entity_type="repository",
+                    entity_id=str(repo.id),
+                    entity_name=repo.name,
+                    details=f"External repository sync failed: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
                 # Continue with other repos even if one fails
                 continue
         logger.info("Completed syncing external repositories")
+        return bool(enabled_repos)
 
     @classmethod
     async def sync_repo(cls, repo_id: str | UUID, db: AsyncSession) -> None:
@@ -62,7 +76,7 @@ class GithubSyncManager:
             )
             logger.info(f"Synced SigmaHQ repository {repo_id}")
         else:
-            raise GithubRepoNotSupportedError(f"Repository {repo_id} is not supported")
+            raise GithubRepoNotSupportedError("Repository type is not supported for GitHub sync")
 
     @classmethod
     async def _sync_repo(
@@ -122,8 +136,24 @@ class GithubSyncManager:
                 deleted_rule_ids=[str(rule_id) for rule_id in deleted_rules],
                 updated_rules=updated_rules,
             )
+
+            await activity_producer.log_action(
+                action="sync",
+                entity_type="repository",
+                entity_id=str(repo_id),
+                details=f"External repository sync completed: {len(new_rules)} new, {len(updated_rules)} updated, {len(deleted_rules)} deleted rules",
+                source="system",
+            )
         except Exception as e:
             logger.error(f"Error syncing repository {repo_id}: {e}", exc_info=True)
+            await activity_producer.log_action(
+                action="sync_failed",
+                entity_type="repository",
+                entity_id=str(repo_id),
+                details=f"External repository sync failed: {str(e)}",
+                source="system",
+                severity="error",
+            )
             raise
 
     @staticmethod

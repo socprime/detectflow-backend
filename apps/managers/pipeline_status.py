@@ -75,6 +75,7 @@ class PipelineStatusManager:
     def __init__(self, namespace: str | None = None):
         self.namespace = namespace or settings.kubernetes_namespace
         self._cache: dict[str, _CachedStatus] = {}
+        self._k8s = KubernetesService(namespace=self.namespace)
 
     # =========================================================================
     # Public API
@@ -214,8 +215,7 @@ class PipelineStatusManager:
     def _get_from_kubernetes(self, deployment_name: str) -> PipelineStatus | None:
         """Query Kubernetes API for deployment status (fallback)."""
         try:
-            k8s = KubernetesService(namespace=self.namespace)
-            deployment_status = k8s.get_deployment_status(deployment_name)
+            deployment_status = self._k8s.get_deployment_status(deployment_name)
 
             if deployment_status is None:
                 return PipelineStatus(
@@ -260,8 +260,7 @@ class PipelineStatusManager:
     def _get_k8s_diagnostic_info(self, deployment_name: str) -> dict:
         """Get diagnostic info from K8s (job_manager_status, lifecycle_state, error)."""
         try:
-            k8s = KubernetesService(namespace=self.namespace)
-            deployment_status = k8s.get_deployment_status(deployment_name)
+            deployment_status = self._k8s.get_deployment_status(deployment_name)
             if deployment_status:
                 return {
                     "job_manager_status": deployment_status.get("job_manager_status"),
@@ -278,8 +277,7 @@ class PipelineStatusManager:
     def _get_pod_warnings(self, deployment_name: str) -> list[str] | None:
         """Get pod warnings from K8s events."""
         try:
-            k8s = KubernetesService(namespace=self.namespace)
-            warnings = k8s.get_pod_warnings(deployment_name, max_events=5)
+            warnings = self._k8s.get_pod_warnings(deployment_name, max_events=5)
             if warnings:
                 logger.info(
                     "Pipeline has warnings",
@@ -296,8 +294,7 @@ class PipelineStatusManager:
     def _resolve_deployment_name(self, pipeline_id: str) -> str | None:
         """Find deployment name via K8s labels."""
         try:
-            k8s = KubernetesService(namespace=self.namespace)
-            return k8s.find_deployment_by_pipeline_id(pipeline_id)
+            return self._k8s.find_deployment_by_pipeline_id(pipeline_id)
         except Exception as e:
             logger.debug(
                 "Failed to resolve deployment name",

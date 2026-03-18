@@ -19,12 +19,14 @@ from apps.core.settings import settings
 from apps.managers.activity import activity_service
 from apps.managers.dashboard import dashboard_service
 from apps.managers.flink_monitor import flink_monitor_service
+from apps.managers.sigma_validation_service import SigmaValidationService
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.activity_consumer import activity_consumer
 from apps.modules.kafka.metrics import metrics_consumer
 from apps.modules.postgre.audit import AuditLogDAO
 from apps.routers import api_router
 from apps.services.flink_metrics_poller import flink_metrics_poller
+from apps.services.mapping_watcher import get_mapping_watcher
 from apps.services.scheduler import get_scheduler_service
 
 logger = get_logger(__name__)
@@ -71,6 +73,17 @@ async def lifespan(app: FastAPI):
     setup_uvicorn_logging()
 
     logger.info("Starting application services...")
+
+    # Check and update rule loader module version
+    try:
+        async with AsyncSessionLocal() as db:
+            validation_service = SigmaValidationService(db)
+            version_updated = await validation_service.check_and_update_module_version()
+            if version_updated:
+                logger.info("Rule loader module version updated, pipelines marked for restart")
+    except Exception as e:
+        logger.error(f"Failed to check rule loader module version: {e}")
+        # Continue startup - graceful degradation
 
     # Start Flink metrics poller (handles pipeline totals: events_tagged/events_untagged)
     try:
@@ -128,6 +141,9 @@ async def lifespan(app: FastAPI):
     scheduler = get_scheduler_service()
     scheduler.start()
 
+    mapping_watcher = get_mapping_watcher()
+    mapping_watcher.start()
+
     logger.info("Application startup complete")
 
     yield  # Application is running
@@ -160,6 +176,8 @@ async def lifespan(app: FastAPI):
 
     # Flush activity producer
     activity_producer.close()
+
+    await mapping_watcher.shutdown()
 
     scheduler.shutdown()
 
@@ -220,12 +238,12 @@ app = FastAPI(
     description="""
 ## Overview
 
-Backend API for the DetectFlow providing real-time monitoring and management of data processing pipelines.
+Backend API for the ETL Pipelines Admin Panel providing real-time monitoring and management of data processing pipelines.
 
 ## Key Features
 
 - **Real-time Dashboard** - SSE streaming for live pipeline metrics
-- **Pipeline Management** - Create, configure, and monitor Flink-based DetectFlow pipelines
+- **Pipeline Management** - Create, configure, and monitor Flink-based ETL pipelines
 - **Detection Rules** - Sigma rule management with SOCPrime TDM integration
 - **Log Source Configuration** - Parser scripts and field mappings
 - **User Management** - Role-based access control (Admin/User)
@@ -310,7 +328,7 @@ async def tdm_api_error_handler(request: Request, exc: TdmApiError) -> JSONRespo
 
 @app.get("/")
 async def root():
-    return {"message": "DetectFlow Backend API"}
+    return {"message": "ETL Admin Panel Backend API"}
 
 
 @app.get("/health")

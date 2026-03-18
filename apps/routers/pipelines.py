@@ -228,7 +228,7 @@ async def delete_pipeline(
     response_model=PipelineRulesListResponse,
     summary="List pipeline rules",
     responses={
-        200: {"description": "Paginated list of rules with statistics"},
+        200: {"description": "Paginated list of rules with statistics and validation status"},
         401: {"model": ErrorResponse, "description": "Not authenticated"},
         404: {"model": ErrorResponse, "description": "Pipeline not found"},
     },
@@ -244,13 +244,16 @@ async def get_pipeline_rules(
     tagged_filter: Literal["all", "tagged", "untagged"] = Query(
         default="all", description="Filter by tagged events: all, tagged (>0 matches), untagged (0 matches)"
     ),
+    supported_filter: Literal["all", "supported", "unsupported"] = Query(
+        default="all", description="Filter by validation status: all, supported, unsupported"
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """
     List all rules associated with a pipeline.
 
-    Returns rules with their enabled status and tagged events count.
-    Supports pagination and search by rule name.
+    Returns rules with their enabled status, tagged events count, and validation status.
+    Supports pagination, search by rule name, and filtering by supported/unsupported status.
     """
     skip = (page - 1) * limit
     logger.info(
@@ -275,20 +278,37 @@ async def get_pipeline_rules(
         sort=sort.value if sort else None,
         order=order,
         tagged_filter=tagged_filter,
+        supported_filter=supported_filter,
     )
 
     # Get rule metrics from pipeline_rule_metrics table
     metrics_dao = MetricsDAO(db)
     rule_metrics_map = await metrics_dao.get_rule_metrics_map(pipeline_id)
 
+    # Track supported/unsupported counts for the response
+    supported_count = 0
+    unsupported_count = 0
+
     data = []
     for pipeline_rule in rules:
         rule_name = pipeline_rule.rule.name if pipeline_rule.rule else ""
         repository_name = ""
         repository_id = None
-        if pipeline_rule.rule and pipeline_rule.rule.repository:
-            repository_name = pipeline_rule.rule.repository.name
-            repository_id = str(pipeline_rule.rule.repository.id)
+        is_supported = True
+        unsupported_reason = None
+
+        if pipeline_rule.rule:
+            if pipeline_rule.rule.repository:
+                repository_name = pipeline_rule.rule.repository.name
+                repository_id = str(pipeline_rule.rule.repository.id)
+            is_supported = pipeline_rule.rule.is_supported
+            unsupported_reason = pipeline_rule.rule.unsupported_reason
+
+        # Track counts
+        if is_supported:
+            supported_count += 1
+        else:
+            unsupported_count += 1
 
         # Get tagged_events from pipeline_rule_metrics table
         rule_id_str = str(pipeline_rule.rule_id) if pipeline_rule.rule_id else ""
@@ -304,10 +324,14 @@ async def get_pipeline_rules(
                 tagged_events=tagged_events,
                 created=pipeline_rule.created.isoformat() if pipeline_rule.created else "",
                 updated=pipeline_rule.updated.isoformat() if pipeline_rule.updated else "",
+                is_supported=is_supported,
+                unsupported_reason=unsupported_reason,
             )
         )
 
-    logger.info(f"Retrieved {len(data)} rules out of {total} total")
+    logger.info(
+        f"Retrieved {len(data)} rules out of {total} total (supported: {supported_count}, unsupported: {unsupported_count})"
+    )
 
     return PipelineRulesListResponse(
         total=total,
@@ -317,6 +341,8 @@ async def get_pipeline_rules(
         offset=0,
         order=order,
         data=data,
+        supported_count=supported_count,
+        unsupported_count=unsupported_count,
     )
 
 
@@ -333,7 +359,7 @@ async def get_pipeline_rules(
 async def disable_rule_in_pipeline(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
     rule_id: str = Path(..., description="Rule UUID"),
-    _: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -342,7 +368,7 @@ async def disable_rule_in_pipeline(
     The rule will no longer be used for event tagging in this pipeline.
     Change is synced to Kafka for hot-reload.
     """
-    await RulesOrchestrator(db).disable_rule_in_pipeline(UUID(pipeline_id), UUID(rule_id))
+    await RulesOrchestrator(db).disable_rule_in_pipeline(UUID(pipeline_id), UUID(rule_id), current_user)
     return PipelineResponse(id=pipeline_id, status=True, message="Rule disabled successfully")
 
 
@@ -359,7 +385,7 @@ async def disable_rule_in_pipeline(
 async def enable_rule_in_pipeline(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
     rule_id: str = Path(..., description="Rule UUID"),
-    _: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -368,5 +394,5 @@ async def enable_rule_in_pipeline(
     The rule will be used for event tagging in this pipeline.
     Change is synced to Kafka for hot-reload.
     """
-    await RulesOrchestrator(db).enable_rule_in_pipeline(UUID(pipeline_id), UUID(rule_id))
+    await RulesOrchestrator(db).enable_rule_in_pipeline(UUID(pipeline_id), UUID(rule_id), current_user)
     return PipelineResponse(id=pipeline_id, status=True, message="Rule enabled successfully")

@@ -20,6 +20,14 @@ class RuleDAO(BaseDAO[Rule]):
         result = await self.session.execute(query)
         return result.unique().scalar_one_or_none()
 
+    async def get_by_ids(self, ids: list[UUID]) -> list[Rule]:
+        """Get rules by list of IDs."""
+        if not ids:
+            return []
+        query = select(Rule).where(Rule.id.in_(ids))
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
     async def get_all(
         self,
         skip: int = 0,
@@ -43,6 +51,8 @@ class RuleDAO(BaseDAO[Rule]):
                 Rule.product,
                 Rule.service,
                 Rule.category,
+                Rule.is_supported,
+                Rule.unsupported_reason,
             ),
             joinedload(Rule.repository),
         )
@@ -99,7 +109,7 @@ class RuleDAO(BaseDAO[Rule]):
         # Refresh all instances to get their IDs and timestamps
         for instance in instances:
             await self.session.refresh(instance)
-            # Set updated = created on create when both fields exist
+            # Встановити updated = created при створенні, якщо обидва поля існують
             if hasattr(instance, "created") and hasattr(instance, "updated"):
                 if instance.created and not instance.updated:
                     instance.updated = instance.created
@@ -155,7 +165,7 @@ class RuleDAO(BaseDAO[Rule]):
         self.session.add(instance)
         await self.session.flush()
         await self.session.refresh(instance)
-        # Set updated = created on create when both fields exist
+        # Встановити updated = created при створенні, якщо обидва поля існують
         if hasattr(instance, "created") and hasattr(instance, "updated"):
             if instance.created and not instance.updated:
                 instance.updated = instance.created
@@ -203,6 +213,8 @@ class RuleDAO(BaseDAO[Rule]):
     def _parse_additional_fields(rule: dict) -> None:
         """Parse additional fields from rule."""
         rule_body = rule.get("body")
+        if rule_body is None:
+            return  # Body not provided, skip parsing additional fields
         try:
             sigma_dict = yaml.safe_load(rule_body)
         except yaml.YAMLError:

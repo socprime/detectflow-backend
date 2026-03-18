@@ -43,6 +43,7 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         sort: str | None = None,
         order: str = "asc",
         tagged_filter: Literal["all", "tagged", "untagged"] = "all",
+        supported_filter: Literal["all", "supported", "unsupported"] = "all",
     ) -> tuple[list[PipelineRule], int]:
         query = (
             select(PipelineRule)
@@ -57,6 +58,17 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         if search:
             query = query.join(Rule, PipelineRule.rule_id == Rule.id).where(Rule.name.ilike(f"%{search}%"))
             has_rule_join = True
+
+        # Apply supported/unsupported filter
+        if supported_filter != "all":
+            if not has_rule_join:
+                query = query.join(Rule, PipelineRule.rule_id == Rule.id)
+                has_rule_join = True
+
+            if supported_filter == "supported":
+                query = query.where(Rule.is_supported.is_(True))
+            elif supported_filter == "unsupported":
+                query = query.where(Rule.is_supported.is_(False))
 
         # Apply tagged/untagged filter using pipeline_rule_metrics
         if tagged_filter != "all":
@@ -117,8 +129,8 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         items = result.scalars().all()
         return list(items), total
 
-    async def update_rule_status(self, pipeline_id: UUID, rule_id: UUID, enabled: bool) -> None:
-        await self.session.execute(
+    async def update_rule_status(self, pipeline_id: UUID, rule_id: UUID, enabled: bool) -> int:
+        result = await self.session.execute(
             update(PipelineRule)
             .where(
                 and_(
@@ -129,6 +141,7 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
             .values(enabled=enabled)
         )
         await self.session.flush()
+        return result.rowcount
 
     async def update_rule_status_by_pipeline_and_repo(
         self, pipeline_id: UUID, repository_ids: list[UUID], enabled: bool
@@ -163,7 +176,7 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         # Refresh all instances to get their IDs and timestamps
         for instance in instances:
             await self.session.refresh(instance)
-            # Set updated = created on create when both fields exist
+            # Встановити updated = created при створенні, якщо обидва поля існують
             if hasattr(instance, "created") and hasattr(instance, "updated"):
                 if instance.created and not instance.updated:
                     instance.updated = instance.created

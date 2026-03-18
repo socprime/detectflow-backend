@@ -4,6 +4,7 @@ This module provides a service layer for interacting with Kubernetes API
 to manage FlinkDeployment custom resources for ETL pipelines.
 """
 
+import asyncio
 import time
 from pathlib import Path
 
@@ -12,10 +13,39 @@ from jinja2 import Environment, FileSystemLoader
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.settings import settings
+from apps.modules.kafka.activity import activity_producer
 
 logger = get_logger(__name__)
+
+
+def _log_flink_error_async(
+    pipeline_id: str,
+    details: str,
+    entity_type: str = "flink",
+    severity: str = "error",
+) -> None:
+    """Log Flink/K8s error to activity producer from sync context.
+
+    Uses asyncio.create_task if event loop is running, otherwise skips.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(
+            activity_producer.log_action(
+                action="error",
+                entity_type=entity_type,
+                entity_id=pipeline_id,
+                details=details,
+                source="system",
+                severity=severity,
+            )
+        )
+    except RuntimeError:
+        # No event loop running - just log to file
+        logger.debug("Cannot log to activity producer: no event loop running")
 
 
 class KubernetesService:
@@ -252,6 +282,10 @@ class KubernetesService:
             # Node selector for pod scheduling
             node_selector_key=settings.flink_node_selector_key,
             node_selector_value=settings.flink_node_selector_value,
+            # PVC names for state storage
+            checkpoints_pvc=settings.flink_checkpoints_pvc,
+            ha_pvc=settings.flink_ha_pvc,
+            savepoints_pvc=settings.flink_savepoints_pvc,
         )
 
         # Parse YAML to dict
@@ -280,6 +314,8 @@ class KubernetesService:
             if e.status == 409:
                 error_msg = f"FlinkDeployment {deployment_name} already exists"
                 logger.error(error_msg, extra={"pipeline_id": pipeline_id})
+                if ErrorTracker.should_log(f"flink_create_conflict_{pipeline_id}"):
+                    _log_flink_error_async(pipeline_id, error_msg)
                 raise Exception(error_msg) from e
 
             error_msg = f"Failed to create FlinkDeployment: {e}"
@@ -287,6 +323,8 @@ class KubernetesService:
                 error_msg,
                 extra={"pipeline_id": pipeline_id, "status_code": e.status},
             )
+            if ErrorTracker.should_log(f"flink_create_{pipeline_id}"):
+                _log_flink_error_async(pipeline_id, error_msg)
             raise Exception(error_msg) from e
 
     def update_flink_deployment(
@@ -394,6 +432,10 @@ class KubernetesService:
             # Node selector for pod scheduling
             node_selector_key=settings.flink_node_selector_key,
             node_selector_value=settings.flink_node_selector_value,
+            # PVC names for state storage
+            checkpoints_pvc=settings.flink_checkpoints_pvc,
+            ha_pvc=settings.flink_ha_pvc,
+            savepoints_pvc=settings.flink_savepoints_pvc,
         )
 
         manifest = yaml.safe_load(manifest_yaml)
@@ -423,6 +465,8 @@ class KubernetesService:
             if e.status == 404:
                 error_msg = f"FlinkDeployment {deployment_name} not found"
                 logger.error(error_msg, extra={"pipeline_id": pipeline_id})
+                if ErrorTracker.should_log(f"flink_update_notfound_{pipeline_id}"):
+                    _log_flink_error_async(pipeline_id, error_msg)
                 raise Exception(error_msg) from e
 
             error_msg = f"Failed to update FlinkDeployment: {e}"
@@ -430,6 +474,8 @@ class KubernetesService:
                 error_msg,
                 extra={"pipeline_id": pipeline_id, "status_code": e.status},
             )
+            if ErrorTracker.should_log(f"flink_update_{pipeline_id}"):
+                _log_flink_error_async(pipeline_id, error_msg)
             raise Exception(error_msg) from e
 
     def find_deployment_by_pipeline_id(self, pipeline_id: str) -> str | None:
@@ -493,6 +539,8 @@ class KubernetesService:
                 error_msg,
                 extra={"pipeline_id": pipeline_id, "status_code": e.status},
             )
+            if ErrorTracker.should_log(f"flink_find_{pipeline_id}"):
+                _log_flink_error_async(pipeline_id, error_msg)
             raise Exception(error_msg) from e
 
     def delete_flink_deployment(self, deployment_name: str, wait: bool = True, timeout: int = 60) -> bool:
@@ -561,6 +609,8 @@ class KubernetesService:
                     "status_code": e.status,
                 },
             )
+            if ErrorTracker.should_log(f"flink_delete_{deployment_name}"):
+                _log_flink_error_async(deployment_name, error_msg)
             raise Exception(error_msg) from e
 
     def _wait_for_deletion(self, deployment_name: str, timeout: int = 60) -> None:
@@ -610,6 +660,8 @@ class KubernetesService:
 
         error_msg = f"Timeout waiting for FlinkDeployment {deployment_name} to be deleted after {timeout}s"
         logger.error(error_msg, extra={"deployment_name": deployment_name})
+        if ErrorTracker.should_log(f"flink_delete_timeout_{deployment_name}"):
+            _log_flink_error_async(deployment_name, error_msg)
         raise Exception(error_msg)
 
     def delete_flink_deployment_by_pipeline_id(self, pipeline_id: str) -> bool:
@@ -717,6 +769,8 @@ class KubernetesService:
                     "status_code": e.status,
                 },
             )
+            if ErrorTracker.should_log(f"flink_status_{deployment_name}"):
+                _log_flink_error_async(deployment_name, error_msg)
             raise Exception(error_msg) from e
 
     def suspend_deployment(self, deployment_name: str) -> bool:
@@ -770,6 +824,8 @@ class KubernetesService:
                     "status_code": e.status,
                 },
             )
+            if ErrorTracker.should_log(f"flink_suspend_{deployment_name}"):
+                _log_flink_error_async(deployment_name, error_msg)
             raise Exception(error_msg) from e
 
     def resume_deployment(self, deployment_name: str) -> bool:
@@ -823,6 +879,8 @@ class KubernetesService:
                     "status_code": e.status,
                 },
             )
+            if ErrorTracker.should_log(f"flink_resume_{deployment_name}"):
+                _log_flink_error_async(deployment_name, error_msg)
             raise Exception(error_msg) from e
 
     def get_pod_warnings(self, deployment_name: str, max_events: int = 10) -> list[str]:
@@ -1009,6 +1067,8 @@ class KubernetesService:
                 error_msg,
                 extra={"pipeline_id": pipeline_id, "status_code": e.status},
             )
+            if ErrorTracker.should_log(f"k8s_cleanup_{pipeline_id}"):
+                _log_flink_error_async(pipeline_id, error_msg, entity_type="kubernetes")
             raise Exception(error_msg) from e
 
     def _normalize_image_pull_policy(self, policy: str) -> str:
@@ -1179,6 +1239,8 @@ class KubernetesService:
                 "Failed to check ResourceQuota",
                 extra={"error": str(e), "status": e.status},
             )
+            if ErrorTracker.should_log("k8s_quota_check"):
+                _log_flink_error_async("quota", f"Failed to check ResourceQuota: {str(e)}", entity_type="kubernetes")
             return True, None  # Fail open - let Kubernetes enforce at pod creation
 
         except Exception as e:
@@ -1187,4 +1249,8 @@ class KubernetesService:
                 "Unexpected error checking ResourceQuota",
                 extra={"error": str(e)},
             )
+            if ErrorTracker.should_log("k8s_quota_check_unexpected"):
+                _log_flink_error_async(
+                    "quota", f"Unexpected error checking ResourceQuota: {str(e)}", entity_type="kubernetes"
+                )
             return True, None

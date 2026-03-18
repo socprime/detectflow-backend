@@ -7,6 +7,7 @@ import yaml
 from confluent_kafka import Producer
 
 from apps.clients.tdm_api import TdmRule
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Rule
 from apps.core.settings import settings
@@ -60,13 +61,34 @@ class KafkaRulesSyncService(BaseKafkaSyncClient):
         def on_delivery(err, msg):
             if err:
                 logger.error(f"Failed to deliver message: {err}")
+                # Track error for audit logging (will be logged async later)
+                if ErrorTracker.should_log(f"kafka_rules_deliver_{pipeline_id}"):
+                    # Note: Cannot await in sync callback, error tracked via ErrorTracker
+                    logger.error(
+                        "Rule delivery failure tracked for audit",
+                        extra={"pipeline_id": pipeline_id, "error": str(err)},
+                    )
                 raise RuntimeError(f"Failed to deliver message: {err}")
             else:
                 logger.debug(f"Rule delivered to Kafka: key={msg.key()}")
 
-        logger.info(f"Sending {len(rules)} rules to Kafka for pipeline {pipeline_id}")
+        # Filter out unsupported rules
+        # Only Rule model has is_supported attribute, TdmRule always passes through
+        supported_rules = []
+        skipped_count = 0
+        for rule in rules:
+            if isinstance(rule, Rule) and hasattr(rule, "is_supported") and not rule.is_supported:
+                logger.debug(f"Skipping unsupported rule {rule.id}: {rule.unsupported_reason}")
+                skipped_count += 1
+            else:
+                supported_rules.append(rule)
 
-        for idx, rule in enumerate(rules, start=1):
+        if skipped_count > 0:
+            logger.info(f"Filtered out {skipped_count} unsupported rules for pipeline {pipeline_id}")
+
+        logger.info(f"Sending {len(supported_rules)} rules to Kafka for pipeline {pipeline_id}")
+
+        for idx, rule in enumerate(supported_rules, start=1):
             key_bytes, value_bytes = self._prepare_message(pipeline_id, rule)
 
             logger.debug(f"Producing rule {rule.id} to topic {self.rules_topic}, key={key_bytes}")
@@ -82,7 +104,7 @@ class KafkaRulesSyncService(BaseKafkaSyncClient):
                 self.producer.flush(timeout=10)
 
         self.producer.flush(timeout=10)
-        logger.info(f"Successfully sent {len(rules)} rules to Kafka for pipeline {pipeline_id}")
+        logger.info(f"Successfully sent {len(supported_rules)} rules to Kafka for pipeline {pipeline_id}")
 
     def _delete_rules_sync(self, pipeline_id: str, rule_ids: list[str]) -> None:
         if not rule_ids:
@@ -94,6 +116,12 @@ class KafkaRulesSyncService(BaseKafkaSyncClient):
         def on_delivery(err, msg):
             if err:
                 logger.error(f"Failed to deliver delete message: {err}")
+                # Track error for audit logging
+                if ErrorTracker.should_log(f"kafka_rules_delete_{pipeline_id}"):
+                    logger.error(
+                        "Rule delete delivery failure tracked for audit",
+                        extra={"pipeline_id": pipeline_id, "error": str(err)},
+                    )
                 raise RuntimeError(f"Failed to deliver message: {err}")
             else:
                 logger.debug(f"Delete message delivered: key={msg.key()}")

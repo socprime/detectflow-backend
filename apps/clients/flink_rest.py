@@ -11,8 +11,10 @@ from dataclasses import dataclass
 
 import httpx
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.settings import settings
+from apps.modules.kafka.activity import activity_producer
 
 logger = get_logger(__name__)
 
@@ -28,17 +30,15 @@ class FlinkJobMetrics:
     state: str
     # Consumer lag (pending records across all subtasks)
     pending_records: int | None = None
-    # Throughput metrics (aggregated from IOMetrics)
-    input_eps: float = 0.0  # Events per second from source
-    output_eps: float = 0.0  # Detections per second to sink
-    # Total records (accumulated)
-    total_records_in: int = 0
-    total_records_out: int = 0
-    # Custom counters from SigmaMatcherBroadcastFunction (cumulative, for Kafka metrics)
+    # Custom gauges from Sigma processor (PRIMARY metrics for dashboard)
+    input_events_per_second: float = 0.0  # Input events/sec from source
+    output_tagged_per_second: float = 0.0  # Tagged events/sec to output
+    output_untagged_per_second: float = 0.0  # Untagged events/sec (0 if matched_only)
+    # Cumulative counters (for Kafka metrics consumer)
     matched_events: int = 0  # Events that matched at least one Sigma rule
     total_events: int = 0  # Total events processed
-    output_tagged_per_second: float = 0.0
-    output_untagged_per_second: float = 0.0
+    # Timestamp of last processed window (for stale detection)
+    last_window_timestamp_ms: int = 0
 
 
 @dataclass
@@ -333,6 +333,15 @@ class FlinkRestClient:
 
         except Exception as e:
             logger.error(f"Failed to get pending records for job {job_id}: {e}")
+            if ErrorTracker.should_log(f"flink_api_pending_records_{job_id}"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="flink_api",
+                    entity_id=job_id,
+                    details=f"Failed to get pending records: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             return None
 
     async def get_job_metrics(self) -> FlinkJobMetrics | None:
@@ -341,8 +350,8 @@ class FlinkRestClient:
         Automatically discovers the running Flink job ID and retrieves:
         - Job state
         - Consumer lag (pending records)
-        - Input EPS (from Events Source vertex IOMetrics)
-        - Output EPS (from Detections Output vertex IOMetrics)
+        - Rate gauges from Sigma processor (inputEventsPerSecond, outputTaggedPerSecond, outputUntaggedPerSecond)
+        - Cumulative counters (matchedEvents, totalEvents)
 
         Returns:
             FlinkJobMetrics dataclass or None if failed
@@ -358,138 +367,56 @@ class FlinkRestClient:
             state = job_details.get("state", "UNKNOWN")
             vertices = job_details.get("vertices", [])
 
-            # Initialize metrics
-            input_eps = 0.0
-            output_eps = 0.0
-            total_records_in = 0
-            total_records_out = 0
-            pending_records = None
-
-            # Find vertices and extract IOMetrics
-            for vertex in vertices:
-                name = vertex.get("name", "")
-                metrics = vertex.get("metrics", {})
-
-                # Events Source vertex - get input metrics
-                if "events" in name.lower() and "source" in name.lower():
-                    # read-records is total accumulated, not per-second
-                    total_records_in = metrics.get("read-records", 0)
-
-                    # For EPS, we need to use the vertex-level metrics endpoint
-                    # The IOMetrics in job details don't have per-second values
-                    # We'll calculate EPS from the processor vertex instead
-
-                # Sigma Detection Processor - main processing vertex
-                if "sigma" in name.lower() and "processor" in name.lower():
-                    # This vertex has both input (read-records) and output (write-records)
-                    total_records_in = max(total_records_in, metrics.get("read-records", 0))
-                    total_records_out = metrics.get("write-records", 0)
-
-                # Detections Output sink - final output
-                if "detections" in name.lower() and "output" in name.lower():
-                    # write-records from the sink
-                    total_records_out = max(total_records_out, metrics.get("write-records", 0))
-
             # Get pending records (consumer lag)
             pending_records = await self.get_pending_records()
 
-            # Get EPS from subtask metrics (more accurate than IOMetrics)
-            input_eps, output_eps = await self._get_throughput_metrics(job_id, vertices)
-
-            # Get custom counters and output rate gauges from Sigma processor
+            # Get all metrics from custom Flink gauges in Sigma processor
             (
                 matched_events,
                 total_events,
+                input_eps,
                 output_tagged_eps,
                 output_untagged_eps,
+                last_window_timestamp_ms,
             ) = await self._get_custom_counters(job_id, vertices)
 
+            # EPS values already rounded to 2 decimals by Flink gauges
             return FlinkJobMetrics(
                 job_id=job_id,
                 state=state,
                 pending_records=pending_records,
-                input_eps=input_eps,
-                output_eps=output_eps,
-                total_records_in=total_records_in,
-                total_records_out=total_records_out,
-                matched_events=matched_events,
-                total_events=total_events,
+                input_events_per_second=input_eps,
                 output_tagged_per_second=output_tagged_eps,
                 output_untagged_per_second=output_untagged_eps,
+                matched_events=matched_events,
+                total_events=total_events,
+                last_window_timestamp_ms=last_window_timestamp_ms,
             )
 
         except Exception as e:
             logger.error(f"Failed to get job metrics: {e}")
+            if ErrorTracker.should_log("flink_api_job_metrics"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="flink_api",
+                    details=f"Failed to get job metrics: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             return None
 
-    async def _get_throughput_metrics(self, job_id: str, vertices: list[dict]) -> tuple[float, float]:
-        """Get input and output EPS from vertex metrics.
-
-        Args:
-            job_id: Flink job ID
-            vertices: List of vertex dicts from job details
-
-        Returns:
-            Tuple of (input_eps, output_eps)
-        """
-        input_eps = 0.0
-        output_eps = 0.0
-
-        try:
-            for vertex in vertices:
-                name = vertex.get("name", "")
-                vertex_id = vertex.get("id", "")
-
-                # Events Source - get input EPS
-                if "events" in name.lower() and "source" in name.lower():
-                    try:
-                        # List available metrics to find the correct numRecordsInPerSecond
-                        all_metrics = await self.list_subtask_metrics(job_id, vertex_id, 0)
-
-                        # Find numRecordsInPerSecond metric (prefixed with source name)
-                        eps_metric = None
-                        for m in all_metrics:
-                            if "numRecordsInPerSecond" in m and "Events" in m:
-                                eps_metric = m
-                                break
-
-                        if eps_metric:
-                            metrics = await self.get_aggregated_subtask_metrics(job_id, vertex_id, [eps_metric], "sum")
-                            input_eps = metrics.get(eps_metric, 0.0)
-                    except Exception as e:
-                        logger.debug(f"Failed to get input EPS: {e}")
-
-                # Detections Output - get output EPS
-                if "detections" in name.lower() and "output" in name.lower():
-                    try:
-                        all_metrics = await self.list_subtask_metrics(job_id, vertex_id, 0)
-
-                        # Find numRecordsOutPerSecond for Writer
-                        eps_metric = None
-                        for m in all_metrics:
-                            if "numRecordsOutPerSecond" in m and "Writer" in m:
-                                eps_metric = m
-                                break
-
-                        if eps_metric:
-                            metrics = await self.get_aggregated_subtask_metrics(job_id, vertex_id, [eps_metric], "sum")
-                            output_eps = metrics.get(eps_metric, 0.0)
-                    except Exception as e:
-                        logger.debug(f"Failed to get output EPS: {e}")
-
-        except Exception as e:
-            logger.debug(f"Failed to get throughput metrics: {e}")
-
-        return input_eps, output_eps
-
-    async def _get_custom_counters(self, job_id: str, vertices: list[dict]) -> tuple[int, int, float, float]:
-        """Get event counters and output rate gauges from Sigma processor vertex.
+    async def _get_custom_counters(
+        self, job_id: str, vertices: list[dict]
+    ) -> tuple[int, int, float, float, float, int]:
+        """Get event counters and rate gauges from Sigma processor vertex.
 
         Uses custom Flink gauges registered in SigmaMatcherBroadcastFunction.open():
         - matchedEvents, totalEvents: Cumulative counters (for Kafka metrics consumer)
+        - inputEventsPerSecond: Input rate gauge (events/sec from source)
         - outputTaggedPerSecond, outputUntaggedPerSecond: Output rate gauges (for dashboard)
+        - lastWindowTimestampMs: Timestamp of last processed window (for stale detection)
 
-        Output rate gauges represent events ACTUALLY WRITTEN to output topic.
+        Rate gauges represent actual processing rates measured by Flink.
         outputUntaggedPerSecond will be 0 if output_mode == "matched_only".
 
         Args:
@@ -497,12 +424,14 @@ class FlinkRestClient:
             vertices: List of vertex dicts from job details
 
         Returns:
-            Tuple of (matched_events, total_events, output_tagged_eps, output_untagged_eps)
+            Tuple of (matched_events, total_events, input_eps, tagged_eps, untagged_eps, last_window_timestamp_ms)
         """
         matched_events = 0
         total_events = 0
+        input_eps = 0.0
         output_tagged_eps = 0.0
         output_untagged_eps = 0.0
+        last_window_timestamp_ms = 0
 
         try:
             for vertex in vertices:
@@ -512,32 +441,41 @@ class FlinkRestClient:
                 # Sigma Detection Processor has our metrics
                 if "sigma" in name.lower() and "processor" in name.lower():
                     try:
-                        metrics_to_fetch = [
-                            # Cumulative counters (for Kafka metrics consumer)
+                        # Metrics that need SUM aggregation (counters, rates)
+                        sum_metrics = [
                             "Sigma_Detection_Processor.matchedEvents",
                             "Sigma_Detection_Processor.totalEvents",
-                            # Output rate gauges (for dashboard)
+                            "Sigma_Detection_Processor.inputEventsPerSecond",
                             "Sigma_Detection_Processor.outputTaggedPerSecond",
                             "Sigma_Detection_Processor.outputUntaggedPerSecond",
                         ]
 
-                        # Get aggregated sum across all subtasks
-                        aggregated = await self.get_aggregated_subtask_metrics(
-                            job_id, vertex_id, metrics_to_fetch, "sum"
+                        # Get aggregated sum across all subtasks for counters and rates
+                        aggregated = await self.get_aggregated_subtask_metrics(job_id, vertex_id, sum_metrics, "sum")
+
+                        # Get MAX for timestamp (need most recent, not sum!)
+                        timestamp_aggregated = await self.get_aggregated_subtask_metrics(
+                            job_id, vertex_id, ["Sigma_Detection_Processor.lastWindowTimestampMs"], "max"
                         )
 
                         matched_events = int(aggregated.get("Sigma_Detection_Processor.matchedEvents", 0))
                         total_events = int(aggregated.get("Sigma_Detection_Processor.totalEvents", 0))
+                        input_eps = aggregated.get("Sigma_Detection_Processor.inputEventsPerSecond", 0.0)
                         output_tagged_eps = aggregated.get("Sigma_Detection_Processor.outputTaggedPerSecond", 0.0)
                         output_untagged_eps = aggregated.get("Sigma_Detection_Processor.outputUntaggedPerSecond", 0.0)
+                        last_window_timestamp_ms = int(
+                            timestamp_aggregated.get("Sigma_Detection_Processor.lastWindowTimestampMs", 0)
+                        )
 
                         logger.debug(
                             "Got Sigma processor metrics",
                             extra={
                                 "matched_events": matched_events,
                                 "total_events": total_events,
+                                "input_eps": input_eps,
                                 "output_tagged_eps": output_tagged_eps,
                                 "output_untagged_eps": output_untagged_eps,
+                                "last_window_timestamp_ms": last_window_timestamp_ms,
                             },
                         )
 
@@ -548,7 +486,7 @@ class FlinkRestClient:
         except Exception as e:
             logger.debug(f"Failed to get custom counters: {e}")
 
-        return matched_events, total_events, output_tagged_eps, output_untagged_eps
+        return matched_events, total_events, input_eps, output_tagged_eps, output_untagged_eps, last_window_timestamp_ms
 
 
 class FlinkMetricsService:
@@ -602,6 +540,15 @@ class FlinkMetricsService:
             return await client.get_job_metrics()
         except Exception as e:
             logger.error(f"Failed to get metrics for pipeline {pipeline_id}: {e}")
+            if ErrorTracker.should_log(f"flink_api_pipeline_metrics_{pipeline_id}"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="flink_api",
+                    entity_id=pipeline_id,
+                    details=f"Failed to get metrics for pipeline: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             return None
 
     async def get_consumer_lag(self, pipeline_id: str, deployment_name: str | None = None) -> int | None:
@@ -625,6 +572,15 @@ class FlinkMetricsService:
             return await client.get_pending_records()
         except Exception as e:
             logger.error(f"Failed to get consumer lag for pipeline {pipeline_id}: {e}")
+            if ErrorTracker.should_log(f"flink_api_consumer_lag_{pipeline_id}"):
+                await activity_producer.log_action(
+                    action="error",
+                    entity_type="flink_api",
+                    entity_id=pipeline_id,
+                    details=f"Failed to get consumer lag: {str(e)}",
+                    source="system",
+                    severity="error",
+                )
             return None
 
 

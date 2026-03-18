@@ -21,8 +21,8 @@ class TestSettings:
         settings = Settings()
 
         # Database defaults (these are not overridden by env)
-        assert settings.database_pool_size == 10
-        assert settings.database_max_overflow == 20
+        assert settings.database_pool_size == 20
+        assert settings.database_max_overflow == 30
         assert settings.database_pool_recycle == 1800
         assert settings.database_pool_timeout == 30
         assert settings.database_echo is False

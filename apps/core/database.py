@@ -51,12 +51,18 @@ def _on_connect(dbapi_conn, connection_record):
 
 @event.listens_for(Pool, "invalidate")
 def _on_invalidate(dbapi_conn, connection_record, exception):
-    """Log when a connection is invalidated (e.g., due to error)."""
+    """Log when a connection is invalidated (e.g., due to error).
+
+    Note: This is logged to application logs only, not audit logs.
+    Connection invalidation is normal during request cancellation (client disconnect,
+    SSE close, timeout) and would create noise in audit UI.
+    """
+    reason = str(exception) if exception else "unknown"
     logger.warning(
         "Database connection invalidated",
         extra={
             "connection_id": id(dbapi_conn),
-            "reason": str(exception) if exception else "unknown",
+            "reason": reason,
         },
     )
 
@@ -97,13 +103,21 @@ def get_pool_status() -> dict:
         - overflow: Current overflow connections in use
         - checked_in: Idle connections in pool
         - total: Total connections (checked_out + checked_in)
+        - max_capacity: Total possible connections (pool_size + max_overflow)
+        - utilization_percent: Current usage as percentage of max capacity
     """
     pool = engine.pool
+    checked_out = pool.checkedout()
+    max_capacity = pool.size() + pool.overflow()
+    utilization_percent = (checked_out / max_capacity * 100) if max_capacity > 0 else 0
+
     return {
         "pool_size": pool.size(),
         "max_overflow": pool.overflow(),
-        "checked_out": pool.checkedout(),
+        "checked_out": checked_out,
         "checked_in": pool.checkedin(),
-        "total": pool.checkedout() + pool.checkedin(),
-        "overflow_current": max(0, pool.checkedout() - pool.size()),
+        "total": checked_out + pool.checkedin(),
+        "overflow_current": max(0, checked_out - pool.size()),
+        "max_capacity": max_capacity,
+        "utilization_percent": round(utilization_percent, 1),
     }

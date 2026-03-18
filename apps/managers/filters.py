@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.core.error_tracker import ErrorTracker
 from apps.core.exceptions import ConflictError, NotFoundError
 from apps.core.logger import get_logger
 from apps.core.models import Filter, User
@@ -128,6 +129,15 @@ class FiltersManager:
                 "Failed to sync filter to Kafka (non-critical)",
                 extra={"filter_id": str(filter_id), "error": str(e)},
             )
+            if ErrorTracker.should_log(f"kafka_filter_sync_{filter_id}"):
+                await activity_producer.log_action(
+                    action="warning",
+                    entity_type="kafka_sync",
+                    entity_id=str(filter_id),
+                    details=f"Failed to sync filter to Kafka on update (non-critical): {str(e)}",
+                    source="system",
+                    severity="warning",
+                )
 
         await activity_producer.log_action(
             action="update",
@@ -179,6 +189,15 @@ class FiltersManager:
                 "Failed to delete filter from Kafka (non-critical)",
                 extra={"filter_id": str(filter_id), "error": str(e)},
             )
+            if ErrorTracker.should_log(f"kafka_filter_delete_{filter_id}"):
+                await activity_producer.log_action(
+                    action="warning",
+                    entity_type="kafka_sync",
+                    entity_id=str(filter_id),
+                    details=f"Failed to delete filter from Kafka (non-critical): {str(e)}",
+                    source="system",
+                    severity="warning",
+                )
 
         # Remove filter from all pipelines that reference it (cleanup stale references)
         await self.filter_repo.remove_from_pipelines(filter_id)
