@@ -109,7 +109,7 @@ class RuleDAO(BaseDAO[Rule]):
         # Refresh all instances to get their IDs and timestamps
         for instance in instances:
             await self.session.refresh(instance)
-            # Встановити updated = created при створенні, якщо обидва поля існують
+            # Set updated = created on insert when both fields exist
             if hasattr(instance, "created") and hasattr(instance, "updated"):
                 if instance.created and not instance.updated:
                     instance.updated = instance.created
@@ -165,7 +165,7 @@ class RuleDAO(BaseDAO[Rule]):
         self.session.add(instance)
         await self.session.flush()
         await self.session.refresh(instance)
-        # Встановити updated = created при створенні, якщо обидва поля існують
+        # Set updated = created on insert when both fields exist
         if hasattr(instance, "created") and hasattr(instance, "updated"):
             if instance.created and not instance.updated:
                 instance.updated = instance.created

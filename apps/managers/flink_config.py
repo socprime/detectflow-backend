@@ -39,7 +39,7 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
     FlinkParameterInfo(
         name="taskmanager_memory_mb",
         type="integer",
-        default=8192,
+        default=2048,
         min=1024,
         max=131072,
         unit="MB",
@@ -48,7 +48,7 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
         impact="restart",
         category="resources",
         tips=[
-            "8 GB (default) handles most workloads",
+            "2 GB (default) handles most workloads",
             "Increase if pipeline keeps crashing or restarting",
             "More rules = more memory needed",
         ],
@@ -56,17 +56,18 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
     FlinkParameterInfo(
         name="taskmanager_cpu",
         type="number",
-        default=2.0,
+        default=1.0,
         min=0.5,
-        max=128.0,
+        max=16.0,
         unit="cores",
         title="TaskManager CPU",
-        description="CPU cores per worker. Should match parallelism for optimal performance.",
+        description="CPU cores per worker. Each worker handles one parallelism slot.",
         impact="restart",
         category="resources",
         tips=[
-            "Set equal to parallelism (e.g., parallelism=4 → cpu=4)",
-            "More CPU than parallelism won't improve performance",
+            "1 core (default) is sufficient for most workloads",
+            "Increase only if CPU is the bottleneck (check metrics first)",
+            "parallelism=N creates N workers, each with this many cores",
         ],
     ),
     # === Processing ===
@@ -156,7 +157,7 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
 FLINK_CATEGORIES: dict[str, FlinkCategoryInfo] = {
     "resources": FlinkCategoryInfo(
         title="Resources",
-        description="CPU and memory allocation for Flink workers",
+        description="Resource allocation for Flink workers",
         order=1,
     ),
     "processing": FlinkCategoryInfo(

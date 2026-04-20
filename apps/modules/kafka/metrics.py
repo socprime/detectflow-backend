@@ -185,7 +185,7 @@ class MetricsConsumerService(BaseKafkaAsyncClient):
 
                 # Parse all messages first (no DB access yet)
                 parsed_metrics: list[KafkaMetricMessage] = []
-                for _tp, msgs in messages.items():
+                for _, msgs in messages.items():
                     for message in msgs:
                         if not self.is_running:
                             break
@@ -360,6 +360,12 @@ class MetricsConsumerService(BaseKafkaAsyncClient):
     async def _store_metrics_batch(self, metrics: list[tuple[UUID, KafkaMetricMessage]]) -> None:
         """Store multiple metrics in PostgreSQL using single transaction.
 
+        Updates:
+        - pipeline_metrics: Time-series history
+        - pipeline_rule_metrics: Per-rule match counters
+        - pipeline.events_tagged/events_untagged: Accumulated counters
+        - pipeline.detectflow_matchnode_version: Flink job version (if present)
+
         Args:
             metrics: List of (pipeline_id, metric) tuples
         """
@@ -371,6 +377,24 @@ class MetricsConsumerService(BaseKafkaAsyncClient):
                 try:
                     metrics_dao = MetricsDAO(db)
                     count = await metrics_dao.append_metrics_batch(metrics)
+
+                    # Update Flink version for pipelines that have it in metric
+                    for pipeline_id, metric in metrics:
+                        if metric.detectflow_matchnode_version:
+                            pipeline = await db.get(Pipeline, pipeline_id)
+                            if (
+                                pipeline
+                                and pipeline.detectflow_matchnode_version != metric.detectflow_matchnode_version
+                            ):
+                                pipeline.detectflow_matchnode_version = metric.detectflow_matchnode_version
+                                logger.info(
+                                    "Updated pipeline Flink version",
+                                    extra={
+                                        "pipeline_id": str(pipeline_id),
+                                        "version": metric.detectflow_matchnode_version,
+                                    },
+                                )
+
                     await db.commit()
                     logger.debug(
                         "Batch stored metrics",

@@ -5,6 +5,7 @@ from apps.routers import (
     auth,
     dashboard,
     filters,
+    health_check,
     log_sources,
     mapping,
     parsers,
@@ -30,4 +31,5 @@ api_router.include_router(rules.router)
 api_router.include_router(parsers.router)
 api_router.include_router(user.router)
 api_router.include_router(mapping.router)
+api_router.include_router(health_check.router)
 api_router.include_router(settings.router)

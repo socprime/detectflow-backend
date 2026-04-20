@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from kubernetes.client.rest import ApiException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.core.error_tracker import ErrorTracker
@@ -28,7 +27,6 @@ from apps.managers.dashboard import dashboard_service
 from apps.managers.filter import FiltersOrchestrator
 from apps.managers.flink_config import FlinkConfigManager
 from apps.managers.parser_sync import ParsersOrchestrator
-from apps.managers.pipeline import KubernetesService
 from apps.managers.pipeline_status import pipeline_status_manager
 from apps.managers.rule import RulesOrchestrator
 from apps.managers.sigma_validation_service import SigmaValidationService
@@ -40,8 +38,14 @@ from apps.modules.postgre.metrics import MetricsDAO
 from apps.modules.postgre.pipeline import PipelineDAO
 from apps.modules.postgre.pipeline_rules import PipelineRulesDAO
 from apps.modules.postgre.repository import RepositoryDAO
+from apps.providers import FlinkDeploymentConfig, FlinkQuotaExceededError, get_flink_provider
 
 logger = get_logger(__name__)
+
+
+# Note: detectflow_matchnode_version is now set via Kafka metrics from Flink,
+# not extracted from Docker image tag. See apps/modules/kafka/metrics.py
+
 
 # Fields that require Flink restart when changed on enabled pipeline
 # Other fields (name, filters, log_source_id, repository_ids) are hot-reloadable via Kafka
@@ -216,7 +220,7 @@ class PipelineOrchestrator:
         self.filter_repo = FilterDAO(db)
         self.repository_repo = RepositoryDAO(db)
         self.config_dao = ConfigDAO(db)
-        self.k8s = KubernetesService()
+        self._flink = get_flink_provider()
 
     async def _log_kafka_sync_warning(
         self,
@@ -311,6 +315,27 @@ class PipelineOrchestrator:
                 source="system",
                 severity="warning",
             )
+
+    def _build_deployment_config(self, pipeline: Pipeline) -> FlinkDeploymentConfig:
+        """Build FlinkDeploymentConfig from Pipeline model."""
+        return FlinkDeploymentConfig(
+            pipeline_id=str(pipeline.id),
+            pipeline_name=pipeline.name,
+            input_topics=pipeline.source_topics,
+            output_topic=pipeline.destination_topic,
+            parallelism=pipeline.parallelism,
+            output_mode="all_events" if pipeline.save_untagged else "matched_only",
+            apply_parser_to_output_events=pipeline.apply_parser_to_output_events,
+            taskmanager_memory_mb=pipeline.taskmanager_memory_mb,
+            taskmanager_cpu=pipeline.taskmanager_cpu,
+            window_size_sec=pipeline.window_size_sec,
+            checkpoint_interval_sec=pipeline.checkpoint_interval_sec,
+            autoscaler_enabled=pipeline.autoscaler_enabled,
+            autoscaler_min_parallelism=pipeline.autoscaler_min_parallelism,
+            autoscaler_max_parallelism=pipeline.autoscaler_max_parallelism,
+            rules_topic=pipeline.rules_topic,
+            metrics_topic=pipeline.metrics_topic,
+        )
 
     def _get_rules_orchestrator(self) -> RulesOrchestrator:
         """Get RulesOrchestrator instance."""
@@ -461,7 +486,10 @@ class PipelineOrchestrator:
 
         # Create FlinkDeployment if pipeline is enabled
         if request.enabled:
-            await self._create_flink_deployment(new_pipeline)
+            await self._create_flink_deployment(
+                new_pipeline,
+                kafka_starting_offset_earliest=request.kafka_starting_offset_earliest,
+            )
 
         # Refresh to ensure response has latest state
         await self.db.refresh(new_pipeline)
@@ -483,11 +511,16 @@ class PipelineOrchestrator:
             message="Pipeline created successfully",
         )
 
-    async def _create_flink_deployment(self, pipeline: Pipeline) -> None:
+    async def _create_flink_deployment(
+        self,
+        pipeline: Pipeline,
+        kafka_starting_offset_earliest: bool = False,
+    ) -> None:
         """Create Flink deployment for enabled pipeline.
 
         Args:
             pipeline: Pipeline model instance
+            kafka_starting_offset_earliest: If True, consumer starts from earliest offset; not stored
 
         Raises:
             HTTPException: If Flink deployment fails
@@ -495,36 +528,23 @@ class PipelineOrchestrator:
         flink_created = False
 
         try:
-            result = self.k8s.create_flink_deployment(
-                pipeline_id=str(pipeline.id),
-                pipeline_name=pipeline.name,
-                input_topics=pipeline.source_topics,
-                output_topic=pipeline.destination_topic,
-                parallelism=pipeline.parallelism,
-                output_mode="all_events" if pipeline.save_untagged else "matched_only",
-                apply_parser_to_output_events=pipeline.apply_parser_to_output_events,
-                # Resource configuration
-                taskmanager_memory_mb=pipeline.taskmanager_memory_mb,
-                taskmanager_cpu=pipeline.taskmanager_cpu,
-                window_size_sec=pipeline.window_size_sec,
-                checkpoint_interval_sec=pipeline.checkpoint_interval_sec,
-                autoscaler_enabled=pipeline.autoscaler_enabled,
-                autoscaler_min_parallelism=pipeline.autoscaler_min_parallelism,
-                autoscaler_max_parallelism=pipeline.autoscaler_max_parallelism,
-                rules_topic=pipeline.rules_topic,
-                metrics_topic=pipeline.metrics_topic,
-            )
+            config = self._build_deployment_config(pipeline)
+            config.kafka_starting_offset = "earliest" if kafka_starting_offset_earliest else "latest"
+            result = await self._flink.create_deployment(config)
+
+            if not result.success:
+                raise Exception(result.error or "Failed to create deployment")
+
             flink_created = True
 
             # Update deployment_name in database
-            deployment_name = result.get("metadata", {}).get("name", f"flink-{pipeline.id}")
-            await self.pipeline_repo.update(pipeline.id, deployment_name=deployment_name)
+            await self.pipeline_repo.update(pipeline.id, deployment_name=result.deployment_name)
 
             logger.info(
                 "FlinkDeployment created successfully",
                 extra={
                     "pipeline_id": str(pipeline.id),
-                    "deployment_name": deployment_name,
+                    "deployment_name": result.deployment_name,
                 },
             )
 
@@ -555,7 +575,7 @@ class PipelineOrchestrator:
                         "Rolling back: Deleting FlinkDeployment",
                         extra={"pipeline_id": str(pipeline.id)},
                     )
-                    self.k8s.delete_flink_deployment_by_pipeline_id(str(pipeline.id))
+                    await self._flink.delete_deployment(str(pipeline.id))
                 except Exception as rollback_error:
                     logger.error(
                         "Failed to delete FlinkDeployment during rollback",
@@ -749,10 +769,10 @@ class PipelineOrchestrator:
             extra={"pipeline_id": str(pipeline_id)},
         )
 
-        deployment_name = self.k8s.find_deployment_by_pipeline_id(str(pipeline_id))
+        deployment_name = await self._flink.find_deployment(str(pipeline_id))
         if deployment_name:
             try:
-                self.k8s.suspend_deployment(deployment_name)
+                await self._flink.suspend_deployment(str(pipeline_id))
                 logger.info(
                     "Pipeline suspended (state preserved for checkpoint restore)",
                     extra={"pipeline_id": str(pipeline_id), "deployment_name": deployment_name},
@@ -763,7 +783,7 @@ class PipelineOrchestrator:
                     extra={"pipeline_id": str(pipeline_id), "error": str(suspend_error)},
                 )
                 # Fallback to delete if suspend fails
-                self.k8s.delete_flink_deployment_by_pipeline_id(str(pipeline_id))
+                await self._flink.delete_deployment(str(pipeline_id))
         else:
             logger.info(
                 "No deployment found to suspend",
@@ -777,7 +797,7 @@ class PipelineOrchestrator:
         If no suspended deployment exists, creates a new one.
         """
         # Check if deployment exists (was suspended)
-        deployment_name = self.k8s.find_deployment_by_pipeline_id(str(pipeline_id))
+        deployment_name = await self._flink.find_deployment(str(pipeline_id))
 
         if deployment_name:
             # Deployment exists - resume it (restores from checkpoint)
@@ -787,7 +807,7 @@ class PipelineOrchestrator:
             )
 
             try:
-                self.k8s.resume_deployment(deployment_name)
+                await self._flink.resume_deployment(str(pipeline_id))
 
                 # Sync data to Kafka (rules, filters, parser, custom_fields)
                 await self._sync_kafka_data_on_enable(pipeline_id, updated)
@@ -817,28 +837,15 @@ class PipelineOrchestrator:
 
         flink_created = False
         try:
-            result = self.k8s.create_flink_deployment(
-                pipeline_id=str(updated.id),
-                pipeline_name=updated.name,
-                input_topics=updated.source_topics,
-                output_topic=updated.destination_topic,
-                parallelism=updated.parallelism,
-                output_mode="all_events" if updated.save_untagged else "matched_only",
-                apply_parser_to_output_events=updated.apply_parser_to_output_events,
-                taskmanager_memory_mb=updated.taskmanager_memory_mb,
-                taskmanager_cpu=updated.taskmanager_cpu,
-                window_size_sec=updated.window_size_sec,
-                checkpoint_interval_sec=updated.checkpoint_interval_sec,
-                autoscaler_enabled=updated.autoscaler_enabled,
-                autoscaler_min_parallelism=updated.autoscaler_min_parallelism,
-                autoscaler_max_parallelism=updated.autoscaler_max_parallelism,
-                rules_topic=updated.rules_topic,
-                metrics_topic=updated.metrics_topic,
-            )
+            config = self._build_deployment_config(updated)
+            result = await self._flink.create_deployment(config)
+
+            if not result.success:
+                raise Exception(result.error or "Failed to create deployment")
+
             flink_created = True
 
-            new_deployment_name = result.get("metadata", {}).get("name", f"flink-{updated.id}")
-            await self.pipeline_repo.update(pipeline_id, deployment_name=new_deployment_name)
+            await self.pipeline_repo.update(pipeline_id, deployment_name=result.deployment_name)
 
             # Sync data to Kafka
             await self._sync_kafka_data_on_enable(pipeline_id, updated)
@@ -847,35 +854,32 @@ class PipelineOrchestrator:
                 "Pipeline enabled successfully (fresh start)",
                 extra={
                     "pipeline_id": str(pipeline_id),
-                    "deployment_name": new_deployment_name,
+                    "deployment_name": result.deployment_name,
                 },
             )
 
-        except Exception as flink_error:
-            # Check if this is a Kubernetes ResourceQuota error
-            if isinstance(flink_error, ApiException):
-                error_body = str(flink_error.body) if flink_error.body else ""
+        except FlinkQuotaExceededError as quota_error:
+            # Provider-agnostic quota exceeded error
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error": "Insufficient cluster resources",
+                    "reason": quota_error.message,
+                    "details": "The namespace has reached its resource limits (CPU/Memory/Pods)",
+                    "solution": [
+                        "1. Disable another pipeline to free resources",
+                        "2. Scale up the cluster (add nodes or increase quotas)",
+                        "3. Check quota usage: kubectl describe resourcequota -n security",
+                    ],
+                    "provider_message": quota_error.details or "",
+                },
+            ) from quota_error
 
-                if flink_error.status == 403 and "exceeded quota" in error_body.lower():
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail={
-                            "error": "Insufficient cluster resources",
-                            "reason": "Kubernetes ResourceQuota exceeded",
-                            "details": "The namespace has reached its resource limits (CPU/Memory/Pods)",
-                            "solution": [
-                                "1. Disable another pipeline to free resources",
-                                "2. Scale up the cluster (add nodes or increase quotas)",
-                                "3. Check quota usage: kubectl describe resourcequota -n security",
-                            ],
-                            "kubernetes_message": error_body[:500],
-                        },
-                    ) from flink_error
-
+        except Exception:
             # Compensating transaction
             if flink_created:
                 try:
-                    self.k8s.delete_flink_deployment_by_pipeline_id(str(updated.id))
+                    await self._flink.delete_deployment(str(updated.id))
                 except Exception as rb_error:
                     logger.error("Rollback failed", extra={"error": str(rb_error)})
                     await activity_producer.log_action(
@@ -919,7 +923,7 @@ class PipelineOrchestrator:
             except Exception as custom_fields_err:
                 await self._log_kafka_sync_warning(pipeline_id, "enable", "custom_fields", custom_fields_err)
 
-        # Clear needs_restart flag AFTER all sync operations (ISSUE #3 fix, TDM-11649)
+        # Clear needs_restart flag AFTER all sync operations
         if needs_revalidation:
             validation_service = SigmaValidationService(self.db)
             await validation_service.clear_pipeline_restart_flag(pipeline_id)
@@ -956,7 +960,7 @@ class PipelineOrchestrator:
         # Cleanup storage only if source_topics changed (old offsets are invalid)
         if changes.cleanup_needed:
             try:
-                self.k8s.cleanup_pipeline_storage(str(updated.id))
+                await self._flink.cleanup_storage(str(updated.id))
                 logger.info(
                     "Pipeline storage cleaned up (source_topics changed)",
                     extra={"pipeline_id": str(pipeline_id)},
@@ -966,32 +970,19 @@ class PipelineOrchestrator:
 
         try:
             # Update deployment spec - Flink Operator handles the upgrade
-            result = self.k8s.update_flink_deployment(
-                pipeline_id=str(updated.id),
-                pipeline_name=updated.name,
-                input_topics=updated.source_topics,
-                output_topic=updated.destination_topic,
-                parallelism=updated.parallelism,
-                output_mode="all_events" if updated.save_untagged else "matched_only",
-                apply_parser_to_output_events=updated.apply_parser_to_output_events,
-                taskmanager_memory_mb=updated.taskmanager_memory_mb,
-                taskmanager_cpu=updated.taskmanager_cpu,
-                window_size_sec=updated.window_size_sec,
-                checkpoint_interval_sec=updated.checkpoint_interval_sec,
-                autoscaler_enabled=updated.autoscaler_enabled,
-                autoscaler_min_parallelism=updated.autoscaler_min_parallelism,
-                autoscaler_max_parallelism=updated.autoscaler_max_parallelism,
-                rules_topic=updated.rules_topic,
-                metrics_topic=updated.metrics_topic,
-            )
+            config = self._build_deployment_config(updated)
+            result = await self._flink.update_deployment(config)
 
-            deployment_name = result.get("metadata", {}).get("name", f"flink-{updated.id}")
+            if not result.success:
+                raise Exception(result.error or "Failed to update deployment")
+
+            # Note: detectflow_matchnode_version is updated via Kafka metrics from Flink
 
             logger.info(
                 "FlinkDeployment spec updated (operator will perform rolling upgrade)",
                 extra={
                     "pipeline_id": str(pipeline_id),
-                    "deployment_name": deployment_name,
+                    "deployment_name": result.deployment_name,
                 },
             )
 
@@ -1131,14 +1122,14 @@ class PipelineOrchestrator:
 
         # Delete FlinkDeployment from Kubernetes
         try:
-            self.k8s.delete_flink_deployment_by_pipeline_id(str(pipeline_id))
+            await self._flink.delete_deployment(str(pipeline_id))
             logger.info("FlinkDeployment deleted successfully", extra={"pipeline_id": str(pipeline_id)})
         except Exception as e:
             await self._log_flink_warning(pipeline_id, "delete", e)
 
         # Cleanup storage
         try:
-            self.k8s.cleanup_pipeline_storage(str(pipeline_id))
+            await self._flink.cleanup_storage(str(pipeline_id))
             logger.info("Storage cleaned up successfully", extra={"pipeline_id": str(pipeline_id)})
         except Exception as cleanup_error:
             await self._log_k8s_warning(pipeline_id, "delete", "storage_cleanup", cleanup_error)
@@ -1295,6 +1286,7 @@ class PipelineOrchestrator:
             autoscaler_enabled=pipeline.autoscaler_enabled,
             autoscaler_min_parallelism=pipeline.autoscaler_min_parallelism,
             autoscaler_max_parallelism=pipeline.autoscaler_max_parallelism,
+            detectflow_matchnode_version=pipeline.detectflow_matchnode_version,
             warnings=warnings,
             supported_rules_count=supported_rules_count,
             total_rules_count=total_rules_count,
@@ -1376,6 +1368,7 @@ class PipelineOrchestrator:
                     supported_rules=supported_rules_count,
                     events_tagged=pipeline.events_tagged or 0,
                     events_untagged=pipeline.events_untagged or 0,
+                    detectflow_matchnode_version=pipeline.detectflow_matchnode_version,
                     needs_restart=pipeline.needs_restart or False,
                     created=pipeline.created.isoformat(),
                     updated=pipeline.updated.isoformat(),

@@ -76,7 +76,7 @@ class BaseDAO(Generic[ModelType]):
         self.session.add(instance)
         await self.session.flush()
         await self.session.refresh(instance)
-        # Set updated = created on create when both fields exist
+        # Set updated = created on insert when both fields exist
         if hasattr(instance, "created") and hasattr(instance, "updated"):
             if instance.created and not instance.updated:
                 instance.updated = instance.created

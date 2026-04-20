@@ -72,7 +72,7 @@ async def lifespan(app: FastAPI):
     # Filter out health check logs
     setup_uvicorn_logging()
 
-    logger.info("Starting application services...")
+    logger.info(f"Starting DetectFlow Backend {settings.detectflow_backend_version}")
 
     # Check and update rule loader module version
     try:
@@ -238,7 +238,7 @@ app = FastAPI(
     description="""
 ## Overview
 
-Backend API for the ETL Pipelines Admin Panel providing real-time monitoring and management of data processing pipelines.
+Backend API for DetectFlow providing real-time monitoring and management of data processing pipelines.
 
 ## Key Features
 
@@ -253,7 +253,7 @@ Backend API for the ETL Pipelines Admin Panel providing real-time monitoring and
 All endpoints require JWT Bearer token authentication except `/health` and `/`.
 Include the token in the `Authorization` header: `Bearer <token>`
 """,
-    version="1.0.0",
+    version=settings.detectflow_backend_version,
     lifespan=lifespan,
     openapi_tags=OPENAPI_TAGS,
 )
@@ -328,15 +328,16 @@ async def tdm_api_error_handler(request: Request, exc: TdmApiError) -> JSONRespo
 
 @app.get("/")
 async def root():
-    return {"message": "ETL Admin Panel Backend API"}
+    return {"message": "ETL DetectFlow Backend API"}
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint with service status."""
+    """Health check endpoint with service status and version."""
     pool_status = get_pool_status()
     return {
         "status": "healthy",
+        "detectflow_backend_version": settings.detectflow_backend_version,
         "services": {
             "flink_metrics_poller": flink_metrics_poller.is_healthy,
             "kafka_metrics_consumer": metrics_consumer.is_healthy,

@@ -3,6 +3,7 @@
 from apps.modules.postgre.config import ConfigDAO
 from apps.modules.postgre.event import EventDAO
 from apps.modules.postgre.filter import FilterDAO
+from apps.modules.postgre.health_check import HealthCheckDAO
 from apps.modules.postgre.log_source import LogSourceDAO
 from apps.modules.postgre.pipeline import PipelineDAO
 from apps.modules.postgre.pipeline_rules import PipelineRulesDAO
@@ -13,6 +14,7 @@ __all__ = [
     "ConfigDAO",
     "EventDAO",
     "FilterDAO",
+    "HealthCheckDAO",
     "LogSourceDAO",
     "PipelineDAO",
     "PipelineRulesDAO",

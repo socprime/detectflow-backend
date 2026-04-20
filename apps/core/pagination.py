@@ -53,7 +53,7 @@ def get_pagination_params_no_page(
 
 
 def calculate_skip(page: int, limit: int, offset: int = 0) -> int:
-    """Compute skip for pagination.
+    """Compute skip value for pagination.
 
     Args:
         page: Page number (1-indexed).

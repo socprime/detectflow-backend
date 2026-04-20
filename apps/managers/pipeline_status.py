@@ -5,6 +5,7 @@ with caching support. Primary source is Flink REST API with Kubernetes
 API as fallback.
 """
 
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -12,8 +13,7 @@ from apps.clients.flink_rest import FlinkRestClient
 from apps.core.enums import get_status_level
 from apps.core.logger import get_logger
 from apps.core.schemas import StatusDetails
-from apps.core.settings import settings
-from apps.managers.pipeline import KubernetesService
+from apps.providers import FlinkDeploymentStatus, FlinkProvider, get_flink_provider
 
 logger = get_logger(__name__)
 
@@ -72,10 +72,9 @@ class PipelineStatusManager:
     CACHE_TTL_SECONDS = 5
     FLINK_TIMEOUT_SECONDS = 3.0
 
-    def __init__(self, namespace: str | None = None):
-        self.namespace = namespace or settings.kubernetes_namespace
+    def __init__(self, flink_provider: FlinkProvider | None = None):
         self._cache: dict[str, _CachedStatus] = {}
-        self._k8s = KubernetesService(namespace=self.namespace)
+        self._flink = flink_provider or get_flink_provider()
 
     # =========================================================================
     # Public API
@@ -101,7 +100,7 @@ class PipelineStatusManager:
             return PipelineStatus(status="disabled", source="local")
 
         if not deployment_name:
-            deployment_name = self._resolve_deployment_name(pipeline_id)
+            deployment_name = await self._resolve_deployment_name(pipeline_id)
             if not deployment_name:
                 return PipelineStatus(
                     status="unknown",
@@ -114,10 +113,10 @@ class PipelineStatusManager:
             cached.cached = True
             return cached
 
-        # Try Flink REST first, fallback to K8s
-        status = await self._get_from_flink(deployment_name)
+        # Try Flink REST first, fallback to provider API
+        status = await self._get_from_flink(pipeline_id)
         if status is None:
-            status = self._get_from_kubernetes(deployment_name)
+            status = await self._get_from_kubernetes(pipeline_id)
 
         if status:
             self._cache_status(deployment_name, status)
@@ -141,25 +140,21 @@ class PipelineStatusManager:
         if status.status == "disabled":
             return status.status, None
 
-        # Resolve deployment_name if not provided (needed for warnings/diagnostics)
-        if not deployment_name:
-            deployment_name = self._resolve_deployment_name(pipeline_id)
-
         # Enrich with K8s diagnostic info if missing (happens when status came from Flink)
         job_manager_status = status.job_manager_status
         lifecycle_state = status.lifecycle_state
         error = status.error
 
-        if deployment_name and not job_manager_status:
-            k8s_info = self._get_k8s_diagnostic_info(deployment_name)
+        if not job_manager_status:
+            k8s_info = await self._get_k8s_diagnostic_info(pipeline_id)
             job_manager_status = k8s_info.get("job_manager_status")
             lifecycle_state = k8s_info.get("lifecycle_state")
             error = error or k8s_info.get("error")
 
         # Fetch pod warnings for non-running states
         warnings = status.warnings
-        if status.status != "running" and not warnings and deployment_name:
-            warnings = self._get_pod_warnings(deployment_name)
+        if status.status != "running" and not warnings:
+            warnings = await self._get_pod_warnings(pipeline_id)
 
         # Determine severity level
         level = get_status_level(
@@ -188,15 +183,15 @@ class PipelineStatusManager:
     # Status Sources
     # =========================================================================
 
-    async def _get_from_flink(self, deployment_name: str) -> PipelineStatus | None:
+    async def _get_from_flink(self, pipeline_id: str) -> PipelineStatus | None:
         """Query Flink REST API for job status (primary source)."""
-        rest_url = self._get_flink_rest_url(deployment_name)
+        rest_url = self._flink.get_rest_url(pipeline_id)
         client = FlinkRestClient(rest_url, timeout=self.FLINK_TIMEOUT_SECONDS)
 
         try:
             job_status = await client.get_job_status()
             if job_status is None:
-                logger.debug("No jobs found in Flink", extra={"deployment_name": deployment_name})
+                logger.debug("No jobs found in Flink", extra={"pipeline_id": pipeline_id})
                 return None
 
             return PipelineStatus(
@@ -208,14 +203,14 @@ class PipelineStatusManager:
         except Exception as e:
             logger.debug(
                 "Failed to get status from Flink REST",
-                extra={"deployment_name": deployment_name, "error": str(e)},
+                extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
             return None
 
-    def _get_from_kubernetes(self, deployment_name: str) -> PipelineStatus | None:
+    async def _get_from_kubernetes(self, pipeline_id: str) -> PipelineStatus | None:
         """Query Kubernetes API for deployment status (fallback)."""
         try:
-            deployment_status = self._k8s.get_deployment_status(deployment_name)
+            deployment_status: FlinkDeploymentStatus | None = await self._flink.get_deployment_status(pipeline_id)
 
             if deployment_status is None:
                 return PipelineStatus(
@@ -224,32 +219,19 @@ class PipelineStatusManager:
                     source="kubernetes",
                 )
 
-            job_state = deployment_status.get("state", "unknown")
-            lifecycle_state = deployment_status.get("lifecycle_state", "unknown")
-            job_manager_status = deployment_status.get("job_manager_status", "unknown")
-            error = deployment_status.get("error")
-            job_id = deployment_status.get("job_id")
-
-            # Determine clean status string
-            if error:
-                status_str = "failed"
-            elif job_state == "RUNNING" and lifecycle_state == "STABLE":
-                status_str = "running"
-            else:
-                status_str = job_state.lower() if job_state != "unknown" else lifecycle_state.lower()
-
             return PipelineStatus(
-                status=status_str,
-                job_id=job_id,
-                error=error,
+                status=deployment_status.state,
+                job_id=deployment_status.job_id,
+                error=deployment_status.error,
                 source="kubernetes",
-                job_manager_status=job_manager_status,
-                lifecycle_state=lifecycle_state,
+                job_manager_status=deployment_status.job_manager_status,
+                lifecycle_state=deployment_status.lifecycle_state,
+                warnings=deployment_status.warnings if deployment_status.warnings else None,
             )
         except Exception as e:
             logger.warning(
                 "Failed to get status from Kubernetes",
-                extra={"deployment_name": deployment_name, "error": str(e)},
+                extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
             return None
 
@@ -257,54 +239,50 @@ class PipelineStatusManager:
     # Helpers
     # =========================================================================
 
-    def _get_k8s_diagnostic_info(self, deployment_name: str) -> dict:
+    async def _get_k8s_diagnostic_info(self, pipeline_id: str) -> dict:
         """Get diagnostic info from K8s (job_manager_status, lifecycle_state, error)."""
         try:
-            deployment_status = self._k8s.get_deployment_status(deployment_name)
+            deployment_status = await self._flink.get_deployment_status(pipeline_id)
             if deployment_status:
                 return {
-                    "job_manager_status": deployment_status.get("job_manager_status"),
-                    "lifecycle_state": deployment_status.get("lifecycle_state"),
-                    "error": deployment_status.get("error"),
+                    "job_manager_status": deployment_status.job_manager_status,
+                    "lifecycle_state": deployment_status.lifecycle_state,
+                    "error": deployment_status.error,
                 }
         except Exception as e:
             logger.debug(
                 "Failed to get K8s diagnostic info",
-                extra={"deployment_name": deployment_name, "error": str(e)},
+                extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
         return {}
 
-    def _get_pod_warnings(self, deployment_name: str) -> list[str] | None:
+    async def _get_pod_warnings(self, pipeline_id: str) -> list[str] | None:
         """Get pod warnings from K8s events."""
         try:
-            warnings = self._k8s.get_pod_warnings(deployment_name, max_events=5)
+            warnings = await asyncio.to_thread(self._flink.get_pod_warnings, pipeline_id, 5)
             if warnings:
                 logger.info(
                     "Pipeline has warnings",
-                    extra={"deployment_name": deployment_name, "warnings_count": len(warnings)},
+                    extra={"pipeline_id": pipeline_id, "warnings_count": len(warnings)},
                 )
             return warnings or None
         except Exception as e:
             logger.debug(
                 "Failed to get pod warnings",
-                extra={"deployment_name": deployment_name, "error": str(e)},
+                extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
             return None
 
-    def _resolve_deployment_name(self, pipeline_id: str) -> str | None:
+    async def _resolve_deployment_name(self, pipeline_id: str) -> str | None:
         """Find deployment name via K8s labels."""
         try:
-            return self._k8s.find_deployment_by_pipeline_id(pipeline_id)
+            return await self._flink.find_deployment(pipeline_id)
         except Exception as e:
             logger.debug(
                 "Failed to resolve deployment name",
                 extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
             return None
-
-    def _get_flink_rest_url(self, deployment_name: str) -> str:
-        """Get Flink REST API URL for a deployment."""
-        return f"http://{deployment_name}-rest.{self.namespace}.svc.cluster.local:8081"
 
     def _get_from_cache(self, deployment_name: str) -> PipelineStatus | None:
         """Get status from cache if still valid."""

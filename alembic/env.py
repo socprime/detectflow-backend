@@ -13,6 +13,7 @@ from apps.core.models import (  # noqa: F401
     Config,
     Event,
     Filter,
+    HealthCheck,
     LogSource,
     Parser,
     Pipeline,

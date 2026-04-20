@@ -3,8 +3,8 @@
 This module provides a client for querying Flink JobManager REST API
 to retrieve job metrics including consumer lag (pendingRecords).
 
-The client connects to Flink JobManager via Kubernetes Service created
-by Flink Operator: {deployment_name}-rest:8081
+The REST URL is obtained from FlinkProvider.get_rest_url(pipeline_id)
+which handles both Kubernetes Operator and CMF deployments.
 """
 
 from dataclasses import dataclass
@@ -13,8 +13,8 @@ import httpx
 
 from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
-from apps.core.settings import settings
 from apps.modules.kafka.activity import activity_producer
+from apps.providers import FlinkProvider, get_flink_provider
 
 logger = get_logger(__name__)
 
@@ -490,49 +490,31 @@ class FlinkRestClient:
 
 
 class FlinkMetricsService:
-    """Service for retrieving Flink metrics from Kubernetes deployments.
+    """Service for retrieving Flink metrics via REST API.
 
-    Combines Kubernetes FlinkDeployment info with Flink REST API metrics.
+    Uses FlinkProvider to get the correct REST URL for both
+    Kubernetes Operator and CMF deployments.
     """
 
-    def __init__(self, namespace: str | None = None):
+    def __init__(self, flink_provider: FlinkProvider | None = None):
         """Initialize metrics service.
 
         Args:
-            namespace: Kubernetes namespace for Flink deployments.
-                       Defaults to settings.kubernetes_namespace.
+            flink_provider: Optional FlinkProvider instance.
+                           Uses get_flink_provider() if not provided.
         """
-        self.namespace = namespace or settings.kubernetes_namespace
+        self._flink = flink_provider or get_flink_provider()
 
-    def _get_rest_url(self, deployment_name: str) -> str:
-        """Get Flink REST API URL for a deployment.
-
-        Args:
-            deployment_name: FlinkDeployment name
-
-        Returns:
-            Full URL to Flink REST API
-        """
-        # Flink Operator creates Service: {deployment_name}-rest
-        service_name = f"{deployment_name}-rest"
-        return f"http://{service_name}.{self.namespace}.svc.cluster.local:8081"
-
-    async def get_pipeline_metrics(
-        self, pipeline_id: str, deployment_name: str | None = None
-    ) -> FlinkJobMetrics | None:
+    async def get_pipeline_metrics(self, pipeline_id: str) -> FlinkJobMetrics | None:
         """Get metrics for a pipeline.
 
         Args:
-            pipeline_id: Pipeline UUID (used to derive deployment name)
-            deployment_name: Optional FlinkDeployment name (auto-generated if not provided)
+            pipeline_id: Pipeline UUID
 
         Returns:
             FlinkJobMetrics or None if failed
         """
-        if deployment_name is None:
-            deployment_name = f"flink-{pipeline_id.lower()}"
-
-        rest_url = self._get_rest_url(deployment_name)
+        rest_url = self._flink.get_rest_url(pipeline_id)
         client = FlinkRestClient(rest_url)
 
         try:
@@ -551,20 +533,16 @@ class FlinkMetricsService:
                 )
             return None
 
-    async def get_consumer_lag(self, pipeline_id: str, deployment_name: str | None = None) -> int | None:
+    async def get_consumer_lag(self, pipeline_id: str) -> int | None:
         """Get consumer lag (pending records) for a pipeline.
 
         Args:
-            pipeline_id: Pipeline UUID (used to derive deployment name)
-            deployment_name: Optional FlinkDeployment name
+            pipeline_id: Pipeline UUID
 
         Returns:
             Pending records count or None if failed
         """
-        if deployment_name is None:
-            deployment_name = f"flink-{pipeline_id.lower()}"
-
-        rest_url = self._get_rest_url(deployment_name)
+        rest_url = self._flink.get_rest_url(pipeline_id)
         client = FlinkRestClient(rest_url)
 
         try:

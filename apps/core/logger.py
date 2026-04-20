@@ -8,6 +8,19 @@ import logging
 import sys
 
 from apps.core.settings import settings
+from apps.core.version import get_version
+
+
+class VersionFilter(logging.Filter):
+    """Add application version to all log records (like structlog bound context)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.detectflow_backend_version = get_version()
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.detectflow_backend_version = self.detectflow_backend_version
+        return True
 
 
 class HealthCheckFilter(logging.Filter):
@@ -60,13 +73,16 @@ def get_logger(name: str | None = None) -> logging.Logger:
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(log_level)
 
-        # Create formatter with timestamp and structured format
-        # Format: timestamp - level - name - message
+        # Create formatter with timestamp, version, and structured format
+        # Format: timestamp - detectflow_backend_version - level - name - message
         formatter = logging.Formatter(
-            fmt="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+            fmt="%(asctime)s - %(detectflow_backend_version)s - %(levelname)s - %(name)s - %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
         handler.setFormatter(formatter)
+
+        # Add version filter (injects version into every log record)
+        handler.addFilter(VersionFilter())
 
         # Add handler to logger
         logger.addHandler(handler)

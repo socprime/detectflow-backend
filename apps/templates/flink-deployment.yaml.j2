@@ -9,12 +9,12 @@ metadata:
     pipeline-id: "{{ pipeline_id }}"
     managed-by: admin-panel
 spec:
-  # Docker image для PyFlink job
+  # Docker image for PyFlink job
   image: {{ flink_image }}
   imagePullPolicy: {{ image_pull_policy }}
   flinkVersion: v2_1
 
-  # ServiceAccount для Flink pods
+  # ServiceAccount for Flink pods
   serviceAccount: flink
 
   # Flink Configuration
@@ -51,9 +51,9 @@ spec:
     high-availability.type: kubernetes
     high-availability.storageDir: file:///mnt/ha/{{ pipeline_id }}
 
-    # State Backend і Checkpointing
+    # State Backend and Checkpointing
     state.backend.type: rocksdb
-    state.checkpoints.dir: file:///mnt/checkpoints/{{ pipeline_id }}
+    execution.checkpointing.dir: file:///mnt/checkpoints/{{ pipeline_id }}
     execution.checkpointing.savepoint-dir: file:///mnt/savepoints/{{ pipeline_id }}
     execution.checkpointing.incremental: "true"
     execution.checkpointing.interval: {{ checkpoint_interval_sec }}s
@@ -70,8 +70,8 @@ spec:
     state.backend.rocksdb.compaction.style: LEVEL
     state.backend.rocksdb.thread.num: "4"
 
-    # TaskManager Configuration
-    taskmanager.numberOfTaskSlots: "{{ parallelism }}"
+    # TaskManager Configuration (1 slot per TM; replicas = parallelism)
+    taskmanager.numberOfTaskSlots: "1"
     taskmanager.cpu.cores: "{{ taskmanager_cpu }}"
     taskmanager.memory.process.size: {{ taskmanager_memory }}
     taskmanager.memory.managed.fraction: "0.4"
@@ -149,6 +149,8 @@ spec:
                 value: "{{ parallelism }}"
               - name: KAFKA_CONSUMER_GROUP
                 value: "flink-{{ pipeline_id }}"
+              - name: KAFKA_STARTING_OFFSET
+                value: "{{ kafka_starting_offset }}"
               # Window configuration
               - name: WINDOW_SIZE_SECONDS
                 value: "{{ window_size_sec }}"
@@ -260,6 +262,8 @@ spec:
                 value: "{{ parallelism }}"
               - name: KAFKA_CONSUMER_GROUP
                 value: "flink-{{ pipeline_id }}"
+              - name: KAFKA_STARTING_OFFSET
+                value: "{{ kafka_starting_offset }}"
               # Window configuration
               - name: WINDOW_SIZE_SECONDS
                 value: "{{ window_size_sec }}"
@@ -312,7 +316,7 @@ spec:
     jarURI: local:///opt/flink/opt/flink-python_2.12-1.20.0.jar
     entryClass: org.apache.flink.client.python.PythonDriver
 
-    # Args для PyFlink module
+    # Args for PyFlink module
     args:
       - "-pyclientexec"
       - "/usr/bin/python3"

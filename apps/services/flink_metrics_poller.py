@@ -157,7 +157,6 @@ class FlinkMetricsPoller:
             tasks = [
                 self._poll_pipeline(
                     pipeline_id=pipeline.id,
-                    deployment_name=pipeline.deployment_name,
                     window_size_sec=pipeline.window_size_sec or 30,
                 )
                 for pipeline in pipelines
@@ -184,14 +183,14 @@ class FlinkMetricsPoller:
     async def _poll_pipeline(
         self,
         pipeline_id: UUID,
-        deployment_name: str | None,
         window_size_sec: int = 30,
     ) -> None:
         """Poll metrics for a single pipeline.
 
         NOTE: Pipeline totals (events_tagged/events_untagged) are updated by
-        MetricsConsumerService via Kafka topic. This poller only caches real-time
-        metrics (EPS, state, lag) for dashboard display.
+        MetricsConsumerService via Kafka topic. This poller caches real-time
+        metrics (EPS, state, lag) for dashboard display and updates the
+        pipeline's detectflow_matchnode_version from Flink.
 
         Uses rate gauges from Flink custom metrics (inputEventsPerSecond,
         outputTaggedPerSecond, outputUntaggedPerSecond) which are calculated
@@ -199,7 +198,6 @@ class FlinkMetricsPoller:
 
         Args:
             pipeline_id: Pipeline UUID
-            deployment_name: FlinkDeployment name (optional)
             window_size_sec: Window size in seconds for stale detection
         """
         now = datetime.now(UTC)
@@ -207,7 +205,6 @@ class FlinkMetricsPoller:
         try:
             metrics = await self._flink_service.get_pipeline_metrics(
                 pipeline_id=str(pipeline_id),
-                deployment_name=deployment_name,
             )
 
             # Read rate gauges directly from Flink custom metrics
@@ -221,6 +218,7 @@ class FlinkMetricsPoller:
                 tagged_eps = metrics.output_tagged_per_second
                 untagged_eps = metrics.output_untagged_per_second  # Will be 0 if matched_only mode
                 last_window_ts = metrics.last_window_timestamp_ms
+                # Note: version is updated via Kafka metrics (MetricsConsumerService)
 
             # Update cache with metrics and rate gauge values
             self.metrics_cache[pipeline_id] = PipelineMetricsCache(

@@ -110,7 +110,7 @@ async def create_pipeline(
 
     **Required fields:** name, source_topic, destination_topic, log_source_id
 
-    **Flink deployment:** Created automatically when enabled, reading from `latest` offset.
+    **Flink deployment:** Created automatically when enabled. Use optional `kafka_starting_offset_earliest=true` to start from earliest offset; otherwise `latest`.
     """
     try:
         orchestrator = PipelineOrchestrator(db)
