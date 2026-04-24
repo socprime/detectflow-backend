@@ -1,11 +1,12 @@
 [project]
 name = "detectflow-backend"
-version = "1.0.0"
-description = "DetectFlow Backend API for managing pipelines, rules, and repositories"
+version = "1.1.0"
+description = "DetectFlow Backend for managing pipelines, rules, and repositories"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
     {name = "Vladyslav Gumeniuk", email = "vladyslav.gumeniuk@socprime.com"},
+    {name = "Nazar Gesyk", email = "n.gesyk@socprime.com"},
     {name = "Viktor Hrebeniuk", email = "vh@socprime.com"},
     {name = "Vitalii Uslystyi", email = "vu@socprime.com"},
 
@@ -32,10 +33,13 @@ dependencies = [
     "requests>=2.32.5",
     "sqlalchemy[asyncio]>=2.0.44",
     "uvicorn>=0.38.0",
+    "lz4>=4.4.5",
+    "zstd>=1.5.7.3",
+    "python-snappy>=0.7.3",
 ]
 
 [tool.uv.sources]
-schema-parser = { git = "https://github.com/socprime/detectflow-parser.git", tag = "v0.3.2" }
+schema-parser = { git = "https://github.com/socprime/detectflow-parser.git", tag = "v0.3.4" }
 
 [build-system]
 requires = ["hatchling"]
@@ -46,9 +50,10 @@ packages = ["apps"]
 
 [tool.uv]
 # UV best practices
-managed = true              # Mark as uv-managed project
-package = true              # Enable package management
-default-groups = ["dev"]    # Auto-install dev dependencies
+managed = true                            # Mark as uv-managed project
+package = true                            # Enable package management
+default-groups = ["dev"]                  # Auto-install dev dependencies
+exclude-newer = "2026-04-18T00:00:00Z"    # Aviod Supply Chain Attacks
 
 [dependency-groups]
 dev = [

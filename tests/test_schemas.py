@@ -155,6 +155,20 @@ class TestPipelineCreateRequestTopicValidation:
                 destination_topic="output-logs",
             )
 
+    def test_destination_in_sources_error_message_has_no_value_error_prefix(self):
+        """Validation message should not include automatic 'Value error,' prefix."""
+        with pytest.raises(ValueError) as exc_info:
+            PipelineCreateRequest(
+                name="Test Pipeline",
+                source_topics=["same-topic"],
+                destination_topic="same-topic",
+            )
+
+        assert (
+            exc_info.value.errors()[0]["msg"] == "Destination topic 'same-topic' cannot be the same as a source topic. "
+            "This would create an infinite loop."
+        )
+
     def test_reserved_source_topic_fails(self):
         """Reserved topics cannot be used as source."""
         with pytest.raises(ValueError, match="reserved system topic"):

@@ -134,6 +134,9 @@ class Pipeline(Base):
     autoscaler_min_parallelism = Column(Integer, nullable=True)  # Min parallelism for autoscaler
     autoscaler_max_parallelism = Column(Integer, nullable=True)  # Max parallelism for autoscaler
 
+    # Flink job version (updated from running job, persists for history)
+    detectflow_matchnode_version = Column(String(50), nullable=True)  # e.g., "v1.2.0"
+
     needs_restart = Column(Boolean, default=False, nullable=False, server_default="false")
     log_source = relationship("LogSource", backref="pipelines")
     pipeline_rules = relationship("PipelineRule", back_populates="pipeline")
@@ -313,8 +316,20 @@ class User(Base):
     updated = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
 
+class HealthCheck(Base):
+    """Health check: each row has name and checks (JSONB array of {status, title, descriptions, updated})."""
+
+    __tablename__ = "health_check"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    name = Column(String(255), nullable=False, unique=True)
+    # checks: list[{"status": HealthCheckStatus, "title": str, "descriptions": [str], "updated": datetime}]
+    checks = Column(JSONB, nullable=False, server_default="[]")
+    updated = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+
 class RuleLoaderModuleVersion(Base):
-    """Tracks rule loader module versions for sigma validation .
+    """Tracks rule loader module versions for sigma validation.
 
     When a new version is deployed, rules need to be re-validated against the new schema.
     """

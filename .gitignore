@@ -170,3 +170,6 @@ docker-compose.yml
 .claude/settings.local.json
 .claude.local.md
 .DS_Store
+
+# Version file (generated during Docker build)
+VERSION

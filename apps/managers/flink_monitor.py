@@ -27,9 +27,9 @@ from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Pipeline
 from apps.core.schemas import StatusDetails
-from apps.core.settings import settings
 from apps.managers.pipeline_status import pipeline_status_manager
 from apps.modules.kafka.activity import activity_producer
+from apps.providers import get_flink_provider
 
 logger = get_logger(__name__)
 
@@ -118,14 +118,9 @@ class FlinkMonitorService:
     KAFKA_POLL_STUCK_SECONDS = 60  # Consumer stuck if no poll for 60s
     KAFKA_REBALANCE_RATE_THRESHOLD = 5  # Alert if > 5 rebalances per hour
 
-    def __init__(self, namespace: str | None = None):
-        """Initialize the monitor service.
-
-        Args:
-            namespace: Kubernetes namespace for Flink deployments.
-                       Defaults to settings.kubernetes_namespace.
-        """
-        self.namespace = namespace or settings.kubernetes_namespace
+    def __init__(self):
+        """Initialize the monitor service."""
+        self._flink = get_flink_provider()
 
         # Track pipeline states
         # Key: pipeline_id (str), Value: PipelineState
@@ -243,42 +238,36 @@ class FlinkMonitorService:
             await self._check_exceptions(
                 pipeline_id=pipeline_id,
                 pipeline_name=pipeline.name,
-                deployment_name=pipeline.deployment_name,
             )
 
             # Check for checkpoint failures
             await self._check_checkpoints(
                 pipeline_id=pipeline_id,
                 pipeline_name=pipeline.name,
-                deployment_name=pipeline.deployment_name,
             )
 
             # Check for consumer lag growth
             await self._check_lag(
                 pipeline_id=pipeline_id,
                 pipeline_name=pipeline.name,
-                deployment_name=pipeline.deployment_name,
             )
 
             # Check for backpressure
             await self._check_backpressure(
                 pipeline_id=pipeline_id,
                 pipeline_name=pipeline.name,
-                deployment_name=pipeline.deployment_name,
             )
 
             # Check for resource usage (memory/CPU)
             await self._check_resources(
                 pipeline_id=pipeline_id,
                 pipeline_name=pipeline.name,
-                deployment_name=pipeline.deployment_name,
             )
 
             # Check Kafka consumer health
             await self._check_kafka_health(
                 pipeline_id=pipeline_id,
                 pipeline_name=pipeline.name,
-                deployment_name=pipeline.deployment_name,
             )
 
     async def _check_status_change(
@@ -433,17 +422,15 @@ class FlinkMonitorService:
         self,
         pipeline_id: str,
         pipeline_name: str,
-        deployment_name: str,
     ) -> None:
         """Check for Flink job exceptions (OOM, etc.).
 
         Args:
             pipeline_id: Pipeline UUID string
             pipeline_name: Pipeline name
-            deployment_name: FlinkDeployment name
         """
         try:
-            exception = await self._get_latest_exception(deployment_name)
+            exception = await self._get_latest_exception(pipeline_id)
             if exception is None:
                 return
 
@@ -474,16 +461,16 @@ class FlinkMonitorService:
                 extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
 
-    async def _get_latest_exception(self, deployment_name: str) -> FlinkException | None:
+    async def _get_latest_exception(self, pipeline_id: str) -> FlinkException | None:
         """Get latest exception from Flink REST API.
 
         Args:
-            deployment_name: FlinkDeployment name
+            pipeline_id: Pipeline UUID string
 
         Returns:
             FlinkException or None if no exceptions
         """
-        rest_url = self._get_flink_rest_url(deployment_name)
+        rest_url = self._flink.get_rest_url(pipeline_id)
         client = FlinkRestClient(rest_url, timeout=self.FLINK_TIMEOUT_SECONDS)
 
         try:
@@ -521,7 +508,7 @@ class FlinkMonitorService:
                 )
 
         except Exception as e:
-            logger.debug(f"Failed to get exceptions for {deployment_name}: {e}")
+            logger.debug(f"Failed to get exceptions for pipeline {pipeline_id}: {e}")
             return None
 
     async def _emit_exception(
@@ -591,17 +578,15 @@ class FlinkMonitorService:
         self,
         pipeline_id: str,
         pipeline_name: str,
-        deployment_name: str,
     ) -> None:
         """Check for checkpoint failures.
 
         Args:
             pipeline_id: Pipeline UUID string
             pipeline_name: Pipeline name
-            deployment_name: FlinkDeployment name
         """
         try:
-            rest_url = self._get_flink_rest_url(deployment_name)
+            rest_url = self._flink.get_rest_url(pipeline_id)
             client = FlinkRestClient(rest_url, timeout=self.FLINK_TIMEOUT_SECONDS)
 
             job_id = await client.get_running_job_id()
@@ -680,7 +665,6 @@ class FlinkMonitorService:
         self,
         pipeline_id: str,
         pipeline_name: str,
-        deployment_name: str,
     ) -> None:
         """Check for consumer lag growth.
 
@@ -691,10 +675,9 @@ class FlinkMonitorService:
         Args:
             pipeline_id: Pipeline UUID string
             pipeline_name: Pipeline name
-            deployment_name: FlinkDeployment name
         """
         try:
-            rest_url = self._get_flink_rest_url(deployment_name)
+            rest_url = self._flink.get_rest_url(pipeline_id)
             client = FlinkRestClient(rest_url, timeout=self.FLINK_TIMEOUT_SECONDS)
 
             pending_records = await client.get_pending_records()
@@ -802,17 +785,15 @@ class FlinkMonitorService:
         self,
         pipeline_id: str,
         pipeline_name: str,
-        deployment_name: str,
     ) -> None:
         """Check for backpressure issues.
 
         Args:
             pipeline_id: Pipeline UUID string
             pipeline_name: Pipeline name
-            deployment_name: FlinkDeployment name
         """
         try:
-            rest_url = self._get_flink_rest_url(deployment_name)
+            rest_url = self._flink.get_rest_url(pipeline_id)
             client = FlinkRestClient(rest_url, timeout=self.FLINK_TIMEOUT_SECONDS)
 
             job_id = await client.get_running_job_id()
@@ -964,17 +945,15 @@ class FlinkMonitorService:
         self,
         pipeline_id: str,
         pipeline_name: str,
-        deployment_name: str,
     ) -> None:
         """Check TaskManager resource usage (memory, CPU).
 
         Args:
             pipeline_id: Pipeline UUID string
             pipeline_name: Pipeline name
-            deployment_name: FlinkDeployment name
         """
         try:
-            rest_url = self._get_flink_rest_url(deployment_name)
+            rest_url = self._flink.get_rest_url(pipeline_id)
 
             async with httpx.AsyncClient(timeout=self.FLINK_TIMEOUT_SECONDS) as http:
                 response = await http.get(f"{rest_url}/taskmanagers")
@@ -1131,7 +1110,6 @@ class FlinkMonitorService:
         self,
         pipeline_id: str,
         pipeline_name: str,
-        deployment_name: str,
     ) -> None:
         """Check Kafka consumer health metrics.
 
@@ -1144,10 +1122,9 @@ class FlinkMonitorService:
         Args:
             pipeline_id: Pipeline UUID string
             pipeline_name: Pipeline name
-            deployment_name: FlinkDeployment name
         """
         try:
-            rest_url = self._get_flink_rest_url(deployment_name)
+            rest_url = self._flink.get_rest_url(pipeline_id)
             client = FlinkRestClient(rest_url, timeout=self.FLINK_TIMEOUT_SECONDS)
 
             job_id = await client.get_running_job_id()
@@ -1323,18 +1300,6 @@ class FlinkMonitorService:
                 "Failed to emit Kafka health alert",
                 extra={"pipeline_id": pipeline_id, "error": str(e)},
             )
-
-    def _get_flink_rest_url(self, deployment_name: str) -> str:
-        """Get Flink REST API URL for a deployment.
-
-        Args:
-            deployment_name: FlinkDeployment name
-
-        Returns:
-            Full URL to Flink REST API
-        """
-        service_name = f"{deployment_name}-rest"
-        return f"http://{service_name}.{self.namespace}.svc.cluster.local:8081"
 
     def clear_state(self, pipeline_id: str | None = None) -> None:
         """Clear tracked state for a pipeline or all pipelines.

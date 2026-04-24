@@ -1,6 +1,9 @@
-from typing import Literal
+from typing import Literal, Self
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from apps.core.version import get_version
 
 
 class Settings(BaseSettings):
@@ -12,6 +15,9 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    # Application version (from git tag / VERSION file)
+    detectflow_backend_version: str = get_version()
 
     # Logging settings
     log_level: str = "INFO"  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -57,6 +63,9 @@ class Settings(BaseSettings):
     sync_api_repos_interval_minutes: int = 5
     sync_api_repos_timeout_seconds: int = 600  # Timeout for sync operation (default: 10 minutes)
 
+    # Health check schedule (runs when scheduler is started, i.e. when enable_auto_sync is True)
+    health_check_interval_minutes: int = 5  # Interval for scheduled health_check check_all
+
     # Auth settings
     jwt_secret_key: str = "your-secret-key-change-in-production"
     jwt_refresh_secret_key: str = "your-refresh-secret-key-change-in-production"
@@ -68,15 +77,15 @@ class Settings(BaseSettings):
     kubernetes_namespace: str = "security"  # K8s namespace for Flink deployments
 
     # Flink deployment settings
-    flink_image: str = "flink-sigma-detector:latest"  # Docker image for Flink jobs
+    flink_image: str = "flink-sigma-detector:latest"  # Docker image for Flink jobs (K8s provider)
+    flink_image_cmf: str | None = None  # Docker image for CMF provider (falls back to flink_image)
     image_pull_policy: str = "Always"  # Image pull policy (Always, IfNotPresent, Never)
 
-    # Flink resource settings
-    flink_taskmanager_cpu: float = 2.0  # CPU cores per TaskManager
-    flink_taskmanager_memory_gb: float = 4.0  # Memory in GB per TaskManager
+    # Flink resource settings (per TaskManager; each TM = one parallelism unit)
+    flink_taskmanager_cpu: float = 1.0  # CPU cores per TaskManager
+    flink_taskmanager_memory_gb: float = 2.0  # Memory in GB per TaskManager
     flink_jobmanager_cpu: float = 1.0  # CPU cores for JobManager
     flink_jobmanager_memory_gb: float = 2.0  # Memory in GB for JobManager
-    flink_taskmanager_slots: int = 4  # Slots per TaskManager (parallelism per replica)
 
     # Flink autoscaler settings (None = auto-calculated from TaskManager resources)
     autoscaler_quota_cpu: float | None = None  # CPU quota for autoscaler
@@ -91,6 +100,32 @@ class Settings(BaseSettings):
     flink_checkpoints_pvc: str = "flink-checkpoints-pvc"
     flink_ha_pvc: str = "flink-ha-pvc"
     flink_savepoints_pvc: str = "flink-savepoints-pvc"
+
+    # Flink Provider selection (kubernetes or cmf)
+    flink_provider: Literal["kubernetes", "cmf"] = "kubernetes"
+
+    # CMF (Confluent Manager for Apache Flink) settings
+    cmf_url: str | None = None  # CMF API URL (required when flink_provider="cmf")
+    cmf_environment: str | None = None  # CMF environment name (required when flink_provider="cmf")
+    cmf_namespace: str | None = None  # K8s namespace where CMF deploys Flink apps (required when flink_provider="cmf")
+    cmf_client_cert_path: str | None = None  # mTLS client certificate (optional)
+    cmf_client_key_path: str | None = None  # mTLS client key (optional)
+    cmf_ca_cert_path: str | None = None  # CA certificate (optional)
+
+    @model_validator(mode="after")
+    def validate_cmf_settings(self) -> Self:
+        """Validate that CMF settings are provided when using CMF provider."""
+        if self.flink_provider == "cmf":
+            missing = []
+            if not self.cmf_url:
+                missing.append("CMF_URL")
+            if not self.cmf_environment:
+                missing.append("CMF_ENVIRONMENT")
+            if not self.cmf_namespace:
+                missing.append("CMF_NAMESPACE")
+            if missing:
+                raise ValueError(f"CMF provider requires: {', '.join(missing)}")
+        return self
 
 
 # Create a singleton instance

@@ -1,4 +1,4 @@
-"""Sigma rule validation service .
+"""Sigma rule validation service.
 
 This service validates Sigma rules against the current rule loader module version.
 Rules that cannot be processed by the Flink job are marked as unsupported.
@@ -127,6 +127,9 @@ class SigmaValidationService:
 
             results[str(rule.id)] = validation_result.is_supported
 
+        # TODO: commit here breaks atomicity if caller's subsequent steps (e.g. Kafka sync,
+        # pipeline linkage) fail — the validated rules are already persisted. Refactor to
+        # let the caller own the commit boundary (unit-of-work pattern).
         await self.db.commit()
 
         logger.info(

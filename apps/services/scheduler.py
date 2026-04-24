@@ -22,6 +22,7 @@ from apps.core.settings import settings
 from apps.managers.github_sync import GithubSyncManager
 from apps.managers.rule import RulesOrchestrator
 from apps.modules.kafka.activity import activity_producer
+from apps.services.health_check.main import health_check_service
 
 logger = get_logger(__name__)
 
@@ -85,6 +86,15 @@ class SchedulerService:
             # Already logged in sync.sync
             pass
 
+    async def _run_health_check_all(self) -> None:
+        """Run health check for all platforms from scheduler (persists results to DB)."""
+        try:
+            await health_check_service.check_platforms()
+            logger.info("Health check (check_all) completed successfully")
+        except Exception:
+            logger.error("Health check (check_all) failed", exc_info=True)
+            raise
+
     def start(self) -> None:
         """Start the scheduler if auto sync is enabled."""
         if not settings.enable_auto_sync:
@@ -92,7 +102,11 @@ class SchedulerService:
             return
 
         interval_minutes = settings.sync_api_repos_interval_minutes
-        logger.info(f"Starting scheduler: sync_repos will run every {interval_minutes} minutes")
+        health_check_minutes = settings.health_check_interval_minutes
+        logger.info(
+            f"Starting scheduler: sync_repos every {interval_minutes} min, "
+            f"health_check_all every {health_check_minutes} min"
+        )
 
         self.scheduler.add_job(
             self._run_sync_repos,
@@ -101,6 +115,14 @@ class SchedulerService:
             id="sync_repos",
             replace_existing=True,
             max_instances=1,  # Skip new job if previous is still running (prevents accumulation)
+        )
+        self.scheduler.add_job(
+            self._run_health_check_all,
+            "interval",
+            minutes=health_check_minutes,
+            id="health_check_all",
+            replace_existing=True,
+            max_instances=1,
         )
 
         self.scheduler.start()

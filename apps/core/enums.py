@@ -33,6 +33,15 @@ class PipelineRuleSortField(StrEnum):
     UPDATED = "updated"
 
 
+class HealthCheckStatus(StrEnum):
+    """Status of a health check result: Operational, Warning, Error, Not Enabled."""
+
+    OPERATIONAL = "Operational"
+    WARNING = "Warning"
+    ERROR = "Error"
+    NOT_ENABLED = "Not Enabled"
+
+
 class AuditSeverity(StrEnum):
     """Severity levels for audit log entries."""
 
@@ -95,7 +104,6 @@ STATUS_LEVEL_MAP: dict[str, str] = {
     "suspended": "info",
     "restarting": "info",
     "cancelling": "info",
-    "finished": "info",
     "stable": "info",
 }
 

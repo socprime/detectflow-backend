@@ -1,5 +1,5 @@
 # DetectFlow Backend
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](VERSION)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.121.3-green.svg)](https://fastapi.tiangolo.com/)
 
@@ -18,6 +18,7 @@ This service provides a REST API for:
 ## Features
 
 - **Pipeline Management** - Create, configure, and monitor Flink-based ETL pipelines
+- **Pluggable Flink Provider** - Choose between Kubernetes (Flink Operator) or CMF (Confluent Manager for Apache Flink)
 - **Real-time Dashboard** - SSE streaming for live metrics and pipeline status
 - **Detection Rules** - Sigma rule management
 - **Log Source Configuration** - Parser scripts and field mappings
@@ -26,6 +27,7 @@ This service provides a REST API for:
 - **Database Migrations** - Alembic for schema version control
 - **Kubernetes Native** - Automatic FlinkDeployment CRD management
 - **Flink Health Monitoring** - Automatic pipeline status tracking
+- **Platform Health Checks** - PostgreSQL, Kafka, and Cloud Repositories status with scheduled checks
 
 ## Quick Start
 
@@ -34,14 +36,16 @@ This service provides a REST API for:
 - Python 3.12+
 - PostgreSQL 14+
 - Kafka cluster
-- Kubernetes cluster with Flink Operator
+- One of the following Flink runtimes:
+  - Kubernetes cluster with Flink Operator (default provider)
+  - Confluent Manager for Apache Flink (CMF) endpoint
 
 ### Installation
 
 ```bash
 # Clone repository
 git clone <repository-url>
-cd admin-panel-backend
+cd detectflow-backend
 
 # Install dependencies
 uv sync
@@ -50,10 +54,7 @@ uv sync
 cp .env.example .env
 # Edit .env with your settings
 
-# Initialize database
-uv run python init_database.py
-
-# Run database migrations
+# Run database migrations (creates schema on first run)
 uv run alembic upgrade head
 
 # Run server
@@ -85,6 +86,11 @@ curl http://localhost:8000/api/v1/pipeline \
 ```bash
 # Database
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/etl_admin  # (required) PostgreSQL connection string
+DATABASE_POOL_SIZE=20  # (optional, default: 20) Permanent connections in pool
+DATABASE_MAX_OVERFLOW=30  # (optional, default: 30) Extra connections when pool exhausted
+DATABASE_POOL_RECYCLE=1800  # (optional, default: 1800) Recycle connections after N seconds
+DATABASE_POOL_TIMEOUT=30  # (optional, default: 30) Timeout waiting for connection from pool
+DATABASE_ECHO=false  # (optional, default: false) Log SQL queries
 
 # Kafka
 KAFKA_BOOTSTRAP_SERVERS=localhost:9092  # (required) Kafka broker addresses
@@ -103,15 +109,33 @@ KAFKA_ACTIVITY_CONSUMER_GROUP=admin-panel-activity  # (optional, default: admin-
 KAFKA_DEFAULT_PARTITIONS=1  # (optional, default: 1) Default partitions for new topics
 KAFKA_DEFAULT_REPLICATION_FACTOR=2  # (optional, default: 2) Default replication factor for new topics
 
-# Kubernetes
+# Flink provider selection
+FLINK_PROVIDER=kubernetes  # (optional, default: kubernetes) Flink runtime: "kubernetes" or "cmf"
+
+# Kubernetes (used when FLINK_PROVIDER=kubernetes)
 KUBERNETES_NAMESPACE=security  # (optional, default: security) K8s namespace for Flink deployments
 FLINK_IMAGE=flink-sigma-detector:latest  # (optional, default: flink-sigma-detector:latest)
+FLINK_IMAGE_CMF=  # (optional) Docker image override for CMF provider (falls back to FLINK_IMAGE)
 IMAGE_PULL_POLICY=Always  # (optional, default: Always) Image pull policy (Always, IfNotPresent, Never)
+FLINK_NODE_SELECTOR_KEY=app  # (optional, default: app) nodeSelector key for Flink pods
+FLINK_NODE_SELECTOR_VALUE=detectflow-prod  # (optional, default: detectflow-prod) nodeSelector value
+
+# Flink state storage PVCs (Kubernetes provider)
+FLINK_CHECKPOINTS_PVC=flink-checkpoints-pvc  # (optional) PVC for Flink checkpoints
+FLINK_HA_PVC=flink-ha-pvc  # (optional) PVC for Flink HA metadata
+FLINK_SAVEPOINTS_PVC=flink-savepoints-pvc  # (optional) PVC for Flink savepoints
+
+# CMF — Confluent Manager for Apache Flink (required when FLINK_PROVIDER=cmf)
+CMF_URL=  # (required for CMF) CMF API URL, e.g. http://cmf-service.confluent:80
+CMF_ENVIRONMENT=  # (required for CMF) CMF environment name
+CMF_NAMESPACE=  # (required for CMF) K8s namespace where CMF deploys Flink apps
+CMF_CLIENT_CERT_PATH=  # (optional) mTLS client certificate
+CMF_CLIENT_KEY_PATH=  # (optional) mTLS client key
+CMF_CA_CERT_PATH=  # (optional) CA certificate
 
 # Flink resources
-FLINK_TASKMANAGER_CPU=2.0  # (optional, default: 2.0) CPU cores per TaskManager
-FLINK_TASKMANAGER_MEMORY_GB=4  # (optional, default: 4) Memory per TaskManager in GB
-FLINK_TASKMANAGER_SLOTS=4  # (optional, default: 4) Number of slots per TaskManager
+FLINK_TASKMANAGER_CPU=1.0  # (optional, default: 1.0) CPU cores per TaskManager
+FLINK_TASKMANAGER_MEMORY_GB=2  # (optional, default: 2) Memory per TaskManager in GB
 FLINK_JOBMANAGER_CPU=1.0  # (optional, default: 1.0) CPU cores for JobManager
 FLINK_JOBMANAGER_MEMORY_GB=2  # (optional, default: 2) Memory for JobManager in GB
 FLINK_METRICS_POLL_INTERVAL=5.0  # (optional, default: 5.0) Flink metrics polling interval (seconds)
@@ -122,10 +146,11 @@ AUTOSCALER_QUOTA_MEMORY_GB=  # (optional) Memory quota per pipeline in GB; if un
 DASHBOARD_BROADCAST_INTERVAL_SECONDS=2.0  # (optional, default: 2.0) SSE broadcast interval (seconds)
 AUDIT_LOGS_RETENTION_DAYS=30  # (optional, default: 30) Audit logs retention period (days)
 
-# Sync
-ENABLE_AUTO_SYNC=true  # (optional, default: true) Enable automatic repository sync
-SYNC_API_REPOS_INTERVAL_MINUTES=5  # (optional, default: 5) Sync interval in minutes
+# Sync / scheduled tasks
+ENABLE_AUTO_SYNC=true  # (optional, default: true) Enable scheduler (repo sync + health checks)
+SYNC_API_REPOS_INTERVAL_MINUTES=5  # (optional, default: 5) Repository sync interval in minutes
 SYNC_API_REPOS_TIMEOUT_SECONDS=600  # (optional, default: 600) Sync operation timeout (seconds)
+HEALTH_CHECK_INTERVAL_MINUTES=5  # (optional, default: 5) Scheduled health_check check_all interval
 
 # Auth (JWT with refresh token rotation)
 JWT_SECRET_KEY=your-secret-key  # (required in production) Secret key for access tokens
@@ -149,17 +174,20 @@ See `.env.example` for complete configuration reference.
 ### Project Structure
 
 ```
-admin-panel-backend/
+detectflow-backend/
 ├── apps/
-│   ├── core/           # Core modules (auth, database, schemas)
+│   ├── core/           # Core modules (auth, database, schemas, version)
 │   ├── routers/        # API endpoints
 │   ├── managers/       # Business logic orchestrators
 │   ├── modules/        # External integrations (Kafka, PostgreSQL)
-│   ├── clients/        # External API clients (TDM)
-│   └── services/       # Background services
+│   ├── clients/        # External API clients (TDM, CMF, Flink REST)
+│   ├── providers/      # Flink runtime providers (Kubernetes, CMF)
+│   ├── services/       # Background services (scheduler, health checks, metrics poller)
+│   └── templates/      # Jinja2 templates (FlinkDeployment, CMF application)
+├── alembic/            # Database migrations
 ├── k8s/                # Kubernetes manifests
-├── server.py           # Application entry point
-└── init_database.py    # Database initialization
+├── scripts/            # Operational scripts (health_check, …)
+└── server.py           # Application entry point
 ```
 
 ### Running Tests
@@ -303,4 +331,4 @@ Kubernetes enforces resource limits at multiple levels:
 
 ---
 
-**Version**: 1.0.0
+**Version**: 1.1.0

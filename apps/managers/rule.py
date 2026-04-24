@@ -1,6 +1,6 @@
 import asyncio
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -136,6 +136,63 @@ class RulesOrchestrator:
         # Refresh rule to load all attributes after flush operations (avoids MissingGreenlet)
         refreshed_rule = await self.rule_repo.get_by_id(rule.id)
         return refreshed_rule if refreshed_rule else rule
+
+    async def create_local_rules_bulk(
+        self,
+        rules_data: list[dict],
+        repository_id: UUID,
+        user: User,
+    ) -> list[Rule]:
+        """
+        Create multiple local rules and sync to connected pipelines.
+
+        Raises:
+            RepositoryNotFoundError: If repository not found.
+            RepositoryNotLocalError: If repository is not local.
+        """
+        repository = await self.repository_repo.get_by_id(repository_id)
+        if not repository:
+            raise RepositoryNotFoundError("Repository not found")
+        if repository.type != "local":
+            raise RepositoryNotLocalError(
+                f"Rules can only be created in local repositories. Repository type is '{repository.type}'"
+            )
+
+        rows = [{**d, "id": str(uuid4()), "repository_id": repository_id} for d in rules_data]
+        await self.rule_repo.create_many(rows)
+
+        # Re-fetch to get fully loaded instances (create_many returns expired objects after flush)
+        created = await self.rule_repo.get_by_ids([UUID(r["id"]) for r in rows])
+
+        validation_service = SigmaValidationService(self.db)
+        await validation_service.validate_rules_batch(created, force=True)
+
+        pipelines = await self.pipeline_repo.get_by_repository_id(repository_id)
+        await self._add_rules_to_pipelines(
+            pipeline_ids=[p.id for p in pipelines],
+            rule_ids=[r.id for r in created],
+        )
+
+        for pipeline in pipelines:
+            if pipeline.enabled:
+                to_send = [r for r in created if r.is_supported]
+                if to_send:
+                    await self.kafka.send_rules(str(pipeline.id), to_send)
+
+        supported_count = sum(1 for r in created if r.is_supported)
+        await activity_producer.log_action(
+            action="create",
+            entity_type="rule",
+            entity_id=None,
+            entity_name=None,
+            user=user,
+            details=f"Bulk created {len(created)} rules ({supported_count} supported) in repository {repository.name}",
+        )
+
+        # Intentionally skip per-rule refresh via get_by_id (unlike create_local_rule)
+        # because the response schema (RuleBulkCreatedItem) only uses column attributes
+        # (id, name, is_supported) — no lazy-loaded relationships are accessed.
+        return created
 
     async def _add_rules_to_pipelines(self, pipeline_ids: list[UUID | str], rule_ids: list[UUID | str]) -> None:
         pipeline_rules_data = []
@@ -648,7 +705,7 @@ class RulesOrchestrator:
         return await asyncio.gather(*fetch_tasks)
 
     async def _upsert_rules(self, repo_id: str, rules: list[TdmRule]) -> None:
-        """Upsert rules from TDM API and validate them ."""
+        """Upsert rules from TDM API and validate them."""
         if not rules:
             return
 

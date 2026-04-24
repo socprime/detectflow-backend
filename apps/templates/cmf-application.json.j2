@@ -1,0 +1,127 @@
+{
+  "apiVersion": "cmf.confluent.io/v1",
+  "kind": "FlinkApplication",
+  "metadata": {
+    "name": "{{ app_name }}",
+    "labels": {
+      "pipeline-id": "{{ pipeline_id }}",
+      "managed-by": "admin-panel"
+    }
+  },
+  "spec": {
+    "flinkConfiguration": {
+      "taskmanager.numberOfTaskSlots": "1",
+      {# TaskManager replicas are NOT set explicitly.
+         The Flink K8s Operator auto-calculates: replicas = ceil(parallelism / numberOfTaskSlots).
+         With numberOfTaskSlots=1, this gives replicas = parallelism, i.e. one TM pod per parallel slot. #}
+      "python.executable": "/opt/flink/pyflink/.venv/bin/python3",
+      "python.client.executable": "/opt/flink/pyflink/.venv/bin/python3"
+    },
+    "flinkVersion": "v2_1",
+    "image": "{{ flink_image }}",
+    "imagePullPolicy": "{{ image_pull_policy }}",
+    "serviceAccount": "flink",
+    "job": {
+      "jarURI": "local:///opt/flink/opt/flink-python_2.12-2.0.0.jar",
+      "entryClass": "org.apache.flink.client.python.PythonDriver",
+      "args": [
+        "-pyclientexec",
+        "/opt/flink/pyflink/.venv/bin/python3",
+        "-py",
+        "/opt/flink/pyflink/app/main.py"
+      ],
+      "parallelism": {{ parallelism }},
+      "state": "running",
+      "upgradeMode": "stateless"
+    },
+    "jobManager": {
+      "resource": {
+        "memory": "{{ jobmanager_memory }}",
+        "cpu": {{ jobmanager_cpu }}
+      },
+      "podTemplate": {
+        "metadata": {
+          "labels": {
+            "platform.confluent.io/origin": "flink"
+          }
+        }
+      }
+    },
+    "taskManager": {
+      "resource": {
+        "memory": "{{ taskmanager_memory }}",
+        "cpu": {{ taskmanager_cpu }}
+      },
+      "podTemplate": {
+        "metadata": {
+          "labels": {
+            "platform.confluent.io/origin": "flink"
+          }
+        }
+      }
+    },
+    "podTemplate": {
+      "spec": {
+        "containers": [
+          {
+            "name": "flink-main-container",
+            "env": [
+              {
+                "name": "JOB_ID",
+                "value": "{{ job_id }}"
+              },
+              {
+                "name": "KAFKA_INPUT_TOPICS",
+                "value": "{{ input_topics | join(',') }}"
+              },
+              {
+                "name": "KAFKA_OUTPUT_TOPIC",
+                "value": "{{ output_topic }}"
+              },
+              {
+                "name": "OUTPUT_MODE",
+                "value": "{{ output_mode }}"
+              },
+              {
+                "name": "APPLY_PARSER_TO_OUTPUT_EVENTS",
+                "value": "{{ apply_parser_to_output_events | lower }}"
+              },
+              {
+                "name": "FLINK_PARALLELISM",
+                "value": "{{ parallelism }}"
+              },
+              {
+                "name": "KAFKA_CONSUMER_GROUP",
+                "value": "flink-{{ pipeline_id }}"
+              },
+              {
+                "name": "KAFKA_STARTING_OFFSET",
+                "value": "{{ kafka_starting_offset }}"
+              },
+              {
+                "name": "WINDOW_SIZE_SECONDS",
+                "value": "{{ window_size_sec }}"
+              },
+              {
+                "name": "KAFKA_RULES_TOPIC",
+                "value": "{{ rules_topic }}"
+              },
+              {
+                "name": "KAFKA_METRICS_TOPIC",
+                "value": "{{ metrics_topic }}"
+              },
+              {
+                "name": "KAFKA_BOOTSTRAP_SERVERS",
+                "value": "{{ kafka_bootstrap_servers }}"
+              },
+              {
+                "name": "KAFKA_AUTH_METHOD",
+                "value": "{{ kafka_auth_method }}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

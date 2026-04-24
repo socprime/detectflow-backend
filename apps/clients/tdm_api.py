@@ -165,8 +165,11 @@ class TDMAPIClient:
         # Raise for any other 4xx errors
         try:
             response.raise_for_status()
-        except httpx.HTTPStatusError:
-            raise TdmApiError("Unexpected error from TDM API. Please try again later.")
+        except httpx.HTTPStatusError as e:
+            if response.status_code == 429:
+                raise e
+            else:
+                raise TdmApiError("Unexpected error from TDM API. Please try again later.")
 
         return response.json()
 

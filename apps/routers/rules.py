@@ -17,6 +17,9 @@ from apps.core.models import User
 from apps.core.pagination import get_pagination_params_no_page
 from apps.core.schemas import (
     ErrorResponse,
+    RuleBulkCreatedItem,
+    RuleBulkCreateRequest,
+    RuleBulkCreateResponse,
     RuleCreateRequest,
     RuleFullDetailResponse,
     RuleListResponse,
@@ -126,6 +129,44 @@ async def create_rule(
         user=current_user,
     )
     return RuleConverter.to_full_detail(new_rule)
+
+
+@router.post(
+    "/rules/bulk",
+    response_model=RuleBulkCreateResponse,
+    status_code=201,
+    summary="Create rules in bulk",
+    responses={
+        201: {"description": "Rules created successfully"},
+        400: {"model": ErrorResponse, "description": "Repository is not local"},
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        404: {"model": ErrorResponse, "description": "Repository not found"},
+        422: {"description": "Validation error"},
+    },
+)
+@router.post("/rules/bulk/", include_in_schema=False)
+async def create_rules_bulk(
+    body: RuleBulkCreateRequest,
+    repository_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Create multiple detection rules in a local repository in one request.
+    """
+    orchestrator = RulesOrchestrator(db)
+    rules_data = [r.model_dump() for r in body.rules]
+    created = await orchestrator.create_local_rules_bulk(
+        rules_data=rules_data,
+        repository_id=repository_id,
+        user=current_user,
+    )
+    items = [RuleBulkCreatedItem(id=str(r.id), name=r.name, is_supported=r.is_supported) for r in created]
+    return RuleBulkCreateResponse(
+        total=len(items),
+        supported=sum(1 for i in items if i.is_supported),
+        data=items,
+    )
 
 
 @router.get(

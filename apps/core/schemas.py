@@ -4,8 +4,9 @@ from uuid import UUID
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
-from apps.core.enums import AuditSeverity, UserRole
+from apps.core.enums import AuditSeverity, HealthCheckStatus, UserRole
 from apps.core.settings import settings
 
 
@@ -49,23 +50,23 @@ def validate_yaml(value: str | None) -> str | None:
 
 
 def validate_uuid4(value: str | UUID | None) -> str | None:
-    """Валідація UUID4 формату.
+    """Validate UUID4 format.
 
     Args:
-        value: Значення для валідації (може бути None, str або UUID об'єкт).
+        value: Value to validate (can be None, str or UUID object).
 
     Returns:
-        Валідне значення у вигляді рядка або None.
+        Valid value as string or None.
 
     Raises:
-        ValueError: Якщо значення не є валідним UUID4.
+        ValueError: If value is not a valid UUID4.
     """
     if value is None:
         return value
-    # Якщо це вже UUID об'єкт, конвертуємо в рядок
+    # If already a UUID object, convert to string
     if isinstance(value, UUID):
         return str(value)
-    # Якщо це рядок, перевіряємо валідність
+    # If string, validate format
     try:
         UUID(value)
         return value
@@ -284,6 +285,7 @@ class KafkaMetricMessage(BaseModel):
     job_id: str
     instance_id: int = 0
     timestamp: int = 0  # Unix timestamp in milliseconds
+    detectflow_matchnode_version: str | None = None  # Flink job version from pyproject.toml
 
     # Window metrics (optional for backward compatibility)
     window_total_events: int = 0
@@ -343,6 +345,10 @@ class PipelineCreateRequest(BaseModel):
     filters: list[str] = Field(default=[], description="List of filter IDs to apply")
     log_source_id: str | None = Field(default=None, description="Log source ID for parsing configuration")
     enabled: bool = Field(default=True, description="Start pipeline immediately after creation")
+    kafka_starting_offset_earliest: bool = Field(
+        default=False,
+        description="If true, Kafka consumer starts from earliest offset; not stored in DB",
+    )
     repository_ids: list[str] | None = Field(default=None, description="Repository IDs containing rules")
     custom_fields: str | None = Field(default=None, description="Custom fields to add (YAML format)")
     resources: "FlinkResourceConfig | None" = Field(
@@ -410,9 +416,10 @@ class PipelineCreateRequest(BaseModel):
 
         # Check source topics don't contain destination topic
         if self.destination_topic in self.source_topics:
-            raise ValueError(
+            raise PydanticCustomError(
+                "topic_conflict",
                 f"Destination topic '{self.destination_topic}' cannot be the same as a source topic. "
-                "This would create an infinite loop."
+                "This would create an infinite loop.",
             )
 
         return self
@@ -487,9 +494,10 @@ class PipelineUpdateRequest(BaseModel):
         # Check source topics don't contain destination topic (if both provided)
         if self.source_topics is not None and self.destination_topic is not None:
             if self.destination_topic in self.source_topics:
-                raise ValueError(
+                raise PydanticCustomError(
+                    "topic_conflict",
                     f"Destination topic '{self.destination_topic}' cannot be the same as a source topic. "
-                    "This would create an infinite loop."
+                    "This would create an infinite loop.",
                 )
 
         return self
@@ -531,12 +539,11 @@ class PipelineListItem(BaseModel):
     log_source: list[dict[str, str]]
     filters: int
     rules: int
-    supported_rules: int = Field(0, description="Count of supported rules ")
+    supported_rules: int = Field(0, description="Count of supported rules")
     events_tagged: int
     events_untagged: int
-    needs_restart: bool = Field(
-        False, description="Pipeline needs restart due to rule loader module update "
-    )
+    detectflow_matchnode_version: str | None = Field(None, description="Last known Flink job version")
+    needs_restart: bool = Field(False, description="Pipeline needs restart due to rule loader module update")
     created: str
     updated: str
 
@@ -595,6 +602,8 @@ class PipelineDetailResponse(BaseModel):
     autoscaler_min_parallelism: int | None = None
     autoscaler_max_parallelism: int | None = None
 
+    # Flink job version (last known, persists when pipeline not running)
+    detectflow_matchnode_version: str | None = Field(None, description="Last known Flink job version")
     warnings: list[str] = Field(default_factory=list, description="Pipeline warnings (e.g., no supported rules)")
     supported_rules_count: int = Field(0, description="Count of supported (valid) rules")
     total_rules_count: int = Field(0, description="Total count of rules")
@@ -793,8 +802,10 @@ class FlinkDefaultsResponse(BaseModel):
     """Global Flink defaults for new pipelines."""
 
     parallelism: int = Field(default=2, ge=1, le=128, description="Number of parallel tasks")
-    taskmanager_memory_mb: int = Field(default=8192, ge=1024, le=131072, description="Memory per TaskManager in MB")
-    taskmanager_cpu: float = Field(default=2.0, ge=0.5, le=128.0, description="CPU cores per TaskManager")
+    taskmanager_memory_mb: int = Field(default=2048, ge=1024, le=131072, description="Memory per TaskManager in MB")
+    taskmanager_cpu: float = Field(
+        default=1.0, ge=0.5, le=16.0, description="CPU cores per TaskManager (each TaskManager = one parallelism unit)"
+    )
     window_size_sec: int = Field(default=30, ge=10, le=120, description="Event aggregation window in seconds")
     checkpoint_interval_sec: int = Field(default=60, ge=30, le=600, description="Checkpoint interval in seconds")
     autoscaler_enabled: bool = Field(default=False, description="Enable Flink autoscaling")
@@ -812,7 +823,9 @@ class FlinkResourceConfig(BaseModel):
     taskmanager_memory_mb: int | None = Field(
         default=None, ge=1024, le=131072, description="Memory per TaskManager in MB"
     )
-    taskmanager_cpu: float | None = Field(default=None, ge=0.5, le=128.0, description="CPU cores per TaskManager")
+    taskmanager_cpu: float | None = Field(
+        default=None, ge=0.5, le=16.0, description="CPU cores per TaskManager (each TaskManager = one parallelism unit)"
+    )
     window_size_sec: int | None = Field(default=None, ge=10, le=120, description="Event aggregation window in seconds")
     checkpoint_interval_sec: int | None = Field(
         default=None, ge=30, le=600, description="Checkpoint interval in seconds"
@@ -990,6 +1003,32 @@ class RuleListResponse(BaseModel):
     sort: str
     order: str
     data: list[RuleDetailResponse]
+
+
+class RuleBulkCreateRequest(BaseModel, extra="forbid"):
+    """Request to create multiple detection rules in one local repository."""
+
+    rules: list[RuleCreateRequest] = Field(
+        description="Rules to create (max 200 per request)",
+        min_length=1,
+        max_length=200,
+    )
+
+
+class RuleBulkCreatedItem(BaseModel):
+    """One created rule summary returned from bulk create."""
+
+    id: str = Field(description="Rule UUID")
+    name: str = Field(description="Rule display name")
+    is_supported: bool = Field(description="Whether the rule is supported by the current matcher after validation")
+
+
+class RuleBulkCreateResponse(BaseModel):
+    """Response from bulk rule creation."""
+
+    total: int = Field(description="Total number of created rules")
+    supported: int = Field(description="Number of supported rules")
+    data: list[RuleBulkCreatedItem] = Field(description="Created rules with id, name, and support status")
 
 
 # Sigma Validation Schemas
@@ -1376,3 +1415,35 @@ class AuditLogsFiltersResponse(BaseModel):
 
 
 # RecentActivityItem removed - use ActivityItem instead
+
+
+class HealthCheckSingleCheck(BaseModel):
+    """Single check result for health check."""
+
+    status: HealthCheckStatus
+    title: str
+    descriptions: list[str]
+    updated: datetime.datetime
+
+
+class HealthCheckPlatformStatus(BaseModel):
+    """Status of one platform (from DB)."""
+
+    name: str = Field(description="Platform name")
+    checks: list[HealthCheckSingleCheck] = Field(description="List of checks for this platform")
+    updated: datetime.datetime | None = Field(default=None, description="Last row update time")
+
+
+class HealthCheckAllResponse(BaseModel):
+    """Response for GET /all and POST /check_now/all: status of all platforms and versions.
+
+    platforms: last saved status per platform (name, checks, updated).
+    versions: detectflow_backend_version (str) — backend app version from settings;
+              match_node (dict[str, str | None]) — pipeline name → last known Flink job version (detectflow_matchnode_version).
+    """
+
+    platforms: list[HealthCheckPlatformStatus] = Field(description="Status of each platform")
+    versions: dict[str, str | dict[str, str | None]] = Field(
+        default_factory=dict,
+        description="detectflow_backend_version (str), match_node (dict pipeline_name -> detectflow_matchnode_version)",
+    )
