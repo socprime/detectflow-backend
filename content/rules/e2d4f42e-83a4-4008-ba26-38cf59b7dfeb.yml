@@ -1,0 +1,36 @@
+id: Ckm1NnfZPo0J
+name: Suspicious VSS Registry Modifications Attempt (via registry_event)
+body: |-
+  title: Suspicious VSS Registry Modifications Attempt (via registry_event)
+  status: stable
+  description: Adversaries may try to modify VSS registry keys in order to perform malicious activity, such as disrupting backup services.
+  author: SOC Prime Team
+  references:
+    - https://www.binarydefense.com/resources/blog/qakbot-strikes-back-understanding-the-threat/
+  tags:
+    - attack.t1490
+    - attack.impact
+  logsource:
+    category: registry_event
+    product: windows
+  detection:
+    selection_base:
+      TargetObject|contains|all:
+        - 'CurrentControlSet'
+        - 'Services'
+        - 'VSS'
+        - 'Diag'
+        - 'SPP' #System\CurrentControlSet\Services\VSS\Diag\SPP
+    selection_details:
+      TargetObject|contains:
+        - 'SppGetSnapshots (Enter)'
+        - 'SppGetSnapShots (Leave)'
+        - 'SppEnumGroups (Enter)'
+    condition: selection_base and selection_details
+  falsepositives:
+    - Unknown
+  level: medium
+  id: e2d4f42e-83a4-4008-ba26-38cf59b7dfeb
+level: medium
+created: '2024-04-16T09:25:19Z'
+updated: '2024-04-16T09:25:21.322000Z'

@@ -1,0 +1,116 @@
+id: O2G6Wp8BMeMRSNTKXnP0
+name: Gamaredon (Primitive Bear) APT Profile and MITRE ATT&CK Breakdown
+created: '2026-07-13T09:03:05Z'
+updated: '2026-10-09T09:25:04Z'
+summary: Gamaredon is a Russia-aligned advanced persistent threat group active since 2013, attributed to the Russian FSB. The group focuses on cyber espionage and data theft, primarily targeting Ukrainian government and defense sectors. They utilize custom malware families such as GammaLoad and GammaSteel alongside various obfuscation and persistence techniques.
+severity: Critical
+investigation: The report details historical campaigns from 2013 to 2025, highlighting a shift towards using Cloudflare Workers, Telegram APIs, and exploiting WinRAR vulnerabilities. It examines the group's evolution from custom VBScript droppers to more complex PowerShell-based infostealers and mobile spyware.
+response: Upon detection, responders should isolate affected hosts, particularly those showing signs of GammaSteel or Ptero* malware activity. Investigate registry persistence keys, check for unauthorized scheduled tasks, and conduct a thorough hunt for unusual outbound connections to Cloudflare or Telegram-based infrastructure.
+mitigation: Mitigation strategies include patching WinRAR to address CVE-2025-8088 and monitoring for suspicious PowerShell execution. Organizations should implement strict controls over removable media, monitor for unusual scheduled tasks, and validate security controls against the group's known TTPs using simulation platforms.
+industries:
+- All
+geographies:
+- Europe
+- Bulgaria
+- Latvia
+- Lithuania
+- Poland
+- Ukraine
+threat_types:
+- APT
+- Malware
+- Phishing
+- Data Breach
+- Exploit
+threat_actors:
+- G0047
+- G0010
+techniques:
+- T1583.001
+- T1583.003
+- T1583.006
+- T1584.001
+- T1586.002
+- T1587.001
+- T1588.002
+- T1091
+- T1566.001
+- T1047
+- T1059.001
+- T1059.007
+- T1106
+- T1203
+- T1204.002
+- T1037.001
+- T1053.005
+- T1137.001
+- T1547.001
+- T1027.006
+- T1027.011
+- T1027.013
+- T1036.004
+- T1036.007
+- T1112
+- T1218.005
+- T1480.001
+- T1539
+- T1552.002
+- T1555.003
+- T1518.001
+- T1080
+- T1005
+- T1025
+- T1039
+- T1074.001
+- T1113
+- T1008
+- T1071.001
+- T1095
+- T1102.001
+- T1568
+- T1572
+- T1041
+- T1048
+- T1567
+- T1567.002
+attack_flow: |
+  flowchart TD
+      step_resource_development["Resource Development: Acquisition of .ru domains, VPS, and legitimate services (Cloudflare, Telegram) for C2 and staging."]
+      step_initial_access["T1566.001 - Phishing: Spearphishing Attachment via RAR/ZIP archives and WinRAR path-traversal (CVE-2025-8088)."]
+      rules_for_initial_access("<b>Rule Name</b>: Possible CVE-2025-8088 / CVE-2025-6218 (WinRAR Vulnerability) Exploitation Attempt (via file_event)<br/><b>Rule ID</b>: c550cc75-398e-4985-a1e9-5088e126e468")
+      step_execution["T1059 - Command and Scripting Interpreter: PowerShell and JavaScript for HTML smuggling; WMI and Native API for fingerprinting."]
+      step_persistence["T1547.001 - Boot or Logon Autostart Execution: Registry Run keys, Startup folder, Scheduled Tasks, and weaponized Normal.dotm templates."]
+      rules_for_persistence("<b>Rule Name</b>: Suspicious Binary / Scripts in Autostart Location (via file_event)<br/><b>Rule ID</b>: d5fe94b1-93ec-4c40-9acc-0c7de41a24c3")
+      step_stealth["T1027 - Obfuscated Files or Information: HTML Smuggling, fileless registry storage, and environmental keying via volume serial number."]
+      step_credential_access["T1555 - Credentials from Password Stores: Stealing web session cookies and browser data using PteroSteal."]
+      step_discovery["T1082 - Software Discovery: Using WMI to identify security software."]
+      step_lateral_movement["T1566 - Lateral Movement: Tainting shared content and replication via PteroLNK on removable media."]
+      step_collection["T1005 - Data from Local System: Targeting documents, desktop, downloads, and network shares; screen capture."]
+      step_exfiltration["T1041 - Exfiltration Over C2: HTTP/HTTPS; T1567 - Exfiltration Over Web Service: write.as, MEGA (via rclone), and Tor (cURL)."]
+      rules_for_exfiltration("<b>Rule Name</b>: Possible Dynamic DNS Service Was Contacted (via dns)<br/><b>Rule ID</b>: 012f09b6-b6b1-4421-928f-0ab59b63251a")
+      step_resource_development -->|leads_to| step_initial_access
+      step_initial_access -->|enables| step_execution
+      step_initial_access -.->|detected_by| rules_for_initial_access
+      step_execution -->|leads_to| step_persistence
+      step_persistence -->|leads_to| step_stealth
+      step_persistence -.->|detected_by| rules_for_persistence
+      step_stealth -->|leads_to| step_credential_access
+      step_credential_access -->|leads_to| step_discovery
+      step_discovery -->|leads_to| step_lateral_movement
+      step_lateral_movement -->|leads_to| step_collection
+      step_collection -->|leads_to| step_exfiltration
+      step_exfiltration -.->|detected_by| rules_for_exfiltration
+related_high_order_sigma_rules:
+- YAXTrTrvQXoi
+related_behavioral_rules:
+- ge3s17wIP0bu
+- WZc0QlT74Ri0
+- xdR0sSRuC7Ep
+- axEFhWDcdyHr
+- D5KpI6v7e2Si
+- xYL8amUbmyA5
+- 1pFa98gwHsm3
+- uZUl3E6NAA32
+- Z3VKB8NqEBrD
+- IPbRni6YRvnM
+- is3KFI9vJJ0p

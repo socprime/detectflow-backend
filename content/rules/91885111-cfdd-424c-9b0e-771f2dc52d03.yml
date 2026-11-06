@@ -1,0 +1,108 @@
+id: wPCmfCHT1r6u
+name: Possible AV Process Enumeration / Manipulation (via cmdline)
+body: |-
+  title: Possible AV Process Enumeration / Manipulation (via cmdline)
+  id: 91885111-cfdd-424c-9b0e-771f2dc52d03
+  status: stable
+  description: Adversaries may attempt to get a listing / manipulate of security software, configurations, defensive tools, and sensors that are installed on the system.
+  references:
+      - https://www.zerosalarium.com/2026/01/edrstartuphinder-edr-startup-process-blocker.html
+      - https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html
+      - https://blog.checkpoint.com/wp-content/uploads/2015/07/matsnu-malwareid-technical-brief.pdf
+      - https://www.trendmicro.com/vinfo/hk/threat-encyclopedia/malware/trojan.win64.killav.ab/
+      - https://www.hybrid-analysis.com/sample/2703293327b26b3a32452c296907bb3acdfece050fe3dc30eca60eb8e37a9ac9/5eb05726fb64a620b905baff
+      - https://attack.mitre.org/techniques/T1063/
+      - https://www.cloudsek.com/blog/how-threat-actors-exploit-brand-collaborations-to-target-popular-youtube-channels
+      - https://www.genians.co.kr/blog/threat_intelligence/lumma-infostealer
+      - https://www.esentire.com/blog/weaponized-in-china-deployed-in-india-the-syncfuture-espionage-targeted-campaign
+      - https://www.bitdefender.com/en-us/blog/labs/lummastealer-second-life-castleloader
+  tags:
+      - attack.discovery
+      - attack.t1518.001
+  author: SOC Prime Team
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_exec:
+          - Image|endswith:
+              - 'cmd.exe'
+              - 'powershell.exe'
+              - 'wmic.exe'
+              - 'tasklist.exe'
+              - 'wscript.exe'
+              - 'cscript.exe'
+              - 'findstr.exe'
+              - 'reg.exe'
+              - 'wsl.exe'
+          - Image|contains: 'python'
+      selection_cmd:
+          CommandLine|contains:
+              - 'SophosHealth' #findstr "AvastUI AVGUI bdservicehost nsWscSvc ekrn SophosHealth"; https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html
+              - 'bdservicehost' #findstr "AvastUI AVGUI bdservicehost nsWscSvc ekrn SophosHealth"; https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html
+              - 'nsWscSvc' #findstr "AvastUI AVGUI bdservicehost nsWscSvc ekrn SophosHealth"; https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html
+              - '360Safe.exe' #360
+              - '360tray.exe' #360
+              - 'SavMain.exe' #Sophos
+              - 'SavMain.exe' #Sophos
+              - 'mbamtray.exe' #Malwarebytes
+              - 'mbam.exe' #Malwarebytes
+              - 'MBAMService.exe' #Malwarebytes
+              - 'McTray.exe' #McAfee
+              - 'GDScan.exe' #GData
+              - 'ccSetMgr.exe' #Symantec
+              - 'ccsvchst.exe' #Symantec
+              - 'SymCorpUI.exe' #Symantec
+              - 'MsSense.exe' #Windows Defender
+              - 'MsMpEng.exe' #Windows Defender; https://www.zerosalarium.com/2026/01/edrstartuphinder-edr-startup-process-blocker.html
+              - 'ekrn.exe' #ESET NOD32
+              - 'klnagent.exe' #Kaspersky
+              - 'avg.exe' #AVG
+              - 'avgnt.exe' #Avira
+              - 'ashDisp.exe' #Avast
+              - 'AvastUI.exe' #Avast; https://www.esentire.com/blog/weaponized-in-china-deployed-in-india-the-syncfuture-espionage-targeted-campaign
+              - 'AvastSvc.exe' #Avast
+              - 'FortiWF.exe'
+              - 'xagt.exe'
+              - 'fcappdb.exe'
+      filters:
+          CommandLine|contains:
+              - '.VersionInfo' #"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"  -noprofile -ExecutionPolicy Bypass "(Get-ItemProperty 'C:\Program Files\Windows Defender\MsMpEng.exe').VersionInfo | format-list"
+              - '-services.exe-' #scripts
+          #CommandLine|contains|all:
+          #    - 'resourceFilePath'
+          #    - 'messageFilePath'
+          #    - 'manifest' #wevtutil.exe install-manifest "C:\ProgramData..."
+      #    - Image|endswith:
+      #        - 'services.exe'
+      #        - '360Safe.exe' #360
+      #        - '360tray.exe' #360
+      #        - 'SavMain.exe' #Sophos
+      #        - 'SavMain.exe' #Sophos
+      #        - 'mbamtray.exe' #Malwarebytes
+      #        - 'mbam.exe' #Malwarebytes
+      #        - 'MBAMService.exe' #Malwarebytes
+      #        - 'McTray.exe' #McAfee
+      #        - 'GDScan.exe' #GData
+      #        - 'ccSetMgr.exe' #Symantec
+      #        - 'ccsvchst.exe' #Symantec
+      #        - 'SymCorpUI.exe' #Symantec
+      #        - 'MsSense.exe' #Windows Defender
+      #        - 'MsMpEng.exe' #Windows Defender
+      #        - 'ekrn.exe' #ESET NOD32
+      #        - 'klnagent.exe' #Kaspersky
+      #        - 'avg.exe' #AVG
+      #        - 'avgnt.exe' #Avira
+      #        - 'ashDisp.exe' #Avast
+      #        - 'AvastUI.exe' #Avast
+      #        - 'AvastSvc.exe' #Avast
+      #        - 'FortiWF.exe'
+      #        - 'xagt.exe'
+      #        - 'fcappdb.exe'
+      condition: (selection_exec and selection_cmd) and not filters
+  falsepositives:
+      - low
+  level: high
+level: high
+created: '2019-12-13T15:09:31Z'
+updated: '2026-02-13T08:53:03.157000Z'

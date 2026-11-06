@@ -7,15 +7,17 @@ against real Kafka topic data before applying them to log sources.
 from fastapi import APIRouter, Depends, HTTPException
 
 from apps.core.auth import get_current_active_user
+from apps.core.exceptions import BadRequestError
 from apps.core.logger import get_logger
 from apps.core.models import User
+from apps.core.openapi import UNAUTHORIZED, err, errors
 from apps.core.schemas import (
-    ErrorResponse,
     ParserRunRequest,
     ParserRunResponse,
 )
 from apps.managers.parser import parser_manager
 from apps.modules.kafka.topics import get_topics_from_kafka
+from apps.modules.utils import normalize_field_mapping_yaml
 
 logger = get_logger(__name__)
 
@@ -26,12 +28,13 @@ router = APIRouter(prefix="/api/v1/parsers", tags=["Parsers"])
     "/run",
     response_model=ParserRunResponse,
     summary="Test parser query",
-    responses={
-        200: {"description": "Parser test results"},
-        400: {"description": "One or more topics not found"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Invalid parser query"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(
+            400,
+            "Invalid mapping YAML, or one or more requested topics do not exist in Kafka",
+        ),
+    ),
 )
 async def run_parser(
     parser_run: ParserRunRequest,
@@ -40,10 +43,19 @@ async def run_parser(
     """
     Test a parser query against real Kafka topic data.
 
-    Executes the parser query on sample events from specified topics
-    and returns the parsing results. Useful for validating parsers
-    before applying them to log sources.
+    Compiles the parser query and runs it over a sample of recent events read live from the
+    requested source topics, returning per-event parse results (parsed fields, success flag,
+    and any per-event error). Useful for validating a parser before assigning it to a log
+    source. Read-only — it does not persist the parser or publish anything to Kafka. When
+    `mapping` is provided it is validated as YAML (dictionary of sigma fields to event field
+    strings or lists); unquoted `@…` scalars such as `@timestamp` are auto-quoted. Invalid
+    mapping or missing Kafka topics returns 400.
     """
+    try:
+        mapping = normalize_field_mapping_yaml(parser_run.mapping)
+    except ValueError as e:
+        raise BadRequestError(str(e)) from e
+
     # Validate that all requested topics exist
     available_topics = await get_topics_from_kafka()
     invalid_topics = [topic for topic in parser_run.source_topic_ids if topic not in available_topics]
@@ -57,6 +69,6 @@ async def run_parser(
     test_results = await parser_manager.run_test_parser_query(
         topics=parser_run.source_topic_ids,
         parser_query=parser_run.parser_query,
-        field_mapping=parser_run.mapping,
+        field_mapping=mapping,
     )
     return ParserRunResponse(result=test_results)

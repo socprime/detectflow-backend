@@ -1,0 +1,29 @@
+id: 6NFglraMPljD
+name: Possible TOR Domain in Powershell Script (via powershell)
+body: |-
+  title: Possible TOR Domain in Powershell Script (via powershell)
+  id: 42e2973c-cf5e-47fa-b0e6-e73792578684
+  description: Tor address appeared in powershell arguments may be an indicator of c2 communication or data exfiltration attempt.
+  status: stable
+  references:
+    - https://cert.gov.ua/article/6281701
+    - https://www.mandiant.com/resources/blog/trojanized-windows-installers-ukrainian-government
+  author: SOC Prime Team
+  tags:
+    - attack.execution
+    - attack.t1059.001
+    - attack.command_and_control
+    - attack.t1071.001
+  logsource:
+    product: windows
+    service: powershell
+  detection:
+    selection:
+      ScriptBlockText|contains: '.onion'
+    condition: selection
+  falsepositives:
+    - unknown
+  level: high
+level: high
+created: '2022-12-27T12:29:40Z'
+updated: '2026-04-17T11:29:51.617000Z'

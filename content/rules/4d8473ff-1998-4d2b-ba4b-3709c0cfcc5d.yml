@@ -1,0 +1,127 @@
+id: BPeIA73gfTBP
+name: LOLBAS Schtasks (via cmdline)
+body: |-
+  title: LOLBAS Schtasks (via cmdline)
+  id: 4d8473ff-1998-4d2b-ba4b-3709c0cfcc5d
+  status: stable
+  description: Detects use of schtasks as a living off the land technique by looking for tasks that involve other lolbas commonly used to hide the intent of the task.
+  author: SOC Prime Team
+  references:
+      - https://www.microsoft.com/en-us/security/blog/2026/09/01/counterfeit-installers-system-compromise-tracking-deceptive-software-download-campaign/
+      - https://www.enki.co.kr/en/media-center/blog/inside-kimsuky-s-abuse-of-legitimate-remote-control-tools-across-northeast-asia
+      - https://blog.deception.pro/blog/clickfix-spacex1337-hok-2026
+      - https://www.vmray.com/threat-intelligence-insights-pivoting-off-the-blockchain/
+      - https://hunt.io/blog/iranian-nexus-oman-government-intrusion
+      - https://blog.talosintelligence.com/cloudz-pheno-infostealer/
+      - https://www.huntress.com/blog/pups-grow-fangs
+      - https://cert.gov.ua/article/6284949
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-141a
+      - https://www.attackiq.com/2025/05/21/response-to-cisa-advisory-aa25-141a
+      - https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html
+      - https://cert.gov.ua/article/6277063
+      - https://cert.gov.ua/article/6276824
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-347a
+      - https://cert.gov.ua/article/3192088
+      - https://www.microsoft.com/security/blog/2022/02/04/actinium-targets-ukrainian-organizations/
+      - https://lolbas-project.github.io/lolbas/Binaries/Schtasks/
+      - https://thedfirreport.com/2023/12/18/lets-opendir-some-presents-an-analysis-of-a-persistent-actors-activity/
+      - https://www.trendmicro.com/en_us/research/24/c/unveiling-earth-kapre-aka-redcurls-cyberespionage-tactics-with-t.html
+      - https://reasonlabs.com/research/new-widespread-extension-trojan-malware-campaign
+      - https://www.huntress.com/blog/advanced-persistent-threat-targeting-vietnamese-human-rights-defenders
+      - https://www.attackiq.com/2024/12/12/emulating-fin7-part-1/
+      - https://www.proofpoint.com/us/blog/threat-insight/ta406-pivots-front
+      - https://unit42.paloaltonetworks.com/windows-backdoor-for-novel-c2-communication/
+      - https://www.genians.co.kr/en/blog/threat_intelligence/deepfake
+      - https://hunt.io/blog/asyncrat-screenconnect-open-directory-campaigns
+      - https://www.volexity.com/blog/2025/10/08/apt-meets-gpt-targeted-operations-with-untamed-llms/
+      - https://www.seqrite.com/blog/seqrite-capi-backdoor-dotnet-stealer-russian-auto-commerce-oct-2025/
+      - https://www.attackiq.com/2025/11/14/sandworm/
+      - https://asec.ahnlab.com/en/92183/
+      - https://research.checkpoint.com/2026/konni-targets-developers-with-ai-malware/
+      - https://gmo-cybersecurity.com/blog/revisiting-gpugate-repo-squatting-and-opencl-deception-to-deliver-hijackloader/
+      - https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492
+      - https://www.huntress.com/blog/data-exfiltration-threat-actor-infrastructure-exposed
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk
+      - https://cloud.google.com/blog/topics/threat-intelligence/ransomware-ttps-shifting-threat-landscape/
+      - https://www.aikido.dev/blog/glassworm-strikes-react-packages-phone-numbers
+  tags:
+      - attack.defense_evasion
+      - attack.execution
+      - attack.t1218
+      - attack.t1053
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_image:
+          Image|endswith: 'schtasks.exe'
+      selection_cmdline:
+          CommandLine|contains:
+              - 'cmd.exe' # https://www.microsoft.com/en-us/security/blog/2026/09/01/counterfeit-installers-system-compromise-tracking-deceptive-software-download-campaign/
+              - 'powershell' #"C:\Windows\System32\schtasks.exe" /create /tn PdfOpenTask /tr "powershell.exe -WindowStyle Hidden -executionpolicy bypass -noprofile -c Invoke-Expression (Get-Content '%TMP%\temporarydoc.txt' -Raw)" /sc once /st 12:02 /f; https://cert.gov.ua/article/6284949; https://www.huntress.com/blog/data-exfiltration-threat-actor-infrastructure-exposed; https://www.aikido.dev/blog/glassworm-strikes-react-packages-phone-numbers; https://www.huntress.com/blog/pups-grow-fangs; https://blog.talosintelligence.com/cloudz-pheno-infostealer/; https://blog.deception.pro/blog/clickfix-spacex1337-hok-2026
+              - 'wscript' # https://www.vmray.com/threat-intelligence-insights-pivoting-off-the-blockchain/; https://www.enki.co.kr/en/media-center/blog/inside-kimsuky-s-abuse-of-legitimate-remote-control-tools-across-northeast-asia
+              - 'installutil'
+              - 'mavinject'
+              - 'microsoft.workflow.compiler'
+              - 'mmc.exe'
+              - 'msbuild'
+              - 'msconfig'
+              - 'msdt'
+              - 'mshta'
+              - 'msc.exe'
+              - 'odbcconf'
+              - 'pcalua'
+              - 'pcwrun'
+              - 'presentationhost'
+              - 'regasm'
+              - 'register'
+              - 'cimprovider'
+              - 'regsvcs'
+              - 'rundll' #schtasks /create /sc minute /mo 30 /tn asd /ru system /rl highest /f /tr "CSIDL_SYSTEM\rundll32.exe c:\windows\system32\comsvcs.dll, minidump 1020 c:\users\defautl\out.dmp full"; https://asec.ahnlab.com/en/92183/
+              - 'runonce'
+              - 'runscripthelper'
+              - 'scriptrunner'
+              - 'syncappvpublishingserver'
+              - 'verclsid'
+              - 'wab.exe'
+              - 'wmic'
+              - 'xwizard'
+              - 'appvlp'
+              - 'bginfo'
+              - 'cdb.exe'
+              - 'csi.exe'
+              - 'dnx.exe'
+              - 'dxcap'
+              - 'mftrace'
+              - 'msdeploy'
+              - 'msxsl'
+              - 'rcsi'
+              - 'sqlps'
+              - 'sqltoolsps'
+              - 'squirrel'
+              - ' te.exe'
+              - 'tracker'
+              #- 'update'
+              - 'vsjitdebugger'
+              - 'wsl.exe'
+              - 'CL_Mutexverifier'
+              - 'CL_Invocation'
+              - 'manage-bde'
+              - 'pubprn'
+              - 'slmgr'
+              - 'syncappvpublishingserver'
+              - 'winrm'
+              - 'pester'
+              - 'certutil.exe'
+      filters:
+          CommandLine|contains:
+              - '\LenovoCleanup' #"C:\WINDOWS\system32\schtasks.exe" /CHANGE /TN "\LenovoCleanupTasks-20251206.080910" /TR "C:\WINDOWS\system32\cmd.exe /C 'C:\WINDOWS\system32\schtasks.exe /Delete /TN LenovoCleanupFolder-20251206.080910 /F && C:\WINDOWS\system32\schtasks.exe /Delete /TN LenovoCleanupTasks-20251206.080910 /F'"
+              - ':\Program Files' #schtasks /change /TN "StartCN" /TR "\"C:\Program Files\AMD\CNext\CNext\cncmd.exe\" startwithdelay"
+      condition: (selection_image and selection_cmdline) and not filters
+  falsepositives:
+      - System and Software Updates.
+      - Administrative scripts.
+  level: high
+level: high
+created: '2019-12-05T10:10:09Z'
+updated: '2026-09-02T14:42:07.875000Z'

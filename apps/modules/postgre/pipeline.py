@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from apps.core.enums import PipelineSortField
-from apps.core.models import LogSource, Pipeline, PipelineRule, pipeline_repositories
+from apps.core.models import LogSource, Pipeline, PipelineRule, Rule, pipeline_repositories
 from apps.modules.postgre.base import BaseDAO
 
 
@@ -60,7 +60,11 @@ class PipelineDAO(BaseDAO[Pipeline]):
         """Get pipeline by ID with all relationships eagerly loaded.
 
         Loads a single pipeline with its related entities including log source,
-        pipeline rules, and repositories to avoid lazy loading issues.
+        pipeline rules, repositories, and correlation-pipeline membership to avoid
+        lazy loading issues.
+
+        Note: loads PipelineRule but does NOT load Rule or its current_content —
+        rule.body is unavailable.
 
         Args:
             id: UUID of the pipeline.
@@ -79,6 +83,7 @@ class PipelineDAO(BaseDAO[Pipeline]):
                 selectinload(Pipeline.log_source),
                 selectinload(Pipeline.pipeline_rules),
                 selectinload(Pipeline.repositories),
+                selectinload(Pipeline.correlation_pipelines),
             )
             .where(Pipeline.id == id)
         )
@@ -110,7 +115,12 @@ class PipelineDAO(BaseDAO[Pipeline]):
         """Get paginated list of pipelines with relationships.
 
         Retrieves a list of pipelines with pagination, filtering, and sorting support.
-        All relationships are eagerly loaded to prevent N+1 queries.
+        Small relationships (log_source, repositories, correlation_pipelines) are eagerly loaded.
+
+        Note: does NOT load ``pipeline_rules`` — pipelines can reference thousands
+        of rules, and the list view only needs the per-pipeline totals. Use
+        ``get_rule_counts`` for those (one GROUP BY instead of hydrating ~MBs of
+        rule rows into ORM objects per page).
 
         Args:
             skip: Number of records to skip (for pagination).
@@ -131,8 +141,8 @@ class PipelineDAO(BaseDAO[Pipeline]):
         """
         query = select(Pipeline).options(
             selectinload(Pipeline.log_source),
-            selectinload(Pipeline.pipeline_rules).selectinload(PipelineRule.rule),
             selectinload(Pipeline.repositories),
+            selectinload(Pipeline.correlation_pipelines),
         )
 
         # Apply search filter
@@ -156,6 +166,38 @@ class PipelineDAO(BaseDAO[Pipeline]):
         items = result.scalars().all()
 
         return list(items), total
+
+    async def get_rule_counts(self, pipeline_ids: list[UUID]) -> dict[UUID, tuple[int, int]]:
+        """Per-pipeline rule totals for the list view, in ONE aggregate query.
+
+        Replaces the old ``selectinload(pipeline_rules → rule)`` pattern that
+        hydrated every joined rule row just to compute two integers per
+        pipeline — on rule-heavy pipelines that meant megabytes of rows and
+        thousands of ORM objects per page.
+
+        Args:
+            pipeline_ids: IDs of the pipelines on the current page.
+
+        Returns:
+            Mapping ``pipeline_id -> (total_rules, supported_rules)``. Pipelines
+            with no rules are absent — callers should default to ``(0, 0)``.
+        """
+        if not pipeline_ids:
+            return {}
+        result = await self.session.execute(
+            select(
+                PipelineRule.pipeline_id,
+                func.count(PipelineRule.id),
+                func.count(PipelineRule.id).filter(Rule.is_supported.is_(True)),
+            )
+            # OUTER join: pipeline_rules.rule_id is nullable — link rows without
+            # a rule must still count toward the total (matches the previous
+            # len(pipeline.pipeline_rules) semantics).
+            .outerjoin(Rule, Rule.id == PipelineRule.rule_id)
+            .where(PipelineRule.pipeline_id.in_(pipeline_ids))
+            .group_by(PipelineRule.pipeline_id)
+        )
+        return {row[0]: (row[1], row[2]) for row in result.all()}
 
     def _apply_sorting(self, query, sort: str, order: str):
         """Apply sorting to query based on sort field.
@@ -234,9 +276,8 @@ class PipelineDAO(BaseDAO[Pipeline]):
         )
         source_count = source_count_query.scalar() or 0
 
-        # Get unique destination topics count
-        dest_count_query = await self.session.execute(select(func.count(func.distinct(Pipeline.destination_topic))))
-        dest_count = dest_count_query.scalar() or 0
+        # Get unique destination topics count (every destinations[].topic across pipelines)
+        dest_count = len(await self._distinct_destination_topics())
 
         return {
             "topics": {
@@ -271,8 +312,59 @@ class PipelineDAO(BaseDAO[Pipeline]):
             >>> count = await repo.count_enabled()
             >>> print(f"Active pipelines: {count}")
         """
-        result = await self.session.execute(select(func.count()).select_from(Pipeline).where(Pipeline.enabled is True))
+        # NOTE: `Pipeline.enabled is True` (Python identity check on a Column)
+        # always evaluates to False and produced `WHERE false` — the count was
+        # permanently 0. `.is_(True)` renders the intended SQL `enabled IS TRUE`.
+        result = await self.session.execute(
+            select(func.count()).select_from(Pipeline).where(Pipeline.enabled.is_(True))
+        )
         return result.scalar() or 0
+
+    async def _distinct_destination_topics(self) -> set[str]:
+        """Every destination topic used by pipelines (the full output fan-out).
+
+        Reads ``destinations[].topic``, falling back to the legacy singular column for rows
+        whose JSONB list is still empty.
+        """
+        result = await self.session.execute(select(Pipeline.destinations, Pipeline.destination_topic))
+
+        topics: set[str] = set()
+        for destinations, destination_topic in result.fetchall():
+            row_topics = {item["topic"] for item in destinations or [] if item.get("topic")}
+            topics |= row_topics or ({destination_topic} if destination_topic else set())
+        return topics
+
+    async def get_by_ids(self, pipeline_ids: list[UUID]) -> list[Pipeline]:
+        """Fetch many pipelines by id in ONE query.
+
+        Used to validate an incoming correlation-pipeline member set: the caller diffs the
+        returned ids against what was asked for, so an unknown id is a ``NotFoundError`` rather
+        than a silently dropped membership row.
+
+        Args:
+            pipeline_ids: Pipeline ids to fetch; duplicates are harmless.
+
+        Returns:
+            The rows that exist, in arbitrary order (missing ids are simply absent).
+        """
+        if not pipeline_ids:
+            return []
+        result = await self.session.execute(select(Pipeline).where(Pipeline.id.in_(pipeline_ids)))
+        return list(result.scalars().all())
+
+    async def get_tagged_events_topics(self) -> dict[UUID, str]:
+        """Pipelines that own a per-pipeline tagged-events topic, id → stored topic name.
+
+        A ``NULL`` ``tagged_events_topic`` means "still on the legacy shared topic" and is excluded:
+        those rows own no topic, so the startup topic reconcile must not provision one for them.
+
+        Returns:
+            Mapping of ``pipelines.id`` to its ``tagged_events_topic``.
+        """
+        result = await self.session.execute(
+            select(Pipeline.id, Pipeline.tagged_events_topic).where(Pipeline.tagged_events_topic.is_not(None))
+        )
+        return {row[0]: row[1] for row in result.fetchall()}
 
     async def get_by_repository_id(self, repository_id: UUID) -> list[Pipeline]:
         """Get pipelines connected to a specific repository."""
@@ -315,12 +407,45 @@ class PipelineDAO(BaseDAO[Pipeline]):
 
         return repo_pipelines_map
 
-    async def add_repositories(self, pipeline_id: UUID, repository_ids: list[UUID]) -> None:
-        """Add repositories to a pipeline."""
-        if not repository_ids:
+    async def get_repository_selections(self, pipeline_id: UUID) -> dict[UUID, list[str]]:
+        """Get selected repository folders for a pipeline."""
+        result = await self.session.execute(
+            select(
+                pipeline_repositories.c.repository_id,
+                pipeline_repositories.c.folder_paths,
+            ).where(pipeline_repositories.c.pipeline_id == pipeline_id)
+        )
+        return {row.repository_id: list(row.folder_paths or []) for row in result.all()}
+
+    async def get_repository_selections_by_repository_id(self, repository_id: UUID) -> dict[UUID, list[str]]:
+        """Get pipeline folder selections for one repository."""
+        result = await self.session.execute(
+            select(
+                pipeline_repositories.c.pipeline_id,
+                pipeline_repositories.c.folder_paths,
+            ).where(pipeline_repositories.c.repository_id == repository_id)
+        )
+        return {row.pipeline_id: list(row.folder_paths or []) for row in result.all()}
+
+    async def set_repository_selections(self, pipeline_id: UUID, selections: dict[UUID, list[str]]) -> None:
+        """Replace repository folder selections for a pipeline."""
+        await self.remove_all_repositories(pipeline_id)
+        await self.add_repositories(pipeline_id, selections)
+
+    async def add_repositories(self, pipeline_id: UUID, selections: dict[UUID, list[str]] | list[UUID]) -> None:
+        """Add repositories to a pipeline with optional folder selections."""
+        if not selections:
             return
 
-        values = [{"pipeline_id": pipeline_id, "repository_id": repo_id} for repo_id in repository_ids]
+        if isinstance(selections, dict):
+            values = [
+                {"pipeline_id": pipeline_id, "repository_id": repo_id, "folder_paths": folders}
+                for repo_id, folders in selections.items()
+            ]
+        else:
+            values = [
+                {"pipeline_id": pipeline_id, "repository_id": repo_id, "folder_paths": []} for repo_id in selections
+            ]
         await self.session.execute(insert(pipeline_repositories).values(values))
         await self.session.flush()
 

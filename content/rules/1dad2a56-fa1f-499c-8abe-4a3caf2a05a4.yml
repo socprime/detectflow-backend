@@ -1,0 +1,88 @@
+id: S3nmYBgPIMbV
+name: Possible Antivirus or Firewall Software Enumeration (via process_creation)
+body: |-
+  title: Possible Antivirus or Firewall Software Enumeration (via process_creation)
+  id: 1dad2a56-fa1f-499c-8abe-4a3caf2a05a4
+  status: stable
+  description: Adversaries may attempt to get a listing of security software, configurations, defensive tools, and sensors that are installed on the system.
+  references:
+      - https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat
+      - https://blog.talosintelligence.com/nik-c2-new-ai-enabled-framework/
+      - https://www.microsoft.com/en-us/security/blog/2026/09/02/impersonating-it-support-threat-actors-turn-remote-session-into-enterprise-wide-access/
+      - https://www.zscaler.com/blogs/security-research/helpdesk-hijackers-teams-vishing-quick-assist-and-gogrpc-backdoor
+      - https://www.microsoft.com/en-us/security/blog/2026/07/09/gigawiper-anatomy-of-a-destructive-backdoor-assembled-from-multiple-malware/
+      - https://blog.synapticsystems.de/inside-kimsukys-chm-tradecraft-multi-stage-execution-and-selective-payload-delivery/d
+      - https://www.security.com/threat-intelligence/iran-seedworm-electronics
+      - https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/
+      - https://www.securonix.com/blog/venomous-helper-phishing-campaign/
+      - https://www.levelblue.com/blogs/spiderlabs-blog/crypto-drainers-as-a-converging-threat-insights-into-emerging-hybrid-attack-ecosystems
+      - https://www.esentire.com/blog/unraveling-the-many-stages-and-techniques-used-by-redcurl-earthkapre-apt
+      - https://www.welivesecurity.com/en/eset-research/cyberespionage-gamaredon-way-analysis-toolset-used-spy-ukraine-2022-2023/
+      - https://cert.gov.ua/article/6276988
+      - https://www.welivesecurity.com/2023/06/08/asylum-ambuscade-crimeware-or-cyberespionage/
+      - https://splintercod3.blogspot.com/p/black-basta-ransomware-attacks-deploy.html
+      - https://www.splunk.com/en_us/blog/security/from-macros-to-no-macros-continuous-malware-improvements-by-qakbot.html
+      - https://thedfirreport.com/2022/02/21/qbot-and-zerologon-lead-to-full-domain-compromise/
+      - https://attack.mitre.org/techniques/T1063/
+      - https://thedfirreport.com/2023/08/28/html-smuggling-leads-to-domain-wide-ransomware/
+      - https://www.welivesecurity.com/en/eset-research/stealth-falcon-preying-middle-eastern-skies-deadglyph/
+      - https://asec.ahnlab.com/en/59387/
+      - https://www.esentire.com/blog/danabots-latest-move-deploying-icedid
+      - https://blog.talosintelligence.com/lazarus_new_rats_dlang_and_telegram/
+      - https://thedfirreport.com/2023/12/18/lets-opendir-some-presents-an-analysis-of-a-persistent-actors-activity/
+      - https://twitter.com/RexorVc0/status/1753322883370168777
+      - https://medium.com/s2wblog/kimsuky-disguised-as-a-korean-company-signed-with-a-valid-certificate-to-distribute-troll-stealer-cfa5d54314e2
+      - https://www.kroll.com/en/insights/publications/cyber/screenconnect-vulnerability-exploited-to-deploy-babyshark
+      - https://thedfirreport.com/2024/04/01/from-onenote-to-ransomnote-an-ice-cold-intrusion/
+      - https://decoded.avast.io/janrubin/guptiminer-hijacking-antivirus-updates-for-distributing-backdoors-and-casual-mining/
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-frozenshadow-attack-campaign/
+      - https://www.elastic.co/security-labs/spring-cleaning-with-latrodectus
+      - https://www.trendmicro.com/en_us/research/24/i/earth-preta-new-malware-and-strategies.html
+      - https://www.proofpoint.com/us/blog/threat-insight/hidden-plain-sight-ta397s-new-attack-chain-delivers-espionage-rats
+      - https://thedfirreport.com/2025/03/31/fake-zoom-ends-in-blacksuit-ransomware/
+      - https://www.proofpoint.com/us/blog/threat-insight/bitter-end-unraveling-eight-years-espionage-antics-part-one
+      - https://www.picussecurity.com/resource/blog/breaking-down-mustang-panda-windows-endpoint-campaign
+      - https://hybrid-analysis.blogspot.com/2026/01/organized-traffer-gang-on-rise.html
+      - https://cert.pl/en/posts/2026/02/fake-captcha-in-action/
+      - https://www.veracode.com/blog/malicious-npm-package-hiding-in-plain-pixels/
+      - https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+      - https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons
+  tags:
+      - attack.t1518.001
+      - attack.discovery
+  author: SOC Prime Team
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith:
+              - 'WMIC.exe'
+              - 'powershell.exe'
+          CommandLine|contains:
+              - 'AntiSpywareProduct' #wmic /namespace:\\root\SecurityCenter2 PATH AntiSpywareProduct GET /value; https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+              - 'AntiVirusProduct' # powershell -c Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntivirusProduct https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat; https://www.picussecurity.com/resource/blog/ryuk-ransomware-attack-chain-impact; https://cert.pl/en/posts/2026/02/fake-captcha-in-action/; https://www.veracode.com/blog/malicious-npm-package-hiding-in-plain-pixels/; https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons; https://www.levelblue.com/blogs/spiderlabs-blog/crypto-drainers-as-a-converging-threat-insights-into-emerging-hybrid-attack-ecosystems; https://www.securonix.com/blog/venomous-helper-phishing-campaign/; https://www.security.com/threat-intelligence/iran-seedworm-electronics; https://www.microsoft.com/en-us/security/blog/2026/07/09/gigawiper-anatomy-of-a-destructive-backdoor-assembled-from-multiple-malware/; https://www.microsoft.com/en-us/security/blog/2026/09/02/impersonating-it-support-threat-actors-turn-remote-session-into-enterprise-wide-access/; https://blog.talosintelligence.com/nik-c2-new-ai-enabled-framework/
+              - 'FirewallProduct'
+      selection_wmi_av_proc_base:
+          CommandLine|contains: 'Win32_Process'
+      selection_wmi_av_proc_vars:
+          CommandLine|contains:
+              - 'AvastUI.exe'
+              - 'AvastSvc.exe'
+              - 'FortiWF.exe'
+              - 'xagt.exe'
+              - 'fcappdb.exe'
+      filter_jb:
+          - ParentImage|endswith:
+              - 'cswindiag.exe' #CrowdStrike
+              - 'phpstorm64.exe' #c:\program files\jetbrains\pycharm 2020.3.4\bin\pycharm64.exe
+              - 'pycharm64.exe'
+          - CommandLine|endswith:
+              - 'displayName,productState' #wmic /Namespace:\\root\SecurityCenter2 Path AntivirusProduct Get displayName,productState
+      condition: (selection and not filter_jb) or (selection_wmi_av_proc_base and selection_wmi_av_proc_vars)
+  falsepositives:
+      - Software inventory tools.
+  level: medium
+level: medium
+created: '2019-12-02T13:33:43Z'
+updated: '2026-11-03T10:28:58.146000Z'

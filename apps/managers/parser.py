@@ -6,6 +6,7 @@ from schema_parser.manager import ParserManager as SchemaParserManager
 
 from apps.core.schemas import ParserRunResultItem
 from apps.modules.kafka.parsers import KafkaParsersEventsReader
+from apps.modules.utils import strip_mapping_metadata
 
 
 class ParserManager:
@@ -97,6 +98,10 @@ class ParserManager:
         Raises:
             ValueError: if field_mapping_str is not correctly formatted.
         """
+        if not field_mapping_str:
+            return {}
+
+        field_mapping_str = strip_mapping_metadata(field_mapping_str)
         if not field_mapping_str:
             return {}
 

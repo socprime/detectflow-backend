@@ -78,6 +78,8 @@ class KafkaConfigBuilder:
         enable_auto_commit: bool = True,
         value_deserializer: Callable | None = None,
         key_deserializer: Callable | None = None,
+        isolation_level: str = "read_uncommitted",
+        metadata_max_age_ms: int | None = None,
     ) -> dict:
         """Build configuration for aiokafka clients.
 
@@ -89,6 +91,18 @@ class KafkaConfigBuilder:
             enable_auto_commit: Whether to enable auto-commit.
             value_deserializer: Function to deserialize message values.
             key_deserializer: Function to deserialize message keys.
+            isolation_level: "read_uncommitted" (aiokafka default) or
+                "read_committed". Use "read_committed" for topics written by
+                transactional (EXACTLY_ONCE) producers, otherwise records from
+                transactions that later abort are surfaced and applied. Note:
+                detectflow.chains-analysed is now AT_LEAST_ONCE (non-transactional);
+                its consumer keeps "read_committed" as a harmless no-op and relies
+                on (chain_id, revision) idempotency to absorb duplicates.
+            metadata_max_age_ms: Metadata refresh interval. Left out of the config
+                when None, so every consumer keeps aiokafka's 300s default; only a
+                PATTERN subscription needs a shorter one, because that is how a
+                newly created topic is discovered (see ChainsAnalysedConsumer).
+                Each refresh fetches metadata for the WHOLE cluster.
 
         Returns:
             Dictionary with Kafka configuration for aiokafka.
@@ -102,12 +116,15 @@ class KafkaConfigBuilder:
             "group_id": group_id or "admin-panel-kafka-consumer",
             "auto_offset_reset": auto_offset_reset,
             "enable_auto_commit": enable_auto_commit,
+            "isolation_level": isolation_level,
         }
 
         if value_deserializer:
             config["value_deserializer"] = value_deserializer
         if key_deserializer:
             config["key_deserializer"] = key_deserializer
+        if metadata_max_age_ms is not None:
+            config["metadata_max_age_ms"] = metadata_max_age_ms
 
         if settings.kafka_auth_method == "SASL":
             api_key = settings.kafka_api_key
@@ -183,6 +200,8 @@ class BaseKafkaAsyncClient(ABC):
         group_id: str | None = None,
         auto_offset_reset: str = "latest",
         enable_auto_commit: bool = True,
+        isolation_level: str = "read_uncommitted",
+        metadata_max_age_ms: int | None = None,
     ):
         """Initialize base Kafka async client.
 
@@ -190,6 +209,11 @@ class BaseKafkaAsyncClient(ABC):
             group_id: Consumer group ID. If None, uses default.
             auto_offset_reset: Offset reset policy ("earliest" or "latest").
             enable_auto_commit: Whether to enable auto-commit.
+            isolation_level: "read_uncommitted" or "read_committed" — the
+                latter for topics written transactionally
+                (see KafkaConfigBuilder.build_aiokafka_config).
+            metadata_max_age_ms: Metadata refresh interval; None keeps aiokafka's
+                default (see KafkaConfigBuilder.build_aiokafka_config).
         """
         self.bootstrap_servers = settings.kafka_bootstrap_servers
         self.auth_method = settings.kafka_auth_method
@@ -200,6 +224,8 @@ class BaseKafkaAsyncClient(ABC):
             enable_auto_commit=enable_auto_commit,
             value_deserializer=(lambda m: m.decode("utf-8") if m else None),
             key_deserializer=(lambda k: k.decode("utf-8") if k else None),
+            isolation_level=isolation_level,
+            metadata_max_age_ms=metadata_max_age_ms,
         )
 
     @abstractmethod

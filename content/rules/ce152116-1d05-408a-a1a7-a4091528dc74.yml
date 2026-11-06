@@ -1,0 +1,80 @@
+id: ABTKhO1Rb3M3
+name: An Archive Was Extracted To Suspicious Directory Using Powershell (via powershell)
+body: |-
+  title: An Archive Was Extracted To Suspicious Directory Using Powershell (via powershell)
+  id: ce152116-1d05-408a-a1a7-a4091528dc74
+  status: stable
+  author: SOC Prime Team
+  description: Adversaries may try to use powershell in order to extract an archive containing malicious payloads.
+  references:
+    - https://www.rstcloud.com/ftp-banner-dead-drops-a-hunters-field-guide-to-e4del-and-pinhole/
+    - https://www.microsoft.com/en-us/security/blog/2026/08/28/terminalfix-campaign-deploys-reverse-tunnel-through-multistage-intrusion/
+    - https://research.jfrog.com/post/from-postcss-typosquat-to-windows-rat/
+    - https://blog.deception.pro/blog/xworm-sc-hok-may-2026
+    - https://labs.k7computing.com/index.php/rvtools-masquerade-how-a-signed-fake-installer-deploys-a-modular-python-rat/
+    - https://blog.synapticsystems.de/uac-0184-from-hta-to-a-signed-network-stack/
+    - https://www.rapid7.com/blog/post/tr-it-support-dissecting-modelorat-campaign-microsoft-teams-compromise/
+    - https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/
+    - https://cert.gov.ua/article/6276894
+    - https://www.esentire.com/blog/unveiling-parallax-rat-a-journey-from-infection-to-lateral-movement
+    - https://www.trendmicro.com/en_us/research/24/a/cve-2023-36025-exploited-for-defense-evasion-in-phemedrone-steal.html
+    - https://cyble.com/blog/threat-actors-target-us-asylum-seekers-with-metastealer-malware/
+    - https://www.reliaquest.com/blog/new-python-socgholish-infection-chain/
+    - https://research.checkpoint.com/2024/foxit-pdf-flawed-design-exploitation/
+    - https://harfanglab.io/en/insidethelab/allasenha-allakore-variant-azure-c2-steal-banking-latin-america/
+    - https://blog.talosintelligence.com/new-banking-trojan-carnavalheist-targets-brazil/
+    - https://labs.k7computing.com/index.php/echoes-of-braodo-tales-from-the-cyber-underworld/
+    - https://www.proofpoint.com/us/blog/threat-insight/threat-actor-abuses-cloudflare-tunnels-deliver-rats
+    - https://www.esentire.com/blog/exploring-asyncrat-and-infostealer-plugin-delivery-through-phishing-emails
+    - https://www.trendmicro.com/en_us/research/24/i/banking-trojans-mekotio-looks-to-expand-targets--bbtok-abuses-ut.html
+    - https://www.securonix.com/blog/crontrap-emulated-linux-environments-as-the-latest-tactic-in-malware-staging/
+    - https://thedfirreport.com/2024/12/02/the-curious-case-of-an-egg-cellent-resume/
+    - https://cert.gov.ua/article/6281632
+    - https://www.enki.co.kr/media-center/blog/konni-s-asyncrat-attack-lnk-based-infection
+    - https://www.ontinue.com/resource/blog-signed-sideloaded-compromised/
+    - https://www.silentpush.com/blog/contagious-interview-front-companies/
+    - https://blog.sekoia.io/clickfake-interview-campaign-by-lazarus/
+    - https://blog.talosintelligence.com/python-version-of-golangghost-rat/
+    - https://www.morphisec.com/blog/ransomware-threat-matanbuchus-3-0-maas-levels-up/
+    - https://www.nccgroup.com/us/research-blog/fake-captcha-led-to-lumma100725/
+    - https://any.run/cybersecurity-blog/pylangghost-malware-analysis/
+    - https://www.seqrite.com/blog/operation-silk-lure-scheduled-tasks-weaponized-for-dll-side-loading-drops-valleyrat/
+    - https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/
+    - https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html
+    - https://www.huntress.com/blog/malicious-browser-extention-crashfix-kongtuke
+    - https://www.bleepingcomputer.com/news/security/clickfix-attack-uses-fake-windows-bsod-screens-to-push-malware/
+    - https://www.microsoft.com/en-us/security/blog/2026/02/05/clickfix-variant-crashfix-deploying-python-rat-trojan/
+    - https://www.trendmicro.com/en_us/research/26/c/kongtuke-clickfix-abuse-of-compromised-wordpress-sites.html
+    - https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/
+    - https://www.sophos.com/en-us/blog/nickel-alley-strategy-fake-it-til-you-make-it
+  tags:
+    - attack.t1059.001
+    - attack.execution
+  logsource:
+    product: windows
+    service: powershell
+  detection:
+    selection_pwshell:
+      - ScriptBlockText|contains|all:
+        - 'Expand-Archive' #https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/; https://www.rstcloud.com/ftp-banner-dead-drops-a-hunters-field-guide-to-e4del-and-pinhole/
+        - 'DestintionPath'
+      - ScriptBlockText|contains|all:
+        - 'Expand-Archive' #https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html
+        - 'Force'
+    selection_path:
+      ScriptBlockText|contains:
+        - 'ProgramData' # https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/; https://www.microsoft.com/en-us/security/blog/2026/08/28/terminalfix-campaign-deploys-reverse-tunnel-through-multistage-intrusion/
+        - 'Temp' # https://www.sophos.com/en-us/blog/nickel-alley-strategy-fake-it-til-you-make-it; https://blog.synapticsystems.de/uac-0184-from-hta-to-a-signed-network-stack/
+        - 'Public' # https://blog.deception.pro/blog/xworm-sc-hok-may-2026
+        - 'AppData' # https://www.rapid7.com/blog/post/tr-it-support-dissecting-modelorat-campaign-microsoft-teams-compromise/; https://labs.k7computing.com/index.php/rvtools-masquerade-how-a-signed-fake-installer-deploys-a-modular-python-rat/
+        - '%LOCALAPPDATA%'
+        - '%USERPROFILE'
+        - '$home'
+        - '%HOMEPATH%'
+    condition: selection_pwshell and selection_path
+  falsepositives:
+    - Unknown
+  level: medium
+level: medium
+created: '2023-11-28T09:59:11Z'
+updated: '2026-09-14T15:10:39.309000Z'

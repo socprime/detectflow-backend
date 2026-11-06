@@ -1,0 +1,58 @@
+id: 7mSlXaEBFsA9Tj2-2QHQ
+name: 'Rapid Response: PHP2Shell, Leaked Critical PHP Vulnerabilities (CVE-2026-109618 & CVE-2026-109619)'
+created: '2026-10-21T12:00:00Z'
+updated: '2026-10-25T18:13:51Z'
+summary: Two critical RCE vulnerabilities in PHP, identified as CVE-2026-109618 and CVE-2026-109619, were leaked online prior to their coordinated disclosure. These flaws allow unauthenticated attackers to execute arbitrary code on vulnerable web servers. The vulnerabilities are highly impactful due to PHP's massive footprint in web infrastructure.
+severity: Critical
+investigation: Researchers from watchTowr and Huntress investigated the leak, confirming the vulnerabilities are real. Amazon and other entities observed active exploitation attempts using various payloads shortly after the leak and following a premature patch release by Chainguard. Analysts noted that attackers are using anonymized infrastructure and mutating payloads to bypass security protections.
+response: Monitor web server logs and endpoint telemetry for suspicious child processes spawned by PHP worker processes like php-fpm or apache2. Watch for the execution of shells, interpreters, or networking tools by these processes. If exploitation is suspected, isolate the affected server immediately and preserve logs for forensic analysis.
+mitigation: Organizations should immediately inventory all PHP installations, including those bundled in third-party vendor software. Apply the security patches released by the PHP Foundation as soon as they become available. For end-of-life versions that will not receive patches, isolate these systems from the internet or place them behind a VPN or WAF.
+industries:
+- All
+geographies:
+- Global
+threat_types:
+- Exploit
+- Vulnerability
+threat_actors: []
+techniques:
+- T1059.001
+- T1059.003
+- T1059.004
+- T1211
+attack_flow: |
+  flowchart TD
+      step_scanning["T1595 – Active Scanning<br>Probing for PHP vulnerabilities using a specific user-agent"]
+      step_exploitation["T1190 – Exploit Public-Facing Application<br>Exploiting php2shell vulnerabilities in PHP core to achieve remote code execution"]
+      rules_for_exploitation("<b>Rule Name</b>: Possible Web Server or WebApp Exploitation [Windows] (via cmdline)<br/><b>Rule ID</b>: be5f785a-0a7f-438e-be60-0a4fb15adcec<hr/><b>Rule Name</b>: Possible PHP Worker Spawning Unusual Process (via cmdline)<br/><b>Rule ID</b>: 0524fca5-8a89-4d38-9a75-fe7dcba39271")
+      step_web_shell["T1505.003 – Server Software Component: Web Shell<br>Writing a PHP file with random marker strings into a writable temporary directory"]
+      rules_for_web_shell("<b>Rule Name</b>: Possible Web Server or WebApp Exploitation [Windows] (via cmdline)<br/><b>Rule ID</b>: be5f785a-0a7f-438e-be60-0a4fb15adcec")
+      step_execution["T1059 – Command and Scripting Interpreter<br>Spawning abnormal child processes including shells and interpreters from PHP workers"]
+      rules_for_execution("<b>Rule Name</b>: Possible Data Exfiltration / Reverse Shell via Bash (via cmdline)<br/><b>Rule ID</b>: e4b95599-8caf-41d4-b0a9-26478d133904")
+      step_discovery["T1033 – System Owner/User Discovery<br>Executing reconnaissance commands to gather system information"]
+      step_c2["T1071 – Application Layer Protocol<br>Establishing command and control via reverse shell patterns"]
+      rules_for_c2("<b>Rule Name</b>: Possible Data Exfiltration / Reverse Shell via Bash (via cmdline)<br/><b>Rule ID</b>: e4b95599-8caf-41d4-b0a9-26478d133904<hr/><b>Rule Name</b>: FIFO Special File Creation (via cmdline)<br/><b>Rule ID</b>: d5c6360e-6637-44c8-bf60-46018f419a08<hr/><b>Rule Name</b>: Possible php Application Command and Control by Reverse Shell Inline Execution (via cmdline)<br/><b>Rule ID</b>: 8715c8a4-9bcb-47e2-ab10-98e6e8eb140c")
+      step_scanning -->|leads_to| step_exploitation
+      step_exploitation -->|enables| step_web_shell
+      step_web_shell -->|leads_to| step_execution
+      step_execution -->|then| step_discovery
+      step_discovery -->|leads_to| step_c2
+      step_exploitation -.->|detected_by| rules_for_exploitation
+      step_web_shell -.->|detected_by| rules_for_web_shell
+      step_execution -.->|detected_by| rules_for_execution
+      step_c2 -.->|detected_by| rules_for_c2
+related_high_order_sigma_rules:
+- Riwu9NconRzw
+related_behavioral_rules:
+- K6t4wABNUKg2
+- ZvkRCZcY1nxv
+- 4AhFHBWvFNB5
+- vmkVlgLlkPH8
+- 13tRai0PPpzY
+- MMIcrE3TvsKZ
+- LBdueSlAhxMe
+- H0PM3eI1slLe
+- TiCPK3HR2uYp
+- YEF0Fj5UUDHn
+- Z0J8A5mRf6bn
+- nlpPfZ1wXCm8

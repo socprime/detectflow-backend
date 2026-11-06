@@ -1,0 +1,44 @@
+id: jOwvMhDzQxys
+name: Possible Archive Containing Password In The File Name Was Created (via file_event)
+body: |-
+  title: Possible Archive Containing Password In The File Name Was Created (via file_event)
+  status: stable
+  author: SOC Prime Team
+  description: Adversaries may try to deliver their malicious files in a password-protected archive, in order to gain initial access.
+  references:
+    - https://www.cybereason.com/blog/from-cracked-to-hacked-malware-spread-via-youtube-videos
+    - https://www.proofpoint.com/us/blog/threat-insight/threat-actors-deliver-malware-youtube-video-game-cracks
+    - https://www.trellix.com/blogs/research/how-attackers-repackaged-a-threat-into-something-that-looked-benign/
+  tags:
+    - attack.t1566.001
+    - attack.initial_access
+  logsource:
+    category: file_event
+    product: windows
+  detection:
+    selection_ext:
+      TargetFilename|endswith:
+        - '.zip'
+        - '.rar'
+        - '.7z'
+    selection_name:
+      TargetFilename|contains:
+        - 'pass' # Setup (PA$S 5577).rar
+        - 'pas$'
+        - 'pa$s'
+        - 'pa$$'
+        - 'p@ss'
+        - 'p@$s'
+        - 'p@s$'
+        - 'p@$$'
+        - 'pswrd'
+        - 'pswd' # Setup_Pswrd_1234.rar
+        - 'p$wrd'
+    condition: selection_ext and selection_name
+  falsepositives:
+    - Unknown
+  level: medium
+  id: b3a67b3c-b2f4-49f4-8398-da4734ca9ecb
+level: medium
+created: '2024-02-14T11:45:29Z'
+updated: '2024-06-18T13:39:01.422000Z'

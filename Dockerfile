@@ -40,6 +40,14 @@ USER appuser
 # Install Python dependencies using uv
 RUN uv sync --frozen --no-dev --no-install-project
 
+# Bake the MITRE ATT&CK enterprise STIX bundle into the image so it is loaded from
+# disk at startup instead of being fetched from raw.githubusercontent.com every boot.
+# Runtime reads it from settings.mitre_attack_data_path (default data/enterprise-attack.json).
+ARG MITRE_CTI_BRANCH=master
+RUN mkdir -p /app/data && \
+    curl -fsSL -o /app/data/enterprise-attack.json \
+        "https://raw.githubusercontent.com/mitre/cti/${MITRE_CTI_BRANCH}/enterprise-attack/enterprise-attack.json"
+
 # Copy application code
 COPY --chown=appuser:appuser . .
 

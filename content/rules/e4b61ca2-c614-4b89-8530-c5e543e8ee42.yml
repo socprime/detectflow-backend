@@ -1,0 +1,98 @@
+id: vShRbQJTLSqC
+name: Suspicious Java Child Process [Windows] (via cmdline)
+body: |-
+  title: Suspicious Java Child Process [Windows] (via cmdline)
+  id: e4b61ca2-c614-4b89-8530-c5e543e8ee42
+  status: stable
+  description: This rule identifies potentially malicious child processes spawned by Java-based malware. This may indicate an attempt by the malware to perform malicious actions such as downloading additional payloads, stealing sensitive information, or establishing persistence. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  references:
+      - https://www.sysaid.com/blog/service-desk/on-premise-software-security-vulnerability-notification #SysAid On-Prem Software CVE-2023-47246 Vulnerability
+      - https://badoption.eu/blog/2023/06/01/zipjar.html#poc
+      - https://www.mandiant.com/resources/blog/unc961-multiverse-financially-motivated
+      - https://www.horizon3.ai/manageengine-cve-2022-47966-technical-deep-dive/
+      - https://securitylabs.datadoghq.com/articles/openssl-november-1-vulnerabilities/
+      - https://www.volexity.com/blog/2022/06/02/zero-day-exploitation-of-atlassian-confluence/
+      - https://app.any.run/tasks/5f279c68-8ec2-4f27-9f79-1cfa2d99c631/
+      - https://app.any.run/tasks/65dc6f6e-f32b-4e4f-b214-b060b81f5804/
+      - https://www.fireeye.com/blog/threat-research/2020/03/apt41-initiates-global-intrusion-campaign-using-multiple-exploits.html
+      - https://www.trendmicro.com/en_us/research/24/c/teamcity-vulnerability-exploits-lead-to-jasmin-ransomware.html
+      - https://www.picussecurity.com/resource/blog/hunters-international-ransomware
+      - https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+      - https://www.elastic.co/security-labs/solarwinds-whd-exploitation
+      - https://thedfirreport.com/2026/02/23/apache-activemq-exploit-leads-to-lockbit-ransomware/
+  author: SOC Prime Team
+  tags:
+      - attack.initial_access
+      - attack.t1190
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          ParentImage|endswith:
+              - 'java.exe'
+              - 'javaw.exe'
+      selection_child:
+          Image|endswith:
+              - 'pwsh.exe'
+              - 'perl.exe'
+              - 'ruby.exe'
+              - 'wget.exe'
+              - 'curl.exe'
+              - 'wscript.exe'
+              - 'jscript.exe'
+              - 'cscript.exe'
+              - 'wscript.exe'
+              - 'appvlp.exe'
+              - 'atbroker.exe'
+              - 'bash.exe'
+              - 'bginfo.exe'
+              - 'bitsadmin.exe'
+              - 'cmd.exe' #https://www.picussecurity.com/resource/blog/hunters-international-ransomware; https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://thedfirreport.com/2026/02/23/apache-activemq-exploit-leads-to-lockbit-ransomware/
+              - 'certutil.exe'
+              - 'devtoolslauncher.exe'
+              - 'ftp.exe'
+              - 'hh.exe'
+              - 'ieexec.exe'
+              - 'installutil.exe'
+              - 'jjs.exe'
+              - 'mavinject.exe'
+              - 'microsoft.workflow.compiler.exe'
+              - 'msbuild.exe'
+              - 'msdt.exe'
+              - 'mshta.exe'
+              - 'msxsl.exe'
+              - 'odbcconf.exe'
+              - 'powershell.exe'
+              - 'presentationhost.exe'
+              - 'regasm.exe'
+              - 'regsvcs.exe'
+              - 'regsvr32.exe'
+              - 'rundll32.exe'
+              - 'runscripthelper.exe'
+              - 'schtasks.exe'
+              - 'sqlps.exe'
+              - 'sqltoolsps.exe'
+              - 'syncappvpublishingserver.exe'
+              - 'tracker.exe'
+              - 'verclsid.exe'
+              - 'vsjitdebugger.exe'
+              - 'wmic.exe'
+              - 'wsl.exe'
+      filters:
+          CommandLine|contains:
+              - 'storcli64' #cmd /c .\libs\native\storcli64.exe /call/eall/sall show all
+              - '\Program Files\Java\jdk-' #cmd.exe /X /C ""C:\Program Files\Java\jdk-23\bin\java" -jar C:\Temp\USR\xxx\surefirebooter-20250210145838756_3.jar C:\Temp\USR\xxx 20
+              - 'start excel ' #soft logic
+              - 'start winword '
+              - 'chcp 437 & ' #soft logic
+              - 'FileProtocolHandler'
+              - 'powershellWrapper.ps1' # Jenkins
+      condition: (selection and selection_child) and not filters
+  falsepositives:
+      - Java Application (which based on java) specific actions, like OS operations, etc.
+      - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: medium
+level: medium
+created: '2020-03-25T17:34:24Z'
+updated: '2026-02-24T09:34:11.102000Z'

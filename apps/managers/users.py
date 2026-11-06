@@ -8,7 +8,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import generate_temporary_password, hash_password
+from apps.core.auth import generate_temporary_password, hash_password_async
+from apps.core.enums import UserRole
 from apps.core.exceptions import DuplicateEntityError, NotFoundError
 from apps.core.logger import get_logger
 from apps.core.models import User
@@ -77,10 +78,10 @@ class UsersManager:
         new_user = await self.user_repo.create(
             full_name=request.full_name,
             email=request.email.lower(),
-            password=hash_password(request.password),
+            password=await hash_password_async(request.password),
             is_active=request.is_active,
             role=request.role,
-            must_change_password=True,
+            must_change_password=request.role != UserRole.VIEWER,
         )
 
         await activity_producer.log_action(
@@ -130,7 +131,7 @@ class UsersManager:
         if request.email is not None:
             update_data["email"] = request.email.lower()
         if request.password is not None:
-            update_data["password"] = hash_password(request.password)
+            update_data["password"] = await hash_password_async(request.password)
         if request.is_active is not None:
             update_data["is_active"] = request.is_active
         if request.role is not None:
@@ -213,7 +214,7 @@ class UsersManager:
             raise NotFoundError(f"User with id {user_id} not found")
 
         temp_password = generate_temporary_password()
-        hashed_password = hash_password(temp_password)
+        hashed_password = await hash_password_async(temp_password)
 
         await self.user_repo.update_password(user_id, hashed_password, must_change=True)
 

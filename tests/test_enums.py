@@ -1,6 +1,6 @@
 """Unit tests for apps/core/enums.py."""
 
-from apps.core.enums import PipelineRuleSortField, UserRole
+from apps.core.enums import PipelineRuleSortField, RuleSearchField, UserRole
 
 
 class TestUserRole:
@@ -16,22 +16,30 @@ class TestUserRole:
         assert UserRole.USER.value == "user"
         assert UserRole.USER == "user"
 
+    def test_viewer_value(self):
+        """Viewer role should have value 'viewer'."""
+        assert UserRole.VIEWER.value == "viewer"
+        assert UserRole.VIEWER == "viewer"
+
     def test_enum_members(self):
-        """Enum should have exactly 2 members."""
+        """Enum should have exactly 3 members."""
         members = list(UserRole)
-        assert len(members) == 2
+        assert len(members) == 3
         assert UserRole.ADMIN in members
         assert UserRole.USER in members
+        assert UserRole.VIEWER in members
 
     def test_string_comparison(self):
         """UserRole should be comparable with strings."""
         assert UserRole.ADMIN == "admin"
         assert UserRole.USER == "user"
+        assert UserRole.VIEWER == "viewer"
 
     def test_string_representation(self):
         """UserRole value should be accessible as string."""
         assert UserRole.ADMIN.value == "admin"
         assert UserRole.USER.value == "user"
+        assert UserRole.VIEWER.value == "viewer"
 
 
 class TestPipelineRuleSortField:
@@ -55,3 +63,25 @@ class TestPipelineRuleSortField:
         """PipelineRuleSortField should be comparable with strings."""
         assert PipelineRuleSortField.NAME == "name"
         assert PipelineRuleSortField.REPOSITORY == "repository"
+
+
+class TestRuleSearchField:
+    """Tests for RuleSearchField enum."""
+
+    def test_all_values(self):
+        """All search fields should have correct values."""
+        assert RuleSearchField.NAME.value == "name"
+        assert RuleSearchField.PRODUCT.value == "product"
+        assert RuleSearchField.SERVICE.value == "service"
+        assert RuleSearchField.CATEGORY.value == "category"
+        assert RuleSearchField.SIGMA_UUID.value == "sigma_uuid"
+
+    def test_enum_members_count(self):
+        """Enum should have exactly 5 members."""
+        members = list(RuleSearchField)
+        assert len(members) == 5
+
+    def test_string_comparison(self):
+        """RuleSearchField should be comparable with strings."""
+        assert RuleSearchField.NAME == "name"
+        assert RuleSearchField.SIGMA_UUID == "sigma_uuid"

@@ -8,7 +8,7 @@ This module handles authentication operations:
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import create_access_token, hash_password, verify_password
+from apps.core.auth import create_access_token, hash_password, verify_password_async
 from apps.core.models import User
 from apps.modules.postgre.user import UserDAO
 
@@ -47,7 +47,10 @@ class AuthOrchestrator:
         if not user.is_active:
             raise InvalidCredentialsError("User account is inactive")
 
-        if not verify_password(password, user.password):
+        # bcrypt in the threadpool: verification is CPU-expensive by design,
+        # and running it on the event loop would serialize every concurrent
+        # request (and SSE stream) behind each login.
+        if not await verify_password_async(password, user.password):
             raise InvalidCredentialsError("Invalid email or password")
 
         # Generate access token

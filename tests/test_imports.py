@@ -20,6 +20,7 @@ class TestCoreImports:
         assert UserRole is not None
         assert UserRole.ADMIN is not None
         assert UserRole.USER is not None
+        assert UserRole.VIEWER is not None
 
     def test_import_exceptions(self):
         """Should import custom exceptions."""

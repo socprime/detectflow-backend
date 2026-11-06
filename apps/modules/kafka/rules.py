@@ -2,16 +2,18 @@ import asyncio
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 import yaml
 from confluent_kafka import Producer
 
-from apps.clients.tdm_api import TdmRule
 from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
 from apps.core.models import Rule
 from apps.core.settings import settings
+from apps.integrations.providers.socprime_tdm import TdmRule
 from apps.modules.kafka.base import BaseKafkaSyncClient
+from apps.modules.utils import get_sigma_uuid_from_sigma_body
 
 logger = get_logger(__name__)
 
@@ -164,15 +166,23 @@ class KafkaRulesSyncService(BaseKafkaSyncClient):
                 parsed_level, parsed_tags = self._parse_sigma_metadata(rule.body)
                 level = level or parsed_level
                 tags = tags or parsed_tags
+
+            sigma_uuid = get_sigma_uuid_from_sigma_body(rule.body)
+            is_user_edited_system_rule = False
         else:
             # Rule model - parse level and tags from YAML body
             level, tags = self._parse_sigma_metadata(rule.body)
+            sigma_uuid = str(rule.sigma_uuid) if rule.sigma_uuid else None
+            is_user_edited_system_rule = bool(getattr(rule, "is_user_edited_system_rule", False))
 
         kafka_rule = {
             "job_id": pipeline_id,
             "case": {"id": str(rule.id), "name": rule.name},
-            "sigma": {"text": rule.body, "level": level},
+            "sigma": {"text": rule.body, "level": level, "sigma_uuid": sigma_uuid},
             "tags": tags,
+            "is_user_edited_system_rule": is_user_edited_system_rule,
+            "created": self._format_datetime(getattr(rule, "created", None)),
+            "updated": self._format_datetime(getattr(rule, "updated", None)),
         }
 
         case_id = str(rule.id)
@@ -180,6 +190,12 @@ class KafkaRulesSyncService(BaseKafkaSyncClient):
         value_bytes = json.dumps(kafka_rule, ensure_ascii=False, default=str).encode("utf-8")
 
         return key_bytes, value_bytes
+
+    @staticmethod
+    def _format_datetime(value: datetime | None) -> str | None:
+        if value is None:
+            return None
+        return value.isoformat().replace("+00:00", "Z")
 
     def _parse_sigma_metadata(self, body: str) -> tuple[str, dict]:
         """Parse level and tags from sigma YAML body for Rule model."""

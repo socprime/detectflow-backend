@@ -1,0 +1,32 @@
+id: 8feG2nJXBASE
+name: Possible Google Drive Phishing (via proxy)
+body: |-
+  title: Possible Google Drive Phishing (via proxy)
+  id: 64ec1ab8-162c-4281-b824-db3f69501cc8
+  description: Adversaries can send specially crafted phishing links to files stored on Google Drive. If user clicks such link this will lead to direct file downloading.
+  status: stable
+  date: 2022/12/20
+  references:
+      - https://sect.iij.ad.jp/blog/2026/06/continuous-evolution-of-kimjongrat-2026/
+      - https://www.trendmicro.com/en_us/research/22/k/earth-preta-spear-phishing-governments-worldwide.html?utm_source=trendmicroresearch&utm_medium=smk&utm_campaign=earth-preta
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/the-stealthy-stalker-remcos-rat/
+      - https://www.elastic.co/security-labs/silentconnect-delivers-screenconnect
+  author: SOC Prime Team
+  tags:
+      - attack.t1566.002
+      - attack.initial_access
+  logsource:
+      category: proxy
+  detection:
+      selection:
+          c-uri|contains|all:
+              - 'drive.google.com'
+              - 'uc?id'
+              - 'export=download'
+      condition: selection
+  falsepositives:
+      - Legitimate Google Drive download links.
+  level: medium
+level: medium
+created: '2022-12-20T14:47:59Z'
+updated: '2026-06-29T08:34:16.119000Z'

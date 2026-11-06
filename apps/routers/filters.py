@@ -9,16 +9,16 @@ so Flink jobs can consume them for event prefiltering.
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import get_current_active_user
+from apps.core.auth import get_current_active_user, require_write_access
 from apps.core.converters import FilterConverter
 from apps.core.database import get_db
 from apps.core.models import User
+from apps.core.openapi import FORBIDDEN, NOT_FOUND, UNAUTHORIZED, err, errors
 from apps.core.pagination import get_pagination_params
 from apps.core.schemas import (
-    ErrorResponse,
     FilterActiveResponse,
     FilterCreateRequest,
     FilterFullResponse,
@@ -35,10 +35,7 @@ router = APIRouter(prefix="/api/v1/filters", tags=["Filters"])
     "/active",
     response_model=list[FilterActiveResponse],
     summary="List active filters",
-    responses={
-        200: {"description": "List of filters used in pipelines"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 async def get_active_filters(
     _: User = Depends(get_current_active_user),
@@ -58,10 +55,7 @@ async def get_active_filters(
     "",
     response_model=FilterListResponse,
     summary="List filters",
-    responses={
-        200: {"description": "Paginated list of filters"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 async def get_filters(
     _: User = Depends(get_current_active_user),
@@ -93,11 +87,7 @@ async def get_filters(
     "/{filter_id}",
     response_model=FilterFullResponse,
     summary="Get filter by ID",
-    responses={
-        200: {"description": "Filter details with YAML body"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Filter not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Filter not found")),
 )
 async def get_filter(
     filter_id: str = Path(..., description="Filter UUID"),
@@ -119,21 +109,20 @@ async def get_filter(
     response_model=FilterResponse,
     status_code=201,
     summary="Create filter",
-    responses={
-        201: {"description": "Filter created successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Invalid YAML body"},
-    },
+    responses=errors(UNAUTHORIZED, FORBIDDEN),
 )
 async def create_filter(
     filter: FilterCreateRequest,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Create a new detection filter.
 
-    The filter body must be valid YAML. After creation, the filter can be assigned to pipelines.
+    The filter body must be
+    valid YAML. After creation, the filter can be assigned to pipelines, after which
+    it is published to Kafka for the match node to consume. Creation is recorded in
+    the activity log.
     """
     manager = FiltersManager(db)
     new_filter = await manager.create(filter, current_user)
@@ -144,24 +133,20 @@ async def create_filter(
     "/{filter_id}",
     response_model=FilterResponse,
     summary="Update filter",
-    responses={
-        200: {"description": "Filter updated successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Filter not found"},
-        422: {"description": "Invalid YAML body"},
-    },
+    responses=errors(UNAUTHORIZED, NOT_FOUND),
 )
 async def update_filter(
     filter_id: str = Path(..., description="Filter UUID"),
     filter: FilterUpdateRequest = ...,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Update an existing filter.
 
-    Only provided fields will be updated. Changes are automatically
-    synced to Kafka for all pipelines using this filter (hot-reload).
+    Only provided fields are updated. Changes are published to Kafka for every
+    pipeline using this filter, so the match node hot-reloads the prefilter with
+    no Flink restart. The update is recorded in the activity log.
     """
     manager = FiltersManager(db)
     updated = await manager.update(UUID(filter_id), filter, current_user)
@@ -170,25 +155,26 @@ async def update_filter(
 
 @router.delete(
     "/{filter_id}",
-    response_model=FilterResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete filter",
-    responses={
-        200: {"description": "Filter deleted successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Filter not found"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(404, "Filter not found"),
+        err(409, "Filter is in use by pipelines"),
+    ),
 )
 async def delete_filter(
     filter_id: str = Path(..., description="Filter UUID"),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Permanently delete a filter.
 
-    The filter will be automatically removed from all pipelines.
-    Delete messages are sent to Kafka so Flink jobs remove the prefilter.
+    Rejected with 409 if any pipeline still references the filter. On success a
+    delete message is published to Kafka so the match node drops the prefilter
+    (hot-reload, no Flink restart), stale pipeline references are cleared, and the
+    deletion is recorded in the activity log.
     """
     manager = FiltersManager(db)
     await manager.delete(UUID(filter_id), current_user)
-    return FilterResponse(id=filter_id, status=True, message="Filter deleted successfully")

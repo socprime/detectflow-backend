@@ -1,0 +1,460 @@
+---
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: {{ deployment_name }}
+  namespace: {{ namespace }}
+  labels:
+    app: detectflow-correlation-job
+    managed-by: admin-panel
+    {% if correlation_pipeline_id %}
+    detectflow.io/correlation-pipeline-id: "{{ correlation_pipeline_id }}"
+    detectflow.io/job-role: correlation
+    {% endif %}
+spec:
+  image: {{ correlation_image }}
+  imagePullPolicy: {{ image_pull_policy }}
+  flinkVersion: v2_2
+
+  serviceAccount: flink
+
+  flinkConfiguration:
+    # Parallelism — state max-parallelism cannot change after first checkpoint;
+    # 720 keeps state evenly distributable across any divisor up to 720.
+    pipeline.max-parallelism: "720"
+
+    jobmanager.scheduler: adaptive
+
+    # The three state roots below carry NO per-deployment segment on purpose: every mount is
+    # scoped by `state_subpath` (architecture §22), so the container already sees only its own
+    # directory at /mnt/<kind>. Putting the name back into the path double-nests the tree on the
+    # PVC, orphans every existing checkpoint and cold-starts the job:
+    #
+    #   |                | before (whole volume) | now (scoped mount) | if the segment returned |
+    #   | container path | /mnt/<kind> + /NAME   | /mnt/<kind>        | /mnt/<kind> + /NAME     |
+    #   | path on PVC    | <pvc>/NAME            | <pvc>/NAME     OK  | <pvc>/NAME/NAME   WRONG |
+    #
+    # Kubernetes-native HA (per-job HA dir prevents cross-job leader election collisions).
+    high-availability.type: kubernetes
+    high-availability.storageDir: file:///mnt/ha
+
+    # State + checkpointing — RocksDB on a PVC keeps EOS transactional id mappings across restarts.
+    state.backend.type: rocksdb
+    execution.checkpointing.dir: file:///mnt/checkpoints
+    execution.checkpointing.savepoint-dir: file:///mnt/savepoints
+    execution.checkpointing.incremental: "true"
+    execution.checkpointing.interval: {{ checkpoint_interval_sec }}s
+    execution.checkpointing.min-pause: {{ (checkpoint_interval_sec // 2) | int }}s
+    execution.checkpointing.mode: EXACTLY_ONCE
+    execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+    # NOTE: checkpoint timeout / tolerable-failed-checkpoints / unaligned.enabled are
+    # set programmatically in app/jobs/_flink_env.py (the job's StreamExecutionEnvironment
+    # config overrides these YAML keys), so they live there, not here.
+
+    state.backend.rocksdb.writebuffer.size: 64MB
+    state.backend.rocksdb.writebuffer.count: "3"
+    state.backend.rocksdb.block.cache-size: 256MB
+    state.backend.rocksdb.block.blocksize: 4KB
+    state.backend.rocksdb.compaction.style: LEVEL
+    state.backend.rocksdb.thread.num: "4"
+
+    # One slot per TM so each Python worker gets a dedicated TM pod (no within-TM slot
+    # interference). The job runs thread mode (Pemja) by default since 2026-06; process mode
+    # (Beam/gRPC) stays selectable via CORRELATION_PYTHON_MODE=process and only adds to the
+    # footprint — Decision §1.
+    taskmanager.numberOfTaskSlots: "1"
+    taskmanager.cpu.cores: "{{ taskmanager_cpu }}"
+    taskmanager.memory.process.size: {{ taskmanager_memory }}
+    taskmanager.memory.managed.fraction: "0.4"
+
+    # CRITICAL in BOTH Python modes: the matcher's Python worker holds ~0.4-0.9 GB RSS
+    # off-heap (thread mode: Pemja's embedded interpreter inside the TM JVM process;
+    # process mode: a separate Beam SDK-harness process), and that memory is NOT counted in
+    # taskmanager.memory.process.size. With the default limit-factor of 1.0 the JVM is sized
+    # to the entire cgroup, leaving zero headroom -> the container thrashes on reclaimable
+    # pages, the keyed operator wedges, and checkpoints never acknowledge.
+    # limit-factor keeps the memory *request* at process.size but raises the pod
+    # *limit* to process.size * factor, giving the Python worker(s) room to live.
+    # Ensure the target nodes have the extra capacity (e.g. 4Gi request -> 7Gi limit).
+    #
+    # These two keys are per-CLUSTER physics, not per-pipeline tuning: the UI's Task Manager
+    # memory field sets taskmanager.memory.process.size only. Trimming the limit-factor (or the
+    # managed fraction above) starves the Python worker until checkpoints stop acknowledging.
+    kubernetes.taskmanager.memory.limit-factor: "1.75"
+
+    jobmanager.memory.process.size: {{ jobmanager_memory }}
+    jobmanager.cpu.cores: "{{ jobmanager_cpu }}"
+
+    env.java.opts: "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+
+    rest.port: "8081"
+    rest.bind-address: "0.0.0.0"
+
+    # PyFlink (flink-python-*.jar) brings its own commons-cli; Flink lib/ already
+    # loads commons-cli into the 'app' classloader, so the default child-first
+    # resolution triggers `LinkageError: org.apache.commons.cli.Options` on JM
+    # startup (Flink 2.x). Force parent-first for commons-cli to use the
+    # already-loaded copy.
+    classloader.parent-first-patterns.additional: "org.apache.commons.cli."
+
+    metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    metrics.reporter.prom.port: "9249"
+
+  jobManager:
+    replicas: 1
+    resource:
+      cpu: {{ jobmanager_cpu }}
+      memory: {{ jobmanager_memory }}
+
+    podTemplate:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          app: detectflow-correlation-job
+          component: jobmanager
+          {% if correlation_pipeline_id %}
+          detectflow.io/correlation-pipeline-id: "{{ correlation_pipeline_id }}"
+          detectflow.io/job-role: correlation
+          {% endif %}
+      spec:
+        serviceAccountName: flink
+        securityContext:
+          fsGroup: 9999  # Flink user GID
+          # Where the volume plugin honours fsGroup this skips a recursive chown of the whole
+          # RocksDB tree on every pod start; on RWX/NFS-style volumes that skip fsGroup entirely
+          # it is a no-op — which is why the init container below is not optional (§22).
+          fsGroupChangePolicy: OnRootMismatch
+        nodeSelector:
+          {{ node_selector_key }}: {{ node_selector_value }}
+        initContainers:
+          # The kubelet creates a missing scoped-mount directory as root, so a uid-9999 Flink
+          # container could not write into a fresh one. This fixes ownership of the three
+          # directories it can see — with the mounts scoped below, this deployment's own state
+          # roots and nothing else. No `-R`: everything under them was written by uid 9999
+          # already. (The recursive world-writable chmod this replaces walked a live RocksDB
+          # tree on every restart AND made every pod on the shared PVC a writer.)
+          - name: prepare-volumes
+            image: busybox:latest
+            securityContext:
+              runAsUser: 0  # needs root to chown; the main container does not
+            command:
+              - sh
+              - -c
+              - |
+                set -eu
+                mkdir -p /mnt/ha/job-result-store
+                chown 9999:9999 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                chmod 2770 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                echo "state roots prepared for {{ state_subpath }}"
+            volumeMounts:
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
+              - name: ha-storage
+                mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
+              - name: savepoints
+                mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
+        containers:
+          - name: flink-main-container
+            env:
+              # JOB_ID is the deployment name: it scopes consumer groups and the EOS
+              # transactional-id prefix, so two instances must never share one. Must stay an
+              # env var — workers rebuild Settings() from the environment.
+              - name: JOB_ID
+                value: "{{ deployment_name }}"
+              # Identity of the correlation pipeline this instance serves (bare UUID + label).
+              # Never a topic input — topics arrive fully resolved below.
+              {% if correlation_pipeline_id %}
+              - name: CORRELATION_PIPELINE_ID
+                value: "{{ correlation_pipeline_id }}"
+              - name: CORRELATION_PIPELINE_NAME
+                value: "{{ correlation_pipeline_name }}"
+              {% endif %}
+              # Subscription universe: the tagged-events topics of THIS correlation pipeline's
+              # member detection pipelines (epic D1), comma-joined. Supersedes architecture
+              # §13's single deploy-time tech topic.
+              - name: KAFKA_INPUT_TOPICS
+                value: "{{ input_topics | join(',') }}"
+              # Kafka topics (broadcast + output). Inlined per sigma-detector
+              # pattern (apps/templates/flink-deployment.yaml.j2) — cluster-wide
+              # infra (bootstrap, auth, SSL) comes via flink-config + flink-sigma-config.
+              # The AT / HoS catalogues stay shared; chains-config and chains-raw are
+              # per-correlation-pipeline (epic D2).
+              - name: KAFKA_ACTIVE_THREATS_TOPIC
+                value: "{{ active_threats_topic }}"
+              - name: KAFKA_HOS_RULES_TOPIC
+                value: "{{ hos_rules_topic }}"
+              - name: KAFKA_CHAINS_CONFIG_TOPIC
+                value: "{{ chains_config_topic }}"
+              - name: KAFKA_CHAINS_RAW_TOPIC
+                value: "{{ chains_raw_topic }}"
+              # ETL activity topic — correlation-job publishes lifecycle/health activity.
+              - name: KAFKA_ACTIVITY_TOPIC
+                value: "{{ activity_topic }}"
+              # Cold-start seed for the coverage threshold. The live value rides the
+              # chains-config broadcast (hot, no restart), so this only matters before the
+              # first broadcast record arrives. The correlation WINDOW deliberately has no
+              # env twin: epic D3 makes it an explicit override that beats each HoS rule's
+              # detection.timeframe, and its authoritative transport is the chains-config
+              # envelope's correlation_window_seconds. A second, env-shaped channel would give
+              # a load-bearing value two sources of truth.
+              - name: CHAIN_COVERAGE_THRESHOLD_PCT
+                value: "{{ threshold_pct }}"
+              # Flink runtime — RocksDB on a PVC, isolated by the scoped mounts above (§22).
+              # CHECKPOINT_PATH overrides execution.checkpointing.dir inside the job
+              # (app/jobs/_flink_env.py), so it carries no per-deployment segment either.
+              - name: STATE_BACKEND
+                value: "rocksdb"
+              - name: CHECKPOINT_PATH
+                value: "file:///mnt/checkpoints"
+              - name: FLINK_CHECKPOINT_INTERVAL_MS
+                value: "{{ (checkpoint_interval_sec * 1000) | int }}"
+              - name: FLINK_PARALLELISM
+                value: "{{ parallelism }}"
+              - name: KAFKA_CONSUMER_GROUP
+                value: "flink-{{ deployment_name }}"
+            envFrom:
+              # Shared cluster infra (KAFKA_BOOTSTRAP_SERVERS, KAFKA_AUTH_METHOD)
+              # — same ConfigMap + Secret reused by sigma-detector.
+              - configMapRef:
+                  name: {{ flink_config_configmap }}
+              - secretRef:
+                  name: {{ flink_sigma_config_secret }}
+            volumeMounts:
+              {% if kafka_auth_method != "PLAINTEXT" %}
+              # Kafka SSL/SASL material — ConfigMap points KAFKA_SSL_*_LOCATION at /certs/...
+              - name: kafka-ssl-certs
+                mountPath: /certs
+              {% endif %}
+              # Each deployment sees ONLY its own directory: the PVCs are shared RWX and a
+              # whole-volume mount exposes (and lets this pod delete) every other customer's
+              # RocksDB checkpoints. Epic Decision D6 / architecture §22.
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
+              - name: ha-storage
+                mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
+              - name: savepoints
+                mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
+            startupProbe:
+              httpGet:
+                path: /config
+                port: 8081
+                scheme: HTTP
+              initialDelaySeconds: 5
+              timeoutSeconds: 60
+              periodSeconds: 60
+              successThreshold: 1
+              failureThreshold: 5
+        volumes:
+          {% if kafka_auth_method != "PLAINTEXT" %}
+          - name: kafka-ssl-certs
+            secret:
+              secretName: kafka-ssl
+              defaultMode: 420
+          {% endif %}
+          - name: checkpoints
+            persistentVolumeClaim:
+              claimName: {{ checkpoints_pvc }}
+          - name: ha-storage
+            persistentVolumeClaim:
+              claimName: {{ ha_pvc }}
+          - name: savepoints
+            persistentVolumeClaim:
+              claimName: {{ savepoints_pvc }}
+
+  taskManager:
+    replicas: {{ taskmanager_replicas }}
+
+    podTemplate:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          app: detectflow-correlation-job
+          component: taskmanager
+          {% if correlation_pipeline_id %}
+          detectflow.io/correlation-pipeline-id: "{{ correlation_pipeline_id }}"
+          detectflow.io/job-role: correlation
+          {% endif %}
+      spec:
+        serviceAccountName: flink
+        securityContext:
+          fsGroup: 9999
+          fsGroupChangePolicy: OnRootMismatch
+        nodeSelector:
+          {{ node_selector_key }}: {{ node_selector_value }}
+        initContainers:
+          # The kubelet creates a missing scoped-mount directory as root, so a uid-9999 Flink
+          # container could not write into a fresh one. This fixes ownership of the three
+          # directories it can see — with the mounts scoped below, this deployment's own state
+          # roots and nothing else. No `-R`: everything under them was written by uid 9999
+          # already. (The recursive world-writable chmod this replaces walked a live RocksDB
+          # tree on every restart AND made every pod on the shared PVC a writer.)
+          - name: prepare-volumes
+            image: busybox:latest
+            securityContext:
+              runAsUser: 0  # needs root to chown; the main container does not
+            command:
+              - sh
+              - -c
+              - |
+                set -eu
+                mkdir -p /mnt/ha/job-result-store
+                chown 9999:9999 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                chmod 2770 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                echo "state roots prepared for {{ state_subpath }}"
+            volumeMounts:
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
+              - name: ha-storage
+                mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
+              - name: savepoints
+                mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
+        containers:
+          - name: flink-main-container
+            env:
+              - name: JOB_ID
+                value: "{{ deployment_name }}"
+              {% if correlation_pipeline_id %}
+              - name: CORRELATION_PIPELINE_ID
+                value: "{{ correlation_pipeline_id }}"
+              - name: CORRELATION_PIPELINE_NAME
+                value: "{{ correlation_pipeline_name }}"
+              {% endif %}
+              - name: KAFKA_INPUT_TOPICS
+                value: "{{ input_topics | join(',') }}"
+              - name: KAFKA_ACTIVE_THREATS_TOPIC
+                value: "{{ active_threats_topic }}"
+              - name: KAFKA_HOS_RULES_TOPIC
+                value: "{{ hos_rules_topic }}"
+              - name: KAFKA_CHAINS_CONFIG_TOPIC
+                value: "{{ chains_config_topic }}"
+              - name: KAFKA_CHAINS_RAW_TOPIC
+                value: "{{ chains_raw_topic }}"
+              - name: KAFKA_ACTIVITY_TOPIC
+                value: "{{ activity_topic }}"
+              - name: CHAIN_COVERAGE_THRESHOLD_PCT
+                value: "{{ threshold_pct }}"
+              - name: STATE_BACKEND
+                value: "rocksdb"
+              - name: CHECKPOINT_PATH
+                value: "file:///mnt/checkpoints"
+              - name: FLINK_CHECKPOINT_INTERVAL_MS
+                value: "{{ (checkpoint_interval_sec * 1000) | int }}"
+              - name: FLINK_PARALLELISM
+                value: "{{ parallelism }}"
+              - name: KAFKA_CONSUMER_GROUP
+                value: "flink-{{ deployment_name }}"
+            envFrom:
+              - configMapRef:
+                  name: {{ flink_config_configmap }}
+              - secretRef:
+                  name: {{ flink_sigma_config_secret }}
+            volumeMounts:
+              {% if kafka_auth_method != "PLAINTEXT" %}
+              - name: kafka-ssl-certs
+                mountPath: /certs
+              {% endif %}
+              # Each deployment sees ONLY its own directory: the PVCs are shared RWX and a
+              # whole-volume mount exposes (and lets this pod delete) every other customer's
+              # RocksDB checkpoints. Epic Decision D6 / architecture §22.
+              - name: checkpoints
+                mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
+              - name: ha-storage
+                mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
+              - name: savepoints
+                mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
+        volumes:
+          {% if kafka_auth_method != "PLAINTEXT" %}
+          - name: kafka-ssl-certs
+            secret:
+              secretName: kafka-ssl
+              defaultMode: 420
+          {% endif %}
+          - name: checkpoints
+            persistentVolumeClaim:
+              claimName: {{ checkpoints_pvc }}
+          - name: ha-storage
+            persistentVolumeClaim:
+              claimName: {{ ha_pvc }}
+          - name: savepoints
+            persistentVolumeClaim:
+              claimName: {{ savepoints_pvc }}
+
+  job:
+    # PyFlink driver. KAFKA_INPUT_TOPICS is set via inline env: above (the member set of this
+    # correlation pipeline), so --input-topics is deliberately NOT passed — a CLI-only value
+    # would reach the driver but not the workers, which rebuild Settings() from the environment.
+    jarURI: local:///opt/flink/opt/flink-python-2.2.0.jar
+    entryClass: org.apache.flink.client.python.PythonDriver
+    args:
+      - "-pyclientexec"
+      - "/opt/flink/usrlib/.venv/bin/python"
+      - "-pym"
+      - "app.jobs.correlation"
+      - "--job-id"
+      - "{{ deployment_name }}"
+
+    parallelism: {{ parallelism }}
+
+    # last-state: restart from latest checkpoint — preserves chain buffers and
+    # EOS transactional-id mappings across rollouts/scale-downs.
+    upgradeMode: last-state
+
+    state: running
+    savepointTriggerNonce: 0
+
+  mode: native
+
+  logConfiguration:
+    log4j-console.properties: |+
+      # Root logger - INFO for production observability
+      rootLogger.level = INFO
+      rootLogger.appenderRef.console.ref = ConsoleAppender
+
+      # Console appender with structured pattern for Loki/Fluent Bit
+      appender.console.name = ConsoleAppender
+      appender.console.type = Console
+      appender.console.target = SYSTEM_OUT
+      appender.console.layout.type = PatternLayout
+      appender.console.layout.pattern = %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%t] %c{1.} - %m%n
+
+      # Flink core - INFO for checkpoint/state monitoring
+      logger.flink.name = org.apache.flink
+      logger.flink.level = INFO
+
+      # Kafka connector - WARN to reduce noise
+      logger.kafka.name = org.apache.kafka
+      logger.kafka.level = WARN
+
+      logger.kafkaShaded.name = org.apache.flink.kafka.shaded
+      logger.kafkaShaded.level = WARN
+
+      # Pekko/Akka networking - WARN
+      logger.pekko.name = org.apache.pekko
+      logger.pekko.level = WARN
+
+      # Py4J bridge - WARN
+      logger.py4j.name = py4j
+      logger.py4j.level = WARN
+
+      # Beam (used by process-mode Python harness) - WARN. (DEBUG dumps the full
+      # ProcessBundleDescriptor protobuf per bundle and floods the TM log, hiding
+      # the checkpoint-window lines; only flip back to DEBUG for harness-boot probes.)
+      logger.beam.name = org.apache.beam
+      logger.beam.level = WARN
+
+      logger.flinkpython.name = org.apache.flink.python
+      logger.flinkpython.level = WARN

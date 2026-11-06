@@ -117,3 +117,22 @@ class ConfigurationError(BadRequestError):
 
     def __init__(self, detail: str = "Required configuration is missing"):
         super().__init__(detail=detail)
+
+
+# ==========================================
+# Non-HTTP domain exceptions — background ingest paths only
+# ==========================================
+
+
+class ChainDependencyMissingError(Exception):
+    """A chains-analysed record references a catalogue row that is not stored yet.
+
+    Deliberately NOT an ``HTTPException``: raised by ``AttackChainsDAO.apply_chains_analysed`` on the
+    Kafka ingest path, never inside a request, so it must not map to a status code — do not register
+    a handler in ``server.py``. Classified DEFERRABLE so catalogue sync can still land in time.
+    """
+
+    def __init__(self, dependency: str, identifier: str) -> None:
+        self.dependency = dependency
+        self.identifier = identifier
+        super().__init__(f"No {dependency} row for {identifier!r}; catalogue sync has not stored it yet")

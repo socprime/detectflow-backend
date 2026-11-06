@@ -6,16 +6,16 @@ which define parsing configuration and field mapping for ETL pipelines.
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import get_current_active_user
+from apps.core.auth import get_current_active_user, require_write_access
 from apps.core.converters import LogSourceConverter
 from apps.core.database import get_db
 from apps.core.models import User
+from apps.core.openapi import NOT_FOUND, UNAUTHORIZED, err, errors
 from apps.core.pagination import get_pagination_params
 from apps.core.schemas import (
-    ErrorResponse,
     LogSourceActionResponse,
     LogSourceCreateRequest,
     LogSourceListResponse,
@@ -31,10 +31,7 @@ router = APIRouter(prefix="/api/v1/log_sources", tags=["Log Sources"])
     "",
     response_model=LogSourceListResponse,
     summary="List log sources",
-    responses={
-        200: {"description": "Paginated list of log sources"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 async def get_log_sources(
     _: User = Depends(get_current_active_user),
@@ -66,11 +63,7 @@ async def get_log_sources(
     "/{log_source_id}",
     response_model=LogSourceResponse,
     summary="Get log source by ID",
-    responses={
-        200: {"description": "Log source details"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Log source not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Log source not found")),
 )
 async def get_log_source(
     log_source_id: str = Path(..., description="Log Source UUID"),
@@ -92,22 +85,24 @@ async def get_log_source(
     response_model=LogSourceActionResponse,
     status_code=201,
     summary="Create log source",
-    responses={
-        201: {"description": "Log source created successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(400, "Invalid mapping YAML (must be a dictionary of sigma fields to event fields)"),
+    ),
 )
 async def create_log_source(
     log_source: LogSourceCreateRequest,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Create a new log source.
 
-    If `parsing_script` is provided, `parsing_config` is automatically generated.
-    The log source can then be assigned to pipelines.
+    If `parsing_script` is provided, `parsing_config` is generated from it.
+    When `mapping` is provided it is validated as YAML (dictionary of sigma fields to
+    event field strings or lists); unquoted `@…` scalars such as `@timestamp` are
+    auto-quoted before save. Invalid mapping returns 400. Creation is recorded in
+    the activity log.
     """
     manager = LogSourcesManager(db)
     new_log_source = await manager.create(log_source, current_user)
@@ -118,24 +113,27 @@ async def create_log_source(
     "/{log_source_id}",
     response_model=LogSourceActionResponse,
     summary="Update log source",
-    responses={
-        200: {"description": "Log source updated successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Log source not found"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        NOT_FOUND,
+        err(400, "Invalid mapping YAML (must be a dictionary of sigma fields to event fields)"),
+    ),
 )
 async def update_log_source(
     log_source_id: str = Path(..., description="Log Source UUID"),
     log_source: LogSourceUpdateRequest = ...,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Update an existing log source.
 
-    If `parsing_script` is changed, `parsing_config` is regenerated and
-    synced to Kafka for all pipelines using this log source (hot-reload).
+    If `parsing_script` or `mapping` changes, `parsing_config` is regenerated and
+    the new parser metadata is published to Kafka for every pipeline using this log
+    source, so the match node hot-reloads it with no Flink restart. When `mapping` is
+    provided it is validated as YAML (dictionary of sigma fields to event field strings
+    or lists); unquoted `@…` scalars such as `@timestamp` are auto-quoted before save.
+    Invalid mapping returns 400. The update is recorded in the activity log.
     """
     manager = LogSourcesManager(db)
     updated = await manager.update(UUID(log_source_id), log_source, current_user)
@@ -144,25 +142,24 @@ async def update_log_source(
 
 @router.delete(
     "/{log_source_id}",
-    response_model=LogSourceActionResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete log source",
-    responses={
-        200: {"description": "Log source deleted successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Log source not found"},
-        409: {"model": ErrorResponse, "description": "Log source is in use by pipelines"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(404, "Log source not found"),
+        err(409, "Log source is in use by pipelines"),
+    ),
 )
 async def delete_log_source(
     log_source_id: str = Path(..., description="Log Source UUID"),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Permanently delete a log source.
 
-    **Note:** Ensure no pipelines are using this log source before deletion.
+    Rejected with 409 if any pipeline still references the log source. On success
+    the deletion is recorded in the activity log.
     """
     manager = LogSourcesManager(db)
     await manager.delete(UUID(log_source_id), current_user)
-    return LogSourceActionResponse(id=log_source_id, status=True, message="Log source deleted successfully")

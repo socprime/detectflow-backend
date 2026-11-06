@@ -105,7 +105,11 @@ class ActivityService:
     async def get_recent(self, limit: int | None = None) -> list[ActivityItem]:
         """Get recent activities from cache or database.
 
-        First checks in-memory cache. If empty, fetches from database.
+        First checks in-memory cache. If empty, fetches from database — and caches that
+        result: the dashboard SSE refresher calls this every tick, so without caching an
+        empty post-restart buffer would trigger one DB query per 2s tick until the first
+        Kafka activity event arrived. The cache write is skipped if a Kafka event landed
+        during the DB await (it is newer than the DB rows and must not be overwritten).
 
         Args:
             limit: Maximum number of items to return (defaults to max_recent)
@@ -124,12 +128,19 @@ class ActivityService:
             async with AsyncSessionLocal() as db:
                 audit_dao = AuditLogDAO(db)
                 audit_logs = await audit_dao.get_recent(limit=limit)
-                return [self.from_db(log) for log in audit_logs]
+                items = [self.from_db(log) for log in audit_logs]
         except Exception as e:
             logger.error(f"Failed to fetch recent activity from database: {e}")
             # Note: Cannot log to activity_producer here - this IS the activity service
             # Error is logged to file, which is sufficient
             return []
+
+        # Populate the buffer (newest-first, capped at _max_recent, like on_activity_received)
+        # so the fallback query runs once, not on every dashboard tick.
+        if items and not self._recent_activities:
+            self._recent_activities = items[: self._max_recent]
+
+        return items
 
 
 # Singleton instance

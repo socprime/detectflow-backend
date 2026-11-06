@@ -1,0 +1,47 @@
+id: Z098AIugvQzz
+name: Possible CVE-2026-111497 (HTTP2Shell / Node2Shell) Exploitation Attempt - Brotli Decoder Native Crash (via syslog)
+body: |-
+  title: Possible CVE-2026-111497 (HTTP2Shell / Node2Shell) Exploitation Attempt - Brotli Decoder Native Crash (via syslog)
+  id: 0ba6868a-e337-49ec-8aa5-da4f19a21e3e
+  status: experimental
+  author: SOC Prime Team
+  description: Detects kernel segfault reports and systemd-coredump crash reports that point to the Brotli decoder (system libbrotlidec, Python brotli / brotlicffi extension modules, BrotliDecoder* stack frames). An out-of-bounds write in Google Brotli C 1.0.3-1.2.0 (CVE-2026-111497) triggered by a crafted Brotli-compressed HTTP request crashes the decompressing process (Node.js, Bun, Python, C services) on unpatched hosts. Node.js and Bun builds statically linking Brotli without symbols report only the runtime binary and are not covered. The rule detects the crash symptom, not successful code execution.
+  references:
+      - https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+      - https://www.sweet.security/blog/http2shell-sweet-security-confirms-brotli-vulnerability-also-affects-native-go-implementations
+  tags:
+      - attack.initial_access
+      - attack.t1190
+      - attack.impact
+      - attack.t1499.004
+  logsource:
+      product: linux
+      service: syslog
+      definition: Requires kernel log (dmesg / kern.log / journald) and systemd-coredump journal collection
+  detection:
+      keywords_crash:
+          - 'segfault at ' # node[1234]: segfault at ... error 6 in libbrotlidec.so.1.1.0
+          - 'general protection fault'
+          - 'dumped core' # Process 1234 (node) of user 1000 dumped core.
+          - 'terminated abnormally'
+          - 'decoder failed' #python
+          - 'decoder is unhealthy' #python
+          - 'failed to decode it' #python
+      keywords_brotli:
+          - 'libbrotli' # libbrotlidec.so.1 (Debian/Ubuntu/Fedora/RHEL/Alpine nodejs uses system Brotli) https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+          - 'BrotliDecoder' # BrotliDecoderDecompressStream
+          - '_brotli.' # _brotli.cpython-311-x86_64-linux-gnu.so
+          - '_brotlicffi'
+          - 'brotli:'
+          - 'content-encoding: br'
+      keywords_general:
+          - 'ERROR_FORMAT_BLOCK_SWITCH' #nodejs
+          - 'unexpected end of file' #nodejs
+          - 'Z_BUF_ERROR' #nodejs
+      condition: (keywords_crash and keywords_brotli) or keywords_general
+  falsepositives:
+      - Non-exploit bugs crashing processes inside the Brotli library
+  level: medium
+level: medium
+created: '2026-10-26T10:42:01Z'
+updated: '2026-10-26T11:02:26.703000Z'

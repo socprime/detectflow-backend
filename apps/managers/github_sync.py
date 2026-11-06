@@ -6,10 +6,12 @@ from apps.clients.github import GitHubClient, GithubRule
 from apps.core.constants import SIGMAHQ_URL, SIGMAHQ_UUID
 from apps.core.logger import get_logger
 from apps.core.models import Rule
+from apps.core.settings import settings
 from apps.managers.rule import RulesOrchestrator
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.postgre.repository import RepositoryDAO
 from apps.modules.postgre.rule import RuleDAO
+from apps.modules.postgre.rule_content import CHANGE_SOURCE_SYSTEM, RuleContentDAO
 
 logger = get_logger(__name__)
 
@@ -37,7 +39,16 @@ class GithubSyncManager:
         for repo in enabled_repos:
             try:
                 await cls.sync_repo(repo.id, db)
+                # Commit at the per-repo boundary: each repo is already synced independently
+                # (a failure below only logs and continues), so committing here returns the
+                # pooled connection to the pool during the next repo's GitHub HTTP fetch instead
+                # of holding one transaction open for the whole multi-repo run. It also durably
+                # persists each finished repo rather than deferring everything to one final commit.
+                await db.commit()
             except Exception as e:
+                # Roll back this repo's partial writes so they do not leak into later repos or
+                # the scheduler's final commit; already-committed repos above are unaffected.
+                await db.rollback()
                 logger.error(f"Error syncing external repository {repo.id}: {e}", exc_info=True)
                 await activity_producer.log_action(
                     action="sync_failed",
@@ -137,6 +148,10 @@ class GithubSyncManager:
                 updated_rules=updated_rules,
             )
 
+            # Bulk prune old versions after GitHub sync
+            rule_content_dao = RuleContentDAO(db)
+            await rule_content_dao.prune_all_versions(keep=settings.rule_version_retention)
+
             await activity_producer.log_action(
                 action="sync",
                 entity_type="repository",
@@ -205,13 +220,15 @@ class GithubSyncManager:
         await rules_dao.create_many(
             [
                 {
-                    "id": github_rule.id,  # Already a string UUID from YAML
+                    "id": github_rule.id,
                     "name": github_rule.name,
                     "body": github_rule.body,
                     "repository_id": repository_id,
                 }
                 for github_rule in github_rules
-            ]
+            ],
+            change_source=CHANGE_SOURCE_SYSTEM,
+            changed_by="system",
         )
 
     @staticmethod
@@ -220,12 +237,14 @@ class GithubSyncManager:
         await rules_dao.upsert_many(
             [
                 {
-                    "id": github_rule.id,  # Already a string UUID from YAML
+                    "id": github_rule.id,
                     "name": github_rule.name,
                     "body": github_rule.body,
                 }
                 for github_rule in github_rules
-            ]
+            ],
+            change_source=CHANGE_SOURCE_SYSTEM,
+            changed_by="system",
         )
 
     @staticmethod

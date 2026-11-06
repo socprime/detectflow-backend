@@ -20,8 +20,10 @@ from apps.providers.base import (
     FlinkDeploymentResult,
     FlinkDeploymentStatus,
     FlinkProvider,
+    StorageCleanupOutcome,
     get_default_jobmanager_config,
 )
+from apps.providers.matcher_runtime_tuning import resolve_matcher_runtime
 
 logger = get_logger(__name__)
 
@@ -70,6 +72,10 @@ class CMFFlinkProvider(FlinkProvider):
 
     Manages Flink applications through CMF REST API with mTLS authentication.
 
+    Detection pipelines only. Correlation and agent jobs are Kubernetes-only:
+    ``AttackChainsManager._require_kubernetes_provider`` rejects this provider before any
+    correlation code runs, so there is deliberately no correlation surface here to keep in sync.
+
     Attributes:
         client: CMF API client instance
         environment: CMF environment name
@@ -112,6 +118,70 @@ class CMFFlinkProvider(FlinkProvider):
         """Generate CMF application name from pipeline ID."""
         return f"pipeline-{str(pipeline_id).lower()}"
 
+    # Parity with KubernetesFlinkProvider TaskManager JVM/pod split.
+    # Untested against a live CMF cluster — keep in sync manually until extracted later.
+    @staticmethod
+    def _native_headroom_min_mb(python_execution_mode: str | None = None) -> int:
+        """Python/off-heap reserve outside ``process.size`` (mode-specific)."""
+        mode = python_execution_mode or settings.matcher_python_execution_mode
+        if mode == "thread":
+            return settings.flink_taskmanager_native_headroom_min_mb
+        return settings.flink_taskmanager_process_native_headroom_min_mb
+
+    @classmethod
+    def _calculate_taskmanager_process_memory_mb(
+        cls,
+        taskmanager_memory_mb: int,
+        python_execution_mode: str | None = None,
+    ) -> int:
+        """JVM/Flink process budget carved out of the configured pod total."""
+        mode = python_execution_mode or settings.matcher_python_execution_mode
+        headroom_mb = cls._native_headroom_min_mb(mode)
+        process_min_mb = settings.flink_taskmanager_process_memory_min_mb
+
+        if mode == "thread":
+            process_memory_mb = taskmanager_memory_mb - headroom_mb
+            return max(process_memory_mb, process_min_mb)
+
+        base_mb = settings.flink_taskmanager_process_memory_base_mb
+        if taskmanager_memory_mb <= base_mb:
+            process_memory_mb = taskmanager_memory_mb
+        else:
+            excess_mb = taskmanager_memory_mb - base_mb
+            process_memory_mb = base_mb + round(excess_mb * settings.flink_taskmanager_process_memory_growth_fraction)
+
+        max_for_headroom = taskmanager_memory_mb - headroom_mb
+        if max_for_headroom >= process_min_mb:
+            process_memory_mb = min(process_memory_mb, max_for_headroom)
+        else:
+            process_memory_mb = process_min_mb
+        process_memory_mb = max(process_memory_mb, process_min_mb)
+        return min(process_memory_mb, taskmanager_memory_mb)
+
+    @classmethod
+    def _calculate_taskmanager_pod_memory_mb(
+        cls,
+        taskmanager_memory_mb: int,
+        python_execution_mode: str | None = None,
+    ) -> int:
+        """Pod memory limit: exactly the configured total (grow only for the JVM floor)."""
+        process_memory_mb = cls._calculate_taskmanager_process_memory_mb(taskmanager_memory_mb, python_execution_mode)
+        return max(taskmanager_memory_mb, process_memory_mb)
+
+    @classmethod
+    def _calculate_taskmanager_memory_limit_factor(
+        cls,
+        taskmanager_memory_mb: int,
+        python_execution_mode: str | None = None,
+    ) -> str:
+        """Return the K8s memory limit multiplier for PyFlink TaskManager pods (pod / JVM)."""
+        process_memory_mb = cls._calculate_taskmanager_process_memory_mb(taskmanager_memory_mb, python_execution_mode)
+        pod_memory_mb = cls._calculate_taskmanager_pod_memory_mb(taskmanager_memory_mb, python_execution_mode)
+        limit_factor = pod_memory_mb / process_memory_mb
+        if limit_factor.is_integer():
+            return f"{limit_factor:.1f}"
+        return f"{limit_factor:.3f}".rstrip("0").rstrip(".")
+
     def _render_manifest(self, config: FlinkDeploymentConfig) -> dict:
         """Render CMF application manifest from template.
 
@@ -122,6 +192,14 @@ class CMFFlinkProvider(FlinkProvider):
             Parsed JSON manifest as dict
         """
         app_name = self._generate_app_name(config.pipeline_id)
+        runtime = resolve_matcher_runtime(
+            python_execution_mode=settings.matcher_python_execution_mode,
+            state_backend=settings.matcher_state_backend,
+        )
+        taskmanager_process_memory = f"{self._calculate_taskmanager_process_memory_mb(config.taskmanager_memory_mb, runtime.python_execution_mode)}m"
+        taskmanager_memory_limit_factor = self._calculate_taskmanager_memory_limit_factor(
+            config.taskmanager_memory_mb, runtime.python_execution_mode
+        )
 
         template = self.jinja_env.get_template("cmf-application.json.j2")
         manifest_json = template.render(
@@ -130,22 +208,26 @@ class CMFFlinkProvider(FlinkProvider):
             job_id=str(config.pipeline_id),
             input_topics=config.input_topics,
             output_topic=config.output_topic,
+            kafka_output_destinations=config.kafka_output_destinations_json(),
             output_mode=config.output_mode,
             apply_parser_to_output_events=config.apply_parser_to_output_events,
             parallelism=config.parallelism,
             flink_image=self.flink_image,
             image_pull_policy=settings.image_pull_policy,
-            taskmanager_memory=f"{config.taskmanager_memory_mb}m",
+            taskmanager_memory=taskmanager_process_memory,
+            taskmanager_memory_limit_factor=taskmanager_memory_limit_factor,
             taskmanager_cpu=config.taskmanager_cpu,
             kafka_starting_offset=config.kafka_starting_offset,
             window_size_sec=config.window_size_sec,
             checkpoint_interval_sec=config.checkpoint_interval_sec,
             rules_topic=config.rules_topic or settings.kafka_sigma_rules_topic,
             metrics_topic=config.metrics_topic or settings.kafka_metrics_topic,
+            tagged_events_topic=config.tagged_events_topic or settings.kafka_tagged_events_topic,
             jobmanager_memory=self.default_config["jobmanager_memory"],
             jobmanager_cpu=self.default_config["jobmanager_cpu"],
             kafka_bootstrap_servers=settings.kafka_bootstrap_servers,
             kafka_auth_method=settings.kafka_auth_method,
+            runtime=runtime,
         )
 
         return json.loads(manifest_json)
@@ -421,17 +503,17 @@ class CMFFlinkProvider(FlinkProvider):
             )
             return None
 
-    async def cleanup_storage(self, pipeline_id: str) -> bool:
+    async def cleanup_storage(self, pipeline_id: str) -> StorageCleanupOutcome:
         """Clean up storage for a pipeline.
 
-        Note: CMF manages its own storage. This is a no-op for CMF provider,
-        but we return True to indicate "cleanup successful".
+        Note: CMF manages its own storage, so this is a no-op — reported as ``succeeded`` because
+        there is nothing that could have survived, not because nothing was checked.
         """
         logger.info(
             "Storage cleanup requested for CMF application (no-op)",
             extra={"pipeline_id": pipeline_id},
         )
-        return True
+        return StorageCleanupOutcome(str(pipeline_id), "succeeded")
 
     def get_pod_warnings(self, pipeline_id: str, max_events: int = 10) -> list[str]:  # noqa: ARG002
         """Get warning events for a deployment.

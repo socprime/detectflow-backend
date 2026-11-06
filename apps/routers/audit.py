@@ -17,17 +17,29 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import get_current_active_user
+from apps.core.auth import require_write_access
 from apps.core.database import get_db
 from apps.core.logger import get_logger
 from apps.core.models import User
+from apps.core.openapi import UNAUTHORIZED
 from apps.core.schemas import (
     AuditLogsFiltersResponse,
     AuditLogsResponse,
-    ErrorResponse,
 )
 from apps.managers.activity import ActivityService
 from apps.modules.postgre.audit import AuditLogDAO
+
+# Known filter vocabularies (see apps/core/enums.py: ACTION_SEVERITY_MAP / AuditSeverity, and the
+# entity_type values logged across the codebase). The audit list/filters endpoints surface only the
+# values actually present in the DB, so these are guidance, not an exhaustive validated allow-list.
+_ACTION_VALUES = "login, logout, login_failed, create, read, update, delete, toggle, sync, status_change, alert, error"
+_ENTITY_TYPE_VALUES = (
+    "pipeline, rule, pipeline_rule, filter, repository, log_source, mapping, user, settings, "
+    "integration, attack_chain, attack_chain_configuration, attack_chains_runtime, correlation_job, "
+    "high_order_sigma, dashboard, system, database, kafka, kafka_sync, kubernetes, cmf, flink, "
+    "flink_api, metrics, monitor, poller"
+)
+_SEVERITY_VALUES = "info, warning, error"
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v1/audit-logs", tags=["Audit Logs"])
@@ -37,34 +49,29 @@ router = APIRouter(prefix="/api/v1/audit-logs", tags=["Audit Logs"])
     "",
     response_model=AuditLogsResponse,
     summary="List audit logs",
-    responses={
-        200: {"description": "Paginated list of audit logs"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=UNAUTHORIZED,
 )
 async def get_audit_logs(
-    action: list[str] | None = Query(None, description="Filter by action type(s)"),
-    entity_type: list[str] | None = Query(None, description="Filter by entity type(s)"),
-    user_id: str | None = Query(None, description="Filter by user ID"),
-    severity: list[str] | None = Query(None, description="Filter by severity level(s)"),
-    search: str | None = Query(None, description="Search in entity_name, details, user_email"),
-    start_date: datetime | None = Query(None, description="Filter from this date (ISO format)"),
-    end_date: datetime | None = Query(None, description="Filter until this date (ISO format)"),
-    offset: int = Query(0, ge=0, description="Pagination offset"),
-    limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
-    _: User = Depends(get_current_active_user),
+    action: list[str] | None = Query(None, description=f"Filter by action type(s). Known values: {_ACTION_VALUES}."),
+    entity_type: list[str] | None = Query(
+        None, description=f"Filter by entity type(s). Known values: {_ENTITY_TYPE_VALUES}."
+    ),
+    user_id: str | None = Query(None, description="Filter by the acting user's UUID."),
+    severity: list[str] | None = Query(None, description=f"Filter by severity level(s): {_SEVERITY_VALUES}."),
+    search: str | None = Query(None, description="Case-insensitive search across entity_name, details, user_email."),
+    start_date: datetime | None = Query(None, description="Include entries at or after this ISO-8601 timestamp."),
+    end_date: datetime | None = Query(None, description="Include entries at or before this ISO-8601 timestamp."),
+    offset: int = Query(0, ge=0, description="Number of entries to skip (pagination)."),
+    limit: int = Query(50, ge=1, le=100, description="Maximum entries to return (1–100)."),
+    _: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    List audit logs with filtering, search, and pagination.
+    """List audit-log entries with filtering, full-text search, and pagination.
 
-    Supports filtering by:
-    - action: create, update, delete, toggle, error, sync, login (multiple allowed)
-    - entity_type: pipeline, rule, filter, repository, topic, node, user (multiple allowed)
-    - severity: info, warning, error (multiple allowed)
-    - user_id: specific user UUID
-    - search: text search in entity_name, details, user_email
-    - start_date/end_date: date range filter
+    Read-only view of the activity trail. Filters combine with AND; list-valued filters (``action``,
+    ``entity_type``, ``severity``) match any of the supplied values. Results are newest-first and the
+    response carries ``total`` for paging. Known vocabularies for the categorical filters are listed
+    on each query parameter.
     """
     audit_dao = AuditLogDAO(db)
 
@@ -94,20 +101,15 @@ async def get_audit_logs(
     "/filters",
     response_model=AuditLogsFiltersResponse,
     summary="Get available filter options",
-    responses={
-        200: {"description": "Available filter options"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=UNAUTHORIZED,
 )
 async def get_filter_options(
-    _: User = Depends(get_current_active_user),
+    _: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Get available filter options for audit logs UI.
-
-    Returns distinct values for action types, entity types, and severities
-    that exist in the database.
+    """Return the distinct action types, entity types, and severities currently present in the
+    audit log, for populating the filter controls. Read-only; values are derived live from the
+    stored rows, so the list reflects only what has actually been logged.
     """
     audit_dao = AuditLogDAO(db)
 
@@ -126,26 +128,34 @@ async def get_filter_options(
     "/export",
     summary="Export audit logs to CSV",
     responses={
-        200: {"description": "CSV file download", "content": {"text/csv": {}}},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        200: {
+            "description": (
+                "CSV download. Served as `text/csv` with a "
+                "`Content-Disposition: attachment; filename=audit_logs_<YYYYmmdd_HHMMSS>.csv` header."
+            ),
+            "content": {"text/csv": {"schema": {"type": "string"}}},
+        },
+        **UNAUTHORIZED,
     },
 )
 async def export_audit_logs(
-    action: list[str] | None = Query(None, description="Filter by action type(s)"),
-    entity_type: list[str] | None = Query(None, description="Filter by entity type(s)"),
-    user_id: str | None = Query(None, description="Filter by user ID"),
-    severity: list[str] | None = Query(None, description="Filter by severity level(s)"),
-    search: str | None = Query(None, description="Search text"),
-    start_date: datetime | None = Query(None, description="Filter from this date"),
-    end_date: datetime | None = Query(None, description="Filter until this date"),
-    _: User = Depends(get_current_active_user),
+    action: list[str] | None = Query(None, description=f"Filter by action type(s). Known values: {_ACTION_VALUES}."),
+    entity_type: list[str] | None = Query(
+        None, description=f"Filter by entity type(s). Known values: {_ENTITY_TYPE_VALUES}."
+    ),
+    user_id: str | None = Query(None, description="Filter by the acting user's UUID."),
+    severity: list[str] | None = Query(None, description=f"Filter by severity level(s): {_SEVERITY_VALUES}."),
+    search: str | None = Query(None, description="Case-insensitive search across entity_name, details, user_email."),
+    start_date: datetime | None = Query(None, description="Include entries at or after this ISO-8601 timestamp."),
+    end_date: datetime | None = Query(None, description="Include entries at or before this ISO-8601 timestamp."),
+    _: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Export audit logs to CSV file.
+    """Export the filtered audit log as a downloadable CSV file.
 
-    Applies the same filters as the list endpoint but exports
-    all matching records (up to 10,000) as a downloadable CSV file.
+    Applies the same filters as ``GET /audit-logs`` but streams all matching rows (capped at 10,000)
+    as ``text/csv``. The response sets ``Content-Disposition: attachment`` with a timestamped
+    filename so browsers save it directly. Read-only.
     """
     audit_dao = AuditLogDAO(db)
 

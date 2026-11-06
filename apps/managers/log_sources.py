@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.core.error_tracker import ErrorTracker
-from apps.core.exceptions import ConflictError, NotFoundError
+from apps.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from apps.core.logger import get_logger
 from apps.core.models import LogSource, User
 from apps.core.schemas import LogSourceCreateRequest, LogSourceUpdateRequest
@@ -18,8 +18,17 @@ from apps.managers.parser_sync import ParsersOrchestrator
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.postgre.log_source import LogSourceDAO
 from apps.modules.postgre.pipeline import PipelineDAO
+from apps.modules.utils import normalize_field_mapping_yaml
 
 logger = get_logger(__name__)
+
+
+def _normalize_mapping_or_bad_request(mapping: str | None) -> str | None:
+    """Quote unsafe YAML scalars and validate mapping shape; raise 400 on failure."""
+    try:
+        return normalize_field_mapping_yaml(mapping)
+    except ValueError as e:
+        raise BadRequestError(str(e)) from e
 
 
 class LogSourcesManager:
@@ -68,6 +77,9 @@ class LogSourcesManager:
 
         Returns:
             Created LogSource instance
+
+        Raises:
+            BadRequestError: If mapping YAML is invalid or not a field-mapping dictionary
         """
         create_data = {"name": request.name}
 
@@ -76,13 +88,13 @@ class LogSourcesManager:
             create_data["parsing_config"] = await parser_manager.create_parser_config(request.parsing_script)
 
         if request.mapping:
-            create_data["mapping"] = request.mapping
+            create_data["mapping"] = _normalize_mapping_or_bad_request(request.mapping)
 
         if request.test_topics is not None:
             create_data["test_topics"] = request.test_topics
 
         if request.test_repository_ids is not None:
-            create_data["test_repository_ids"] = [UUID(rid) for rid in request.test_repository_ids]
+            create_data["test_repository_ids"] = [selection.model_dump() for selection in request.test_repository_ids]
 
         new_log_source = await self.log_source_repo.create(**create_data)
 
@@ -115,12 +127,16 @@ class LogSourcesManager:
 
         Raises:
             NotFoundError: If log source not found
+            BadRequestError: If mapping YAML is invalid or not a field-mapping dictionary
         """
         existing = await self.log_source_repo.get_by_id(log_source_id)
         if not existing:
             raise NotFoundError(f"Log source with id {log_source_id} not found")
 
-        old_parsing_script = existing.parsing_script
+        old_sync_values = {
+            "parsing_script": existing.parsing_script,
+            "mapping": existing.mapping,
+        }
 
         update_data = {}
         if request.name is not None:
@@ -131,24 +147,28 @@ class LogSourcesManager:
             update_data["parsing_config"] = await parser_manager.create_parser_config(request.parsing_script)
 
         if request.mapping is not None:
-            update_data["mapping"] = request.mapping
+            update_data["mapping"] = _normalize_mapping_or_bad_request(request.mapping)
 
         if request.test_topics is not None:
             update_data["test_topics"] = request.test_topics
 
         if request.test_repository_ids is not None:
-            update_data["test_repository_ids"] = [UUID(rid) for rid in request.test_repository_ids]
+            update_data["test_repository_ids"] = [selection.model_dump() for selection in request.test_repository_ids]
 
         updated = await self.log_source_repo.update(log_source_id, **update_data)
 
-        # Sync parser to Kafka if parsing_script changed
-        if "parsing_script" in update_data and old_parsing_script != update_data["parsing_script"]:
+        # Sync parser metadata to Kafka when pipeline runtime payload changes.
+        sync_fields = {"parsing_script", "mapping"}
+        should_sync = any(
+            field in update_data and old_sync_values[field] != update_data[field] for field in sync_fields
+        )
+        if should_sync:
             try:
                 await ParsersOrchestrator(self.db).handle_log_source_parser_update(log_source_id)
-                logger.info("Log source parser synced to Kafka", extra={"log_source_id": str(log_source_id)})
+                logger.info("Log source parser metadata synced to Kafka", extra={"log_source_id": str(log_source_id)})
             except Exception as e:
                 logger.warning(
-                    "Failed to sync log source parser to Kafka (non-critical)",
+                    "Failed to sync log source parser metadata to Kafka (non-critical)",
                     extra={"log_source_id": str(log_source_id), "error": str(e)},
                 )
                 if ErrorTracker.should_log(f"kafka_sync_parser_{log_source_id}"):
@@ -156,7 +176,7 @@ class LogSourcesManager:
                         action="warning",
                         entity_type="kafka_sync",
                         entity_id=str(log_source_id),
-                        details=f"Failed to sync log source parser to Kafka (non-critical): {str(e)}",
+                        details=f"Failed to sync log source parser metadata to Kafka (non-critical): {str(e)}",
                         source="system",
                         severity="warning",
                     )

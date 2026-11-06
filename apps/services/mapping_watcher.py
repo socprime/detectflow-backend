@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from apps.core.database import AsyncSessionLocal
 from apps.core.logger import get_logger
+from apps.core.schemas import RepositorySelection
 from apps.managers.mapping import MappingManager
 
 logger = get_logger(__name__)
@@ -42,7 +43,7 @@ class _MappingJobPayload:
     """Internal payload for a single job in the queue."""
 
     job_id: str
-    repository_ids: list[str]
+    repository_ids: list[RepositorySelection]
     topics: list[str]
     parser_query: str
 
@@ -64,7 +65,7 @@ class MappingWatcherService:
 
     def enqueue(
         self,
-        repository_ids: list[str],
+        repository_ids: list[RepositorySelection],
         topics: list[str],
         parser_query: str,
     ) -> str:
@@ -81,7 +82,11 @@ class MappingWatcherService:
         )
         logger.info(
             "Mapping job enqueued",
-            extra={"job_id": job_id, "repository_ids": repository_ids, "topics": topics},
+            extra={
+                "job_id": job_id,
+                "repository_ids": [selection.model_dump() for selection in repository_ids],
+                "topics": topics,
+            },
         )
         return job_id
 

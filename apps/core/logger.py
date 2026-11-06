@@ -1,4 +1,4 @@
-"""Logging configuration for Admin Panel Backend.
+"""Logging configuration for DetectFlow Backend.
 
 This module provides centralized logging configuration with consistent formatting
 and structured logging support across the application.

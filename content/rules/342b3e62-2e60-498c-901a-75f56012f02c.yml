@@ -1,0 +1,114 @@
+id: 2k0gIqpTg5KF
+name: Unusual Top Level Domain In Commandline (via cmdline)
+body: |-
+  title: Unusual Top Level Domain In Commandline (via cmdline)
+  id: 342b3e62-2e60-498c-901a-75f56012f02c
+  status: stable
+  description: Identifies unusual TLD (top level domains) in process commandline, which may be an indicator of malicious activity.
+  author: SOC Prime Team
+  references:
+      - https://www.malware-traffic-analysis.net/2026/07/31/index.html
+      - https://isc.sans.edu/diary/rss/32566
+      - https://asec.ahnlab.com/en/92160/
+      - https://www.derp.ca/research/hellsuchecker-clickfix-etherhiding/
+  tags:
+    - attack.exfiltration
+    - attack.t1567.002
+    - attack.command_and_control
+    - attack.t1105
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_bin:
+          Image|endswith:
+              - 'curl.exe' # https://www.malware-traffic-analysis.net/2026/07/31/index.html
+              - '\cmd.exe'
+              - 'powershell.exe'
+              - 'appinstaller.exe'
+              - 'bitsadmin.exe'
+              - 'certoc.exe'
+              - 'certreq.exe'
+              - 'certutil.exe'
+              - 'cmdl32.exe'
+              - 'configsecuritypolicy.exe'
+              - 'desktopimgdownldr.exe'
+              - 'devtunnel.exe'
+              - 'diantz.exe'
+              - 'esentutl.exe'
+              - 'excel.exe'
+              - 'expand.exe'
+              - 'extrac32.exe'
+              - 'findstr.exe'
+              - 'finger.exe'
+              - 'ftp.exe'
+              - 'hh.exe'
+              - 'ieexec.exe'
+              - 'imewdbld.exe'
+              - 'installutil.exe'
+              - 'ldifde.exe'
+              - 'makecab.exe'
+              - 'mpcmdrun.exe'
+              - 'msaccess.exe'
+              - 'msedge_proxy.exe'
+              - 'mshta.exe'
+              - 'msohtmed.exe'
+              - 'mspub.exe'
+              - 'msxsl.exe'
+              - 'ngen.exe'
+              - 'onedrivestandaloneupdater.exe'
+              - 'powerpnt.exe'
+              - 'presentationhost.exe'
+              - 'printbrm.exe'
+              - 'protocolhandler.exe'
+              - 'replace.exe'
+              - 'squirrel.exe'
+             # - 'update.exe'
+              - 'visio.exe'
+              - 'vslaunchbrowser.exe'
+              - 'winget.exe'
+              - 'winproj.exe'
+              - 'winword.exe'
+              - 'wsl.exe'
+              - 'xsd.exe'
+              - 'xwizard.exe'
+      selection_http:
+          CommandLine|contains:
+              - 'http://'
+              - 'https://'
+      selection_tld:
+          CommandLine|contains:
+              - 'anondns.net'
+              - 'dnspod.com'
+              - '.io'
+              - '.gg'
+              - '.cc'
+              - '.top'
+              - '.xyz' #https://asec.ahnlab.com/en/92160/
+              - '.pw'
+              - '.stream'
+              - '.loan'
+              - '.download'
+              - '.click' #https://www.derp.ca/research/hellsuchecker-clickfix-etherhiding/
+              - '.science'
+              - '.today'
+              - '.accountant'
+              - '.gdn'
+              - '.name'
+              - '.space'
+              - '.online'
+              - '.phd'
+              - '.mov'
+              - '.vip'
+              - '.buzz'
+              - '.boo'
+              - '.wf'
+              - '.pm'
+              - '.hair'
+      condition: selection_bin and selection_http and selection_tld
+  falsepositives:
+      - Unknown
+  level: medium
+level: medium
+created: '2025-01-22T09:44:44Z'
+updated: '2026-08-04T07:24:19.800000Z'

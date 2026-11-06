@@ -1,0 +1,51 @@
+id: UfhULfdvVPtu
+name: The n8n n8mare How threat actors are misusing AI workflow automation
+body: |-
+  title: The n8n n8mare How threat actors are misusing AI workflow automation
+  description: The n8n n8mare How threat actors are misusing AI workflow automation
+  id: 9420e91b-1447-41aa-8cf2-072ec03818d6
+  status: stable
+  author: SOC Prime Team
+  references:
+    - https://tdm.socprime.com/active-threats/PFGSlZ0BFsA9Tj2-pG-0
+  tags:
+    - attack.t1204
+    - attack.t1033
+    - attack.t1564
+    - attack.t1053.005
+    - attack.t1059.001
+    - attack.t1059.005
+    - attack.t1218.005
+    - attack.t1219.002
+    - attack.t1569.002
+    - attack.t1567
+  logsource:
+    category: detectflow
+  detection:
+    seq1:
+      ruleid|contains:
+        - 'df03915e-4d53-4fad-94f2-8310906315f9' #t1564 #Suspicious Executions from User Default Folders v2 (via process_creation) (v7q7VQUjej2e)
+    seq2:
+      ruleid|contains: #t1059.001
+        - '309111d8-89ad-4c98-a799-10053a40bd0a' #Suspicious Powershell Strings (via powershell) (RvmzKluPtZqZ)
+        - 'cfdbe1fa-ff01-44a4-b8e4-782c86099768' #Suspicious Powershell Strings (via cmdline) (CvqrCSb22srZ)
+        - 'c77d19cf-3624-4e67-9474-69b44568d39f' #Powershell Executing File In Suspicious Directory Using Bypass Execution Policy (via cmdline) (M9SxG3V6cYFT)
+        - '7c01d1e4-89de-476f-a996-eb768978994a' #The Possibility of Execution Through Hidden PowerShell Command Lines (via cmdline) (wXnIjRNfXGQJ)
+    seq3:
+      ruleid|contains:
+        - '68c59aa9-2052-4971-8962-667a45fb6f8c' #1219.002 #Alternative Remote Access / Management Software (via process_creation) (l29W5ayOJv2Y)
+    seq4:
+      ruleid|contains:
+        - '39fd7f61-89d5-4fe2-8c00-534506d06b10' #t1569.002 #Possible Manual Service or Driver Install for Persistence (via cmdline) (8QGXt6neIpOe)
+    seq5:
+      ruleid|contains: #t1567
+        - '93ec52aa-776a-4976-8209-bc68321c75b7' #Possible Data Exfiltration over WebRequests (via powershell) (fcxqFjdno1SH)
+        - '1f21ec3f-810d-4b0e-8045-322202e22b4b' #Network Connection Initiated By PowerShell Process (rSdOQZRfGOI7)
+    timeframe: 5m
+    condition: chain by hostname
+  falsepositives:
+      - Unknown
+  level: high
+level: high
+created: '2026-10-08T12:27:30Z'
+updated: '2026-11-06T08:06:37.596000Z'

@@ -20,17 +20,18 @@ from apps.core.auth import (
     create_refresh_token,
     decode_refresh_token,
     get_current_active_user,
-    hash_password,
+    hash_password_async,
     validate_password,
-    verify_password,
+    verify_password_async,
 )
+from apps.core.converters import UserConverter
 from apps.core.database import get_db
 from apps.core.exceptions import BadRequestError, NotFoundError
 from apps.core.models import User
+from apps.core.openapi import SET_COOKIE_AUTH, UNAUTHORIZED, err, errors
 from apps.core.schemas import (
     ChangePasswordRequest,
     ChangePasswordResponse,
-    ErrorResponse,
     LoginRequest,
     LoginResponse,
     LogoutResponse,
@@ -65,30 +66,15 @@ def _auth_error_response(detail: str) -> JSONResponse:
     return resp
 
 
-def _convert_user_to_user_detail_response(user: User) -> UserDetailResponse:
-    """Convert User model to UserDetailResponse."""
-    return UserDetailResponse(
-        id=str(user.id),
-        full_name=user.full_name,
-        email=user.email,
-        is_active=user.is_active,
-        role=user.role,
-        must_change_password=user.must_change_password,
-        created=user.created,
-        updated=user.updated,
-    )
-
-
 @router.post(
     "/login",
     response_model=LoginResponse,
     status_code=status.HTTP_200_OK,
     summary="User login",
-    responses={
-        200: {"description": "Successfully authenticated"},
-        401: {"model": ErrorResponse, "description": "Invalid credentials"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(
+        {200: {"description": "Successfully authenticated", "headers": SET_COOKIE_AUTH}},
+        err(401, "Invalid credentials or inactive account"),
+    ),
 )
 async def login(
     login_data: LoginRequest,
@@ -96,12 +82,13 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Authenticate user with email and password.
+    Authenticate a user with email and password.
 
-    Returns a JWT access token for subsequent API requests.
-    Include the token in the `Authorization` header as `Bearer <token>`.
-
-    Also sets an HttpOnly cookie `access_token` for SSE endpoint authentication.
+    Returns a JWT access token in the body (send it as `Authorization: Bearer <token>` on
+    subsequent requests) and, as a side effect, sets two HttpOnly cookies via `Set-Cookie`:
+    `access_token` (authenticates SSE endpoints) and `refresh_token` (rotated by
+    `POST /api/v1/auth/refresh`). Successful and failed attempts are recorded in the
+    activity log.
     """
     auth_orchestrator = AuthOrchestrator(db)
 
@@ -160,7 +147,7 @@ async def login(
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
-        user=_convert_user_to_user_detail_response(user),
+        user=UserConverter.to_detail(user),
     )
 
 
@@ -169,21 +156,30 @@ async def login(
     response_model=RefreshResponse,
     status_code=status.HTTP_200_OK,
     summary="Refresh access token",
-    responses={
-        200: {"description": "New access token generated"},
-        401: {"model": ErrorResponse, "description": "Invalid or expired refresh token"},
-    },
+    responses=errors(
+        {200: {"description": "New access token generated", "headers": SET_COOKIE_AUTH}},
+        err(401, "Missing, invalid, or expired refresh token, or user not found/inactive"),
+    ),
 )
 async def refresh_token(
     response: Response,
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    refresh_token: Annotated[
+        str | None,
+        Cookie(
+            description=(
+                "HttpOnly refresh-token JWT set by `POST /api/v1/auth/login` and rotated on each "
+                "successful refresh. Read from the request cookies, not a request body."
+            )
+        ),
+    ] = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Refresh the access token using a valid refresh token from HttpOnly cookie.
+    Mint a new access token from the HttpOnly `refresh_token` cookie.
 
-    Returns a new access token with rotated refresh token.
-    On any failure, clears auth cookies so the browser doesn't keep stale tokens.
+    Issues a fresh `access_token` and a rotated `refresh_token`, both written back via
+    `Set-Cookie`. On any failure (missing/invalid/expired token, unknown or inactive user)
+    it returns 401 and clears both auth cookies so the browser does not retain stale tokens.
     """
     if refresh_token is None:
         return _auth_error_response("Refresh token not found")
@@ -239,20 +235,30 @@ async def refresh_token(
     status_code=status.HTTP_200_OK,
     summary="User logout",
     responses={
-        200: {"description": "Successfully logged out"},
+        200: {"description": "Successfully logged out", "headers": SET_COOKIE_AUTH},
     },
 )
 async def logout(
     response: Response,
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    refresh_token: Annotated[
+        str | None,
+        Cookie(
+            description=(
+                "HttpOnly refresh-token JWT set by `POST /api/v1/auth/login` and rotated on refresh. "
+                "Used only to identify the user for activity logging; logout never fails if it is "
+                "missing or invalid."
+            )
+        ),
+    ] = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Logout the current user and clear all auth cookies.
+    Log the current user out, clearing both auth cookies via `Set-Cookie`.
 
-    Does not require a valid access token — authenticates via refresh_token cookie.
-    Always returns 200 and clears cookies, even if the session is already expired.
-    Activity is logged on a best-effort basis.
+    Best-effort: does not require a valid access token. It tries to decode the `refresh_token`
+    cookie purely to attribute a `logout` entry in the activity log; any decode/lookup failure
+    is swallowed. The endpoint always returns 200 and always clears `access_token` and
+    `refresh_token`, even when the session is already expired or the token is invalid.
     """
     # Best-effort: try to identify user for activity logging
     if refresh_token:
@@ -285,32 +291,28 @@ async def logout(
     "/me",
     response_model=UserDetailResponse,
     summary="Get current user",
-    responses={
-        200: {"description": "Current user information"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 async def get_current_user_info(
     current_user: User = Depends(get_current_active_user),
 ):
     """
-    Get the authenticated user's profile.
+    Return the authenticated user's own profile.
 
-    Returns detailed information about the currently logged-in user,
-    including role and account status.
+    Resolves the caller from the Bearer token and returns their detail record (role,
+    active flag, password-change requirement). Read-only — no side effects.
     """
-    return _convert_user_to_user_detail_response(current_user)
+    return UserConverter.to_detail(current_user)
 
 
 @router.patch(
     "/profile",
     response_model=UserDetailResponse,
     summary="Update profile",
-    responses={
-        200: {"description": "Profile updated successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        500: {"model": ErrorResponse, "description": "Internal server error"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(404, "User record could not be updated"),
+    ),
 )
 async def update_profile(
     profile_data: ProfileUpdateRequest,
@@ -318,9 +320,10 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Update the current user's profile.
+    Update the calling user's own profile (currently only `full_name`).
 
-    Currently only supports updating the full name.
+    Persists the change for the authenticated user and writes an `update` entry to the
+    activity log. Does not touch authentication state or cookies.
     """
     user_dao = UserDAO(db)
     updated_user = await user_dao.update(current_user.id, full_name=profile_data.full_name)
@@ -337,18 +340,21 @@ async def update_profile(
         source="user",
     )
 
-    return _convert_user_to_user_detail_response(updated_user)
+    return UserConverter.to_detail(updated_user)
 
 
 @router.post(
     "/change-password",
     response_model=ChangePasswordResponse,
     summary="Change password",
-    responses={
-        200: {"description": "Password changed successfully"},
-        400: {"model": ErrorResponse, "description": "Invalid password or validation error"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(
+            400,
+            "Current password is incorrect; new password fails the length rule (min 8 characters); "
+            "new password does not match the confirmation; or new password equals the current one",
+        ),
+    ),
 )
 async def change_password(
     password_data: ChangePasswordRequest,
@@ -356,17 +362,15 @@ async def change_password(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Change the current user's password.
+    Change the authenticated user's password.
 
-    Requires the current password for verification. The new password must:
-    - Be at least 8 characters long
-    - Contain at least one uppercase letter
-    - Contain at least one lowercase letter
-    - Contain at least one digit
-    - Be different from the current password
+    Verifies the supplied current password, then enforces, in order: the new password is at
+    least 8 characters long; it matches the confirmation field; and it differs from the current
+    password. On success it clears the user's `must_change_password` flag and records an
+    `update` entry in the activity log. Any rule violation returns 400 with the specific reason.
     """
-    # Verify current password
-    if not verify_password(password_data.current_password, current_user.password):
+    # Verify current password (bcrypt runs in the threadpool — see core.auth)
+    if not await verify_password_async(password_data.current_password, current_user.password):
         raise BadRequestError("Current password is incorrect")
 
     # Validate new password
@@ -384,7 +388,7 @@ async def change_password(
 
     # Update password
     user_dao = UserDAO(db)
-    hashed_password = hash_password(password_data.new_password)
+    hashed_password = await hash_password_async(password_data.new_password)
     await user_dao.update_password(current_user.id, hashed_password, must_change=False)
 
     await activity_producer.log_action(

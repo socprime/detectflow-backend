@@ -1,0 +1,39 @@
+id: QaMYsjXNHiBF
+name: Java Binary Executed From Unusual Location (via process_creation)
+body: |-
+  title: Java Binary Executed From Unusual Location (via process_creation)
+  id: 299bad2b-1646-42b3-bf01-5d2f7a111041
+  status: stable
+  author: SOC Prime Team
+  description: Adversaries may try to name their malicious payloads as legitimate Java binary in order to evade detection. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/10/30/help-desk-impersonation-ad-cs-abuse-investigating-esc1-esc8-intrusion-paths/
+    - https://thedfirreport.com/2023/12/04/sql-brute-force-leads-to-bluesky-ransomware/
+  tags:
+    - attack.t1036
+    - attack.defense_evasion
+  logsource:
+    category: process_creation
+    product: windows
+  detection:
+    selection:
+      Image|endswith: 'java.exe' # portable java.exe from \AppData\Roaming\KB<digits>\ launching .java source https://www.microsoft.com/en-us/security/blog/2026/10/30/help-desk-impersonation-ad-cs-abuse-investigating-esc1-esc8-intrusion-paths/
+    filters:
+      - Image|contains:
+        - '\jre\bin\'
+        - '\jdk\bin\'
+      - Image|contains|all:
+        - 'Program'
+        - 'Files'
+      - Image|contains|all:
+        - 'AppData'
+        - 'Local'
+        - 'Jetbrains'
+    condition: selection and not filters
+  falsepositives:
+    - Legitimate Java binary execution from uncommon directory.
+    - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: low
+level: low
+created: '2023-12-04T16:05:35Z'
+updated: '2026-11-02T10:02:27.922000Z'

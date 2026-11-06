@@ -1,0 +1,52 @@
+id: n6pEQvYpRvUk
+name: Windows Shortcut Was Executed With Suspicious Name (via file_event)
+body: |-
+  title: Windows Shortcut Was Executed With Suspicious Name (via file_event)
+  id: 2ee3c0b5-8504-4212-b2a8-09e1f95c0bf8
+  description: Identfies Windows shortcut file (.lnk) being executed containing suspicious words in the name, which may be an indicator of malicious activity.
+  author: SOC Prime Team
+  references:
+    - https://cert.gov.ua/article/6282517
+  status: stable
+  tags:
+    - attack.t1059.003
+    - attack.execution
+  logsource:
+    category: file_event
+    product: windows
+  detection:
+    selection_lnk:
+      Image|contains: '.' #must exists.
+      TargetFilename|endswith: '.lnk'
+    selection_names:
+      TargetFilename|contains:
+        - 'Invoice'
+        - 'Payment'
+        - 'Important'
+        - 'Urgent'
+        - 'Critical'
+        #- 'Document' #noizy.
+        - 'Price'
+        - 'Book'
+        - 'Resume' #https://cert.gov.ua/article/6282517
+        - 'CV_'
+        - 'CV '
+        - 'Please'
+        - ' CV'
+        - '_CV'
+        - 'Password'
+        - 'Detected'
+    filters:
+      - Image|contains:
+        - '\Program Files'
+      - TargetFilename|contains|all:
+        - 'AppData'
+        - 'Roaming'
+        - 'Microsoft'
+    condition: (selection_lnk and selection_names) and not filters
+  falsepositives:
+    - Unknown
+  level: medium
+level: medium
+created: '2024-06-27T13:02:00Z'
+updated: '2025-02-24T08:56:36.926000Z'

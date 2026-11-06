@@ -1,27 +1,25 @@
 """Repository management endpoints.
 
 This module provides REST API endpoints for managing rule repositories:
-SOCPrime TDM API, external (GitHub), and local repositories.
+SOCPrime TDM API, external (GitHub), GitLab (integration-owned), and local repositories.
 Includes sync triggers and status via the scheduler service.
 """
 
 import asyncio
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import get_current_active_user
+from apps.core.auth import get_current_active_user, require_write_access
 from apps.core.database import get_db
 from apps.core.exceptions import ConflictError
 from apps.core.models import User
+from apps.core.openapi import UNAUTHORIZED, err, errors
 from apps.core.pagination import get_pagination_params_no_page
 from apps.core.schemas import (
     AddExternalRepositoriesRequest,
     AddExternalRepositoriesResponse,
-    AddSocprimeRepositoriesRequest,
-    AddSocprimeRepositoriesResponse,
-    ErrorResponse,
     ExternalRepositoryListResponse,
     ExternalRepositoryResponse,
     RepositoryCreateUpdateRequest,
@@ -29,8 +27,8 @@ from apps.core.schemas import (
     RepositoryListResponse,
     RepositorySyncToggleRequest,
     RepositorySyncToggleResponse,
-    SocprimeRepositoryListResponse,
-    SocprimeRepositoryResponse,
+    SyncStartedResponse,
+    SyncTypeStatus,
 )
 from apps.managers.repositories import RepositoriesManager
 from apps.modules.kafka.activity import activity_producer
@@ -43,6 +41,7 @@ REPOSITORY_TYPE_DISPLAY = {
     "api": "SOC Prime",
     "external": "GitHub",
     "local": "Local",
+    "gitlab": "GitLab",
 }
 
 
@@ -53,23 +52,27 @@ def get_repository_type_display(repo_type: str) -> str:
 
 @router.post(
     "/sync-repositories",
+    response_model=SyncStartedResponse,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Start repository sync",
     responses={
         202: {"description": "Sync started in background"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        409: {"model": ErrorResponse, "description": "Sync already running"},
+        **errors(UNAUTHORIZED, err(409, "Sync is already running")),
     },
 )
 @router.post("/sync-repositories/", include_in_schema=False, status_code=status.HTTP_202_ACCEPTED)
 async def sync_repositories(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
 ):
     """
-    Start syncing repositories from SOCPrime TDM API.
+    Start manual sync tasks in background.
 
-    Returns immediately with 202 Accepted. The sync runs in background.
-    Use `/sync-repositories/status` to check progress.
+    Returns immediately with 202 Accepted; the work runs in an asyncio background task
+    (repository sync of SOCPrime TDM API, GitHub, and GitLab integrations with
+    ``auto_pull=true``, plus Active Threat sync when enabled). GitLab integrations with
+    ``auto_pull=false`` are skipped here — use ``POST /api/v1/integrations/{id}/pull`` instead.
+    Emits a `sync_start` activity-log entry and rejects with 409 if a sync is already
+    running. Poll `GET /sync-repositories/status` for progress.
     """
     scheduler = get_scheduler_service()
     if scheduler.is_sync_running:
@@ -79,7 +82,7 @@ async def sync_repositories(
         action="sync_start",
         entity_type="repository",
         user=current_user,
-        details="Manual repository sync triggered",
+        details="Manual sync triggered",
         source="user",
     )
 
@@ -89,105 +92,31 @@ async def sync_repositories(
 
 @router.get(
     "/sync-repositories/status",
+    response_model=dict[str, SyncTypeStatus],
     summary="Get sync status",
-    responses={
-        200: {"description": "Current sync status"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 @router.get("/sync-repositories/status/", include_in_schema=False)
 async def get_sync_status(
     _: User = Depends(get_current_active_user),
 ):
     """
-    Get the current repository sync status.
+    Get the status of the most recent (or in-progress) manual sync run.
 
-    **Status values:** `idle`, `running`, `completed`, `failed`
-    Returns separate status for each sync type: `api_repos`, `git_hub_repos`.
+    Returns a map keyed by sync type — `api_repos`, `git_hub_repos`, `gitlab_repos`,
+    `active_threats` — where each value carries the run state (`running`, `completed`,
+    `failed`) plus timestamps and any error. Sync types that are currently idle are omitted
+    from the map.
     """
     scheduler = get_scheduler_service()
     return scheduler.sync_statuses
 
 
 @router.get(
-    "/socprime-repositories",
-    response_model=SocprimeRepositoryListResponse,
-    summary="Get list of SOCPrime repositories",
-    responses={
-        200: {"description": "List of SOCPrime repositories"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        400: {"model": ErrorResponse, "description": "API key not configured or not valid"},
-    },
-)
-@router.get("/socprime-repositories/", include_in_schema=False)
-async def get_socprime_repositories(
-    _: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Get list of repositories from SOCPrime TDM API.
-
-    Returns repositories with their id and name. Requires SOCPrime API key to be configured.
-    """
-    manager = RepositoriesManager(db)
-    repos = await manager.get_socprime_repositories()
-
-    return SocprimeRepositoryListResponse(
-        data=[
-            SocprimeRepositoryResponse(
-                id=repo["id"],
-                name=repo["name"],
-                is_added=repo["is_added"],
-                source_link=repo["source_link"],
-            )
-            for repo in repos
-        ]
-    )
-
-
-@router.post(
-    "/add-socprime-repositories",
-    response_model=AddSocprimeRepositoriesResponse,
-    summary="Add SOCPrime repositories",
-    responses={
-        200: {"description": "Repositories added successfully"},
-        400: {"model": ErrorResponse, "description": "API key not configured or invalid repository IDs"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"model": ErrorResponse, "description": "Invalid API key or API error"},
-    },
-)
-@router.post("/add-socprime-repositories/", include_in_schema=False)
-async def add_socprime_repositories(
-    request: AddSocprimeRepositoriesRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Add SOCPrime repositories to the database.
-
-    Validates repository IDs against SOCPrime TDM API and adds valid repositories.
-    Skips repositories that are already added. Raises error if any repository ID is invalid.
-    """
-    manager = RepositoriesManager(db)
-    added_ids, skipped_ids = await manager.add_socprime_repositories(
-        repository_ids=request.repository_ids,
-        user=current_user,
-    )
-
-    return AddSocprimeRepositoriesResponse(
-        added=added_ids,
-        skipped=skipped_ids,
-    )
-
-
-@router.get(
     "/external-repositories",
     response_model=ExternalRepositoryListResponse,
     summary="Get list of external repositories",
-    responses={
-        200: {"description": "List of external repositories"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 @router.get("/external-repositories/", include_in_schema=False)
 async def get_external_repositories(
@@ -195,9 +124,10 @@ async def get_external_repositories(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Get list of available external repositories.
+    List the available external (GitHub) repositories.
 
-    Returns hardcoded list of external repositories with their id and name.
+    Returns the static catalog of supported external repositories, each flagged with
+    `is_added` to indicate whether it already exists locally. Read-only; no state changes.
     """
     manager = RepositoriesManager(db)
     repos = await manager.get_external_repositories()
@@ -219,23 +149,20 @@ async def get_external_repositories(
     "/add-external-repositories",
     response_model=AddExternalRepositoriesResponse,
     summary="Add external repositories",
-    responses={
-        200: {"description": "Repositories added successfully"},
-        400: {"model": ErrorResponse, "description": "Invalid repository IDs"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED, err(400, "Unknown external repository IDs")),
 )
 @router.post("/add-external-repositories/", include_in_schema=False)
 async def add_external_repositories(
     request: AddExternalRepositoriesRequest,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Add external repositories to the database.
+    Add external (GitHub) repositories to the local database.
 
-    Validates repository IDs against available external repositories and adds valid repositories.
-    Skips repositories that are already added. Raises error if any repository ID is invalid.
+    Validates the requested IDs against the static external catalog, persists the ones not
+    already present (each logged as a `create` activity entry), and reports already-present
+    IDs as `skipped`. Rejects unknown repository IDs with 400.
     """
     manager = RepositoriesManager(db)
     added_ids, skipped_ids = await manager.add_external_repositories(
@@ -254,23 +181,20 @@ async def add_external_repositories(
     response_model=RepositoryDetailResponse,
     status_code=201,
     summary="Create local repository",
-    responses={
-        201: {"description": "Repository created successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 @router.post("/repositories/", include_in_schema=False)
 async def create_local_repository(
     repository: RepositoryCreateUpdateRequest,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Create a new local repository.
 
-    Local repositories store rules created manually, as opposed to
-    API repositories synced from SOCPrime TDM.
+    Local repositories hold rules authored manually in the UI, unlike API (SOCPrime TDM)
+    or external (GitHub) repositories which are populated by sync. The new repository starts
+    empty (no rules, no pipelines) and the action is recorded in the activity log.
     """
     manager = RepositoriesManager(db)
     repo = await manager.create_local(name=repository.name, user=current_user)
@@ -285,6 +209,8 @@ async def create_local_repository(
         updated=repo.updated,
         sync_enabled=repo.sync_enabled,
         source_link=repo.source_link,
+        is_system=repo.is_system,
+        system_key=repo.system_key,
         pipelines=[],  # New repository has no pipelines yet
     )
 
@@ -293,24 +219,25 @@ async def create_local_repository(
     "/repositories/{repository_id}",
     response_model=RepositoryDetailResponse,
     summary="Update local repository",
-    responses={
-        200: {"description": "Repository updated successfully"},
-        400: {"model": ErrorResponse, "description": "Repository is not local"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Repository not found"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(400, "Repository is system-managed or not a local repository"),
+        err(404, "Repository not found"),
+    ),
 )
 @router.patch("/repositories/{repository_id}/", include_in_schema=False)
 async def update_local_repository(
-    repository_id: UUID,
+    repository_id: UUID = Path(..., description="UUID of the local repository to update"),
     repository: RepositoryCreateUpdateRequest = ...,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Update a local repository.
+    Rename a local repository and record the change in the activity log.
 
-    **Note:** Only local repositories can be updated. API repositories are read-only.
+    Only local repositories are editable: API (SOCPrime) and external repositories are
+    read-only, and system-managed repositories are locked — both reject with 400. GitLab
+    (integration-owned) repositories are renamed indirectly by renaming their integration profile.
     """
     manager = RepositoriesManager(db)
     repo = await manager.update_local(
@@ -332,6 +259,8 @@ async def update_local_repository(
         updated=repo.updated,
         sync_enabled=repo.sync_enabled,
         source_link=repo.source_link,
+        is_system=repo.is_system,
+        system_key=repo.system_key,
         pipelines=pipeline_infos,
     )
 
@@ -340,24 +269,27 @@ async def update_local_repository(
     "/repositories/{repository_id}",
     status_code=204,
     summary="Delete repository",
-    responses={
-        204: {"description": "Repository deleted successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Repository not found"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(400, "Repository is system-managed and cannot be deleted"),
+        err(404, "Repository not found"),
+        err(409, "Repository is still attached to one or more pipelines"),
+    ),
 )
 @router.delete("/repositories/{repository_id}/", include_in_schema=False)
 async def delete_repository(
-    repository_id: UUID,
-    current_user: User = Depends(get_current_active_user),
+    repository_id: UUID = Path(..., description="UUID of the repository to delete"),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """
-    Delete a repository.
+    Delete a repository and all of its rules.
 
-    Works for local, API (SOCPrime), and external repositories.
-    All rules in the repository will also be deleted.
-    Repositories can be added back using the corresponding add endpoints if needed.
+    Works for local, API (SOCPrime), and external repositories; system-managed repositories
+    are locked (400) and repositories still attached to a pipeline are rejected (409). Deleting
+    a repository cascades to its rules and emits Kafka rule-deletes for any connected pipelines,
+    plus a `delete` activity-log entry. Non-system repositories can be re-added later via the
+    corresponding add endpoints.
     """
     manager = RepositoriesManager(db)
     await manager.delete(repository_id=repository_id, user=current_user)
@@ -367,24 +299,27 @@ async def delete_repository(
     "/repositories/{repository_id}/sync",
     response_model=RepositorySyncToggleResponse,
     summary="Toggle sync for repository",
-    responses={
-        200: {"description": "Sync status updated successfully or already in requested state"},
-        400: {"model": ErrorResponse, "description": "Repository is local"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Repository not found"},
-    },
+    responses=errors(
+        UNAUTHORIZED,
+        err(400, "Repository is system-managed or local (sync unsupported)"),
+        err(404, "Repository not found"),
+    ),
 )
 @router.patch("/repositories/{repository_id}/sync/", include_in_schema=False)
 async def toggle_repository_sync(
-    repository_id: UUID,
-    request: RepositorySyncToggleRequest,
-    current_user: User = Depends(get_current_active_user),
+    repository_id: UUID = Path(..., description="UUID of the repository to toggle sync for"),
+    request: RepositorySyncToggleRequest = ...,
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Enable or disable sync for a SOCPrime or external repository.
+    Enable or disable scheduled sync for an API (SOCPrime), external, or GitLab repository.
 
-    **Note:** Only API (SOCPrime) and external repositories support sync. Local repositories cannot be synced.
+    Persists the new `sync_enabled` flag and logs a `toggle` activity entry; a no-op request
+    (already in the requested state) succeeds with an explanatory message. For GitLab
+    (integration-owned) repositories this flips the owning integration's `auto_pull` flag, which
+    drives the scheduler. Local and system-managed repositories do not support sync and are
+    rejected with 400.
     """
     manager = RepositoriesManager(db)
     message, sync_enabled = await manager.toggle_sync(
@@ -403,28 +338,26 @@ async def toggle_repository_sync(
     "/repositories/{repository_id}",
     response_model=RepositoryDetailResponse,
     summary="Get repository by ID",
-    responses={
-        200: {"description": "Repository details"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Repository not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Repository not found")),
 )
 @router.get("/repositories/{repository_id}/", include_in_schema=False)
 async def get_repository(
-    repository_id: UUID,
+    repository_id: UUID = Path(..., description="UUID of the repository to fetch"),
     _: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Get detailed information about a repository.
+    Get detailed information about a single repository.
 
-    Returns repository metadata including rules count and type (local/api/external).
+    Returns repository metadata (name, type, rules count, sync flag, source link) plus the
+    list of pipelines it is attached to. Read-only.
     """
     manager = RepositoriesManager(db)
     repo = await manager.get_by_id(repository_id)
 
     # Fetch pipelines for the repository
     pipeline_infos = await manager.get_pipelines_for_repository(repository_id)
+    folder_trees = await manager.get_folder_trees_for_repositories([repository_id])
 
     return RepositoryDetailResponse(
         id=str(repo.id),
@@ -436,7 +369,10 @@ async def get_repository(
         updated=repo.updated,
         sync_enabled=repo.sync_enabled,
         source_link=repo.source_link,
+        is_system=repo.is_system,
+        system_key=repo.system_key,
         pipelines=pipeline_infos,
+        folders=folder_trees.get(repository_id, []),
     )
 
 
@@ -444,10 +380,7 @@ async def get_repository(
     "/repositories",
     response_model=RepositoryListResponse,
     summary="List repositories",
-    responses={
-        200: {"description": "Paginated list of repositories"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 async def get_repositories(
     _: User = Depends(get_current_active_user),
@@ -455,9 +388,10 @@ async def get_repositories(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    List all repositories with pagination.
+    List all repositories with pagination, sorting, and search.
 
-    Returns local, API (SOCPrime TDM), and external repositories with rules count.
+    Returns local, API (SOCPrime TDM), and external repositories together with their rules
+    count and attached pipelines. Read-only.
     """
     manager = RepositoriesManager(db)
     repos, total = await manager.get_all(pagination)
@@ -465,6 +399,7 @@ async def get_repositories(
     # Fetch pipelines for all repositories in a single query
     repo_ids = [repo.id for repo in repos]
     repo_pipelines_map = await manager.get_pipelines_for_repositories(repo_ids)
+    repo_folders_map = await manager.get_folder_trees_for_repositories(repo_ids)
 
     return RepositoryListResponse(
         total=total,
@@ -483,7 +418,10 @@ async def get_repositories(
                 updated=repo.updated,
                 sync_enabled=repo.sync_enabled,
                 source_link=repo.source_link,
+                is_system=repo.is_system,
+                system_key=repo.system_key,
                 pipelines=repo_pipelines_map.get(repo.id, []),
+                folders=repo_folders_map.get(repo.id, []),
             )
             for repo in repos
         ],

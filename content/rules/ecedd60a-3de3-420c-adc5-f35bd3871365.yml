@@ -1,0 +1,148 @@
+id: 2zSZM1ruWb8g
+name: System Processes Execution from Untypical Paths (via process_creation)
+body: |-
+  title: System Processes Execution from Untypical Paths (via process_creation)
+  id: ecedd60a-3de3-420c-adc5-f35bd3871365
+  status: stable
+  description: Rule to detect system processes execution from untypical paths, which can be an indicator of malicious activity
+  author: SOC Prime Team
+  references:
+      - https://dreamgroup.com/blog/darkblinders-inside-an-active-espionage-campaign
+      - https://checkmarx.com/zero-post/malfex-npm-malware-campaign-three-payloads-and-an-adversary-that-signs-their-work/
+      - https://unit42.paloaltonetworks.com/blinder-tunnel-targets-critical-infrastructure/
+      - https://www.jumpsec.com/guides/an-emerging-silver-fox-like-cluster-papermill/
+      - https://www.huntress.com/blog/fake-gta6-download-malware-analysis
+      - https://asec.ahnlab.com/en/95230/
+      - https://www.proofpoint.com/us/blog/threat-insight/carry-compromise-ta4922-packs-packclient
+      - https://asec.ahnlab.com/en/94552/
+      - https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/
+      - https://www.trendmicro.com/en_us/research/26/g/actor-behind-patriot-bait-used-ai-to-deploy-c2-botnet.html
+      - https://thehackernews.com/2026/06/new-sharkloader-malware-deploys-cobalt.html
+      - https://thedfirreport.com/2026/06/29/from-bing-search-to-ransomware-bumblebee-and-adaptixc2-deliver-akira-3/
+      - https://www.derp.ca/research/silverfox-panasonic-sauron-loader-chain/
+      - https://www.huntress.com/blog/potemkin-loader-rmmproject-clickfix-attack
+      - https://www.lac.co.jp/lacwatch/report/20260604_004759.html
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/weedhack-minecraft-malware-as-a-service-campaign-research/
+      - https://www.enki.co.kr/en/media-center/blog/kimsuky-s-advanced-attack-techniques-jsonping-webex-spoofing-and-a-new-httpspy-variant
+      - https://blog.talosintelligence.com/from-pdb-strings-to-maas-tracking-a-commodity-badiis-ecosystem/
+      - https://www.welivesecurity.com/en/eset-research/frostyneighbor-fresh-mischief-digital-shenanigans/
+      - https://darkatlas.io/blog/salat-stealer-analysis-go-based-rat-c2-resilience-and-info-stealing-capabilities
+      - https://www.darktrace.com/blog/inside-zionsiphon-darktraces-analysis-of-ot-malware-targeting-israeli-water-systems
+      - https://any.run/cybersecurity-blog/phishing-google-drive-remcos/
+      - https://www.fortinet.com/blog/threat-research/sophisticated-attack-targets-taiwan-with-smokeloader
+      - https://cert.gov.ua/article/2394117
+      - https://cert.gov.ua/article/38088
+      - https://github.com/vadim-hunter/Detection-Ideas-Rules/blob/main/Threat%20Intelligence/The%20DFIR%20Report/20210329_Sodinokibi_(aka_REvil)_Ransomware.yaml
+      - https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-319a
+      - https://blogs.vmware.com/security/2023/11/netsupport-rat-the-rat-king-returns.html
+      - https://www.arcticwolf.com/resources/blog/qlik-sense-exploited-in-cactus-ransomware-campaign/
+      - https://thedfirreport.com/2023/12/18/lets-opendir-some-presents-an-analysis-of-a-persistent-actors-activity/
+      - https://research.checkpoint.com/2021/mosesstaff-targeting-israeli-companies/
+      - https://www.mandiant.com/resources/blog/unc4990-evolution-usb-malware
+      - https://twitter.com/RexorVc0/status/1753322883370168777
+      - https://asec.ahnlab.com/ko/61288/
+      - https://news.sophos.com/en-us/2024/02/23/connectwise-screenconnect-attacks-deliver-malware/
+      - https://www.huntress.com/blog/slashandgrab-screen-connect-post-exploitation-in-the-wild-cve-2024-1709-cve-2024-1708
+      - https://any.run/cybersecurity-blog/dcrat-analysis-in-any-run/
+      - https://asec.ahnlab.com/ko/62117/
+      - https://thedfirreport.com/2024/04/01/from-onenote-to-ransomnote-an-ice-cold-intrusion/
+      - https://www.elastic.co/security-labs/invisible-miners-unveiling-ghostengine
+      - https://news.sophos.com/en-us/2024/09/10/crimson-palace-new-tools-tactics-targets/
+      - https://blog.talosintelligence.com/gophish-powerrat-dcrat/
+      - https://www.fortinet.com/blog/threat-research/new-campaign-uses-remcos-rat-to-exploit-victims
+      - https://thedfirreport.com/2024/12/02/the-curious-case-of-an-egg-cellent-resume/
+      - https://www.cloudsek.com/blog/how-threat-actors-exploit-brand-collaborations-to-target-popular-youtube-channels
+      - https://trac-labs.com/advancing-through-the-cyberfront-legionloader-commander-6af38ebe39d4
+      - https://wezard4u.tistory.com/429381
+      - https://fieldeffect.com/blog/field-effect-mitigates-not-so-simplehelp-exploits-enabling-deployment-of-backdoors
+      - https://www.microsoft.com/en-us/security/blog/2025/02/12/the-badpilot-campaign-seashell-blizzard-subgroup-conducts-multiyear-global-access-operation/
+      - https://unit42.paloaltonetworks.com/advanced-backdoor-squidoor/
+      - https://blog.talosintelligence.com/uat-5918-targets-critical-infra-in-taiwan/
+      - https://www.trendmicro.com/en_us/research/25/c/the-espionage-toolkit-of-earth-alux.html
+      - https://www.fortinet.com/blog/threat-research/fortiguard-incident-response-team-detects-intrusion-into-middle-east-critical-national-infrastructure
+      - https://research.checkpoint.com/2025/stealth-falcon-zero-day/
+      - https://www.trendmicro.com/en_us/research/25/f/water-curse.html
+      - https://www.cyfirma.com/research/octalyn-stealer-unmasked/
+      - https://www.esentire.com/blog/evalusion-campaign-delivers-amatera-stealer-and-netsupport-rat
+      - https://labs.k7computing.com/index.php/masked-in-memory-a-hidden-pyc-fragment-utilises-cvtres-exe-to-communicate-with-cc/
+      - https://profero.io/blog/dit-me-may-morphisec-when-malware-authors-taunt-security-researchers
+      - https://www.rapid7.com/blog/post/tr-chrysalis-backdoor-dive-into-lotus-blossoms-toolkit/
+      - https://www.microsoft.com/en-us/security/blog/2026/02/02/infostealers-without-borders-macos-python-stealers-and-platform-abuse/
+      - https://www.trellix.com/blogs/research/technical-deep-dive-the-monero-mining-campaign/
+      - https://any.run/cybersecurity-blog/moonrise-rat-detected/
+      - https://blog.talosintelligence.com/new-dohdoor-malware-campaign/
+      - https://www.cyberproof.com/blog/a-deep-dive-into-pxa-stealer/
+  tags:
+      - attack.defense_evasion
+      - attack.t1055.012
+      - attack.t1036
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+    selection:
+      ParentImage|endswith: '.exe' #must exists.
+      Image|endswith:
+        - 'SystemSettings.exe'
+        - 'calc.exe' # https://www.enki.co.kr/en/media-center/blog/kimsuky-s-advanced-attack-techniques-jsonping-webex-spoofing-and-a-new-httpspy-variant
+        - '\smss.exe' # https://www.virustotal.com/gui/file/25802493e7ef64523d6ab13ad6e5555b2b08fd4576ae2edd905ad939d256aa3a/behavior; https://asec.ahnlab.com/en/94552/
+        - '\svchost.exe' # https://www.cyberproof.com/blog/a-deep-dive-into-pxa-stealer/; https://www.darktrace.com/blog/inside-zionsiphon-darktraces-analysis-of-ot-malware-targeting-israeli-water-systems; https://www.welivesecurity.com/en/eset-research/frostyneighbor-fresh-mischief-digital-shenanigans/; https://blog.talosintelligence.com/from-pdb-strings-to-maas-tracking-a-commodity-badiis-ecosystem/; https://www.trendmicro.com/en_us/research/26/g/actor-behind-patriot-bait-used-ai-to-deploy-c2-botnet.html; https://www.proofpoint.com/us/blog/threat-insight/carry-compromise-ta4922-packs-packclient; https://asec.ahnlab.com/en/95230/; https://www.huntress.com/blog/fake-gta6-download-malware-analysis; https://checkmarx.com/zero-post/malfex-npm-malware-campaign-three-payloads-and-an-adversary-that-signs-their-work/
+        - 'gpupdate.exe'
+        - 'taskhostw.exe'
+        - 'rundll32.exe'
+        - '\sc.exe'
+        - 'consent.exe'
+        - 'VSSVC.exe' #%PUBLIC%\Libraries\VSSVC.exe
+        - 'sethc.exe'
+        - '\lsm.exe'
+        #- '\dwm.exe'
+        - 'spoolsv.exe'
+        - '\csrss.exe' # https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/
+        - 'wininit.exe'
+        - 'fontdrvhost.exe'
+        #- '\conhost.exe'
+        - 'ctfmon.exe'
+        - 'RuntimeBroker.exe' # https://www.mcafee.com/blogs/other-blogs/mcafee-labs/weedhack-minecraft-malware-as-a-service-campaign-research/; https://www.lac.co.jp/lacwatch/report/20260604_004759.html; https://www.jumpsec.com/guides/an-emerging-silver-fox-like-cluster-papermill/; https://unit42.paloaltonetworks.com/blinder-tunnel-targets-critical-infrastructure/; https://dreamgroup.com/blog/darkblinders-inside-an-active-espionage-campaign
+        - 'dllhost.exe'
+        - 'route.exe'
+        - 'winlogon.exe'
+        - 'systeminfo.exe'
+        - 'ntoskrnl.exe'
+        - 'timeout.exe'
+        - 'explorer.exe'
+        - 'mblctr.exe'
+      CommandLine|contains: '.exe' #must exists.
+    selection_dotnet:
+      ParentImage|endswith:
+        - '.exe'
+        - '.tmp'
+        - '.src'
+      Image|endswith:
+        - 'RegAsm.exe'
+        - 'RegSvcs.exe'
+    #filter_dwm:
+    #  Image|endswith: 'dwm.exe'
+    #  ParentImage|endswith: 'svc.exe' #\\ProgramData\\{4CEC2908-5CE4-48F0-A717-8FC833D8017A}\\0.1.263\\{FECA2AA4-B5B5-447C-A8B7-1D21B3900D34}\\dwm.exe
+    filter_dotnet:
+      - Image|contains|all:
+        - 'Windows' #C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe
+        - 'Microsoft.NET'
+        - 'Framework'
+      - Image|contains:
+        - '\Program Files'
+        - '\Lenovo\Vantage\Addins\LenovoBatteryGaugeAddin'
+    filters:
+      Image|contains:
+        - '\Windows\System32'
+        - 'Windows\SysWOW64'
+        - ':\Program Files'
+        - '.NET\Framework' #SMSvcHost.exe
+        - '\Windows\explorer.exe'
+    condition: (selection and not filters) or (selection_dotnet and not filter_dotnet)
+  falsepositives:
+    - Unknown
+  level: medium
+level: medium
+created: '2021-09-09T12:22:02Z'
+updated: '2026-10-14T08:56:42.814000Z'

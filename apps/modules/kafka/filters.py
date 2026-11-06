@@ -1,7 +1,7 @@
 """Kafka Filters Sync Service.
 
 Publishes filters to Kafka for Flink jobs to consume.
-Uses the same topic as rules (sigma-rules) but with type="filter" to distinguish.
+Uses the same topic as rules (detectflow.sigma-rules) but with type="filter" to distinguish.
 """
 
 import asyncio
@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 class KafkaFiltersSyncService(BaseKafkaSyncClient):
     """Service for publishing filters to Kafka.
 
-    Filters use the same topic as rules (sigma-rules) but are distinguished
+    Filters use the same topic as rules (detectflow.sigma-rules) but are distinguished
     by the "type": "filter" field in the message payload.
 
     Message format:

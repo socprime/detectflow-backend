@@ -14,12 +14,13 @@ from typing import Annotated
 from uuid import UUID
 
 import bcrypt
-from fastapi import Cookie, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Security, status
+from fastapi.concurrency import run_in_threadpool
+from fastapi.security import APIKeyCookie, HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.database import get_db
+from apps.core.database import AsyncSessionLocal, get_db
 from apps.core.enums import UserRole
 from apps.core.models import User
 from apps.core.settings import settings
@@ -27,6 +28,19 @@ from apps.modules.postgre.user import UserDAO
 
 # Security scheme for FastAPI
 security = HTTPBearer()
+
+# Cookie security scheme for SSE endpoints (EventSource cannot send an Authorization
+# header). Declared via Security() so it appears in OpenAPI as an apiKey-in-cookie
+# scheme with its own Authorize entry; auto_error=False keeps the custom 401 below.
+cookie_scheme = APIKeyCookie(
+    name="access_token",
+    scheme_name="CookieAuth",
+    description=(
+        "HttpOnly `access_token` JWT cookie set by `POST /api/v1/auth/login`. "
+        "Used by SSE endpoints where the `Authorization` header is unavailable."
+    ),
+    auto_error=False,
+)
 
 # Password requirements
 MIN_PASSWORD_LENGTH = 8
@@ -55,6 +69,42 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         True if password matches, False otherwise.
     """
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+
+
+async def hash_password_async(password: str) -> str:
+    """Hash password using bcrypt without blocking the event loop.
+
+    bcrypt is deliberately CPU-expensive (~1s per call on a small vCPU), so in
+    async request handlers it must run in the threadpool: calling the sync
+    version directly freezes the entire event loop for the duration — every
+    concurrent request, SSE stream, and DB-session release stalls behind it,
+    which under a login storm cascades into pool exhaustion
+    (``QueuePool limit reached``).
+
+    Args:
+        password: Plain text password.
+
+    Returns:
+        Hashed password.
+    """
+    return await run_in_threadpool(hash_password, password)
+
+
+async def verify_password_async(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against bcrypt hash without blocking the event loop.
+
+    See ``hash_password_async`` for why bcrypt must not run on the event loop.
+    Use this in all async request handlers (login, change-password); the sync
+    ``verify_password`` remains for CLI scripts and startup code.
+
+    Args:
+        plain_password: Plain text password to verify.
+        hashed_password: Hashed password to compare against.
+
+    Returns:
+        True if password matches, False otherwise.
+    """
+    return await run_in_threadpool(verify_password, plain_password, hashed_password)
 
 
 def generate_temporary_password(length: int = 12) -> str:
@@ -232,6 +282,10 @@ async def get_current_active_user(
     return current_user
 
 
+# Roles allowed to mutate resources (POST/PUT/PATCH/DELETE and side-effecting actions).
+WRITE_ROLES = frozenset({UserRole.ADMIN, UserRole.USER})
+
+
 async def get_current_admin_user(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ) -> User:
@@ -254,17 +308,51 @@ async def get_current_admin_user(
     return current_user
 
 
+async def require_write_access(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> User:
+    """FastAPI dependency requiring write access (admin or user; not viewer).
+
+    Use on mutating endpoints. Leave read endpoints on ``get_current_active_user``
+    so viewers can still call them.
+
+    Args:
+        current_user: Current active user.
+
+    Returns:
+        Current user with write permission.
+
+    Raises:
+        HTTPException: If user role is not allowed to write (e.g. viewer).
+    """
+    if current_user.role not in WRITE_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Write access required",
+        )
+    return current_user
+
+
 async def get_current_user_from_cookie(
-    access_token: Annotated[str | None, Cookie()] = None,
-    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Security(cookie_scheme)] = None,
 ) -> User:
     """FastAPI dependency to get current user from HttpOnly cookie.
 
-    Used for SSE endpoints where Authorization header is not supported.
+    Used for SSE endpoints where Authorization header is not supported. The cookie is
+    read via the ``CookieAuth`` security scheme so it is visible in OpenAPI/Swagger.
+
+    Unlike ``get_current_user`` (header auth), this dependency does **not** take
+    ``Depends(get_db)``. FastAPI runs yield-dependency teardown only after the response
+    is fully delivered, and the SSE endpoints that use this dependency return a
+    ``StreamingResponse`` that never completes while the client tab is open. A
+    ``Depends(get_db)`` here would therefore pin one pooled connection (checked out and
+    idle-in-transaction) for the entire lifetime of every SSE stream — the root cause of
+    production ``QueuePool limit ... reached`` pool exhaustion. Instead we open a
+    short-lived session inside the function body so the connection is held for
+    milliseconds (the auth SELECT) and returned to the pool before the stream begins.
 
     Args:
         access_token: JWT token from HttpOnly cookie.
-        db: Database session.
 
     Returns:
         Current authenticated user.
@@ -287,8 +375,10 @@ async def get_current_user_from_cookie(
             detail="Invalid authentication credentials",
         )
 
-    user_dao = UserDAO(db)
-    user = await user_dao.get_by_id(UUID(user_id))
+    async with AsyncSessionLocal() as db:
+        user_dao = UserDAO(db)
+        user = await user_dao.get_by_id(UUID(user_id))
+
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

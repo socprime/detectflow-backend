@@ -1,0 +1,33 @@
+id: iIUUKWOhrjVs
+name: A User was Added to a Admins Local Group (via audit)
+body: |-
+  title: A User was Added to a Admins Local Group (via audit)
+  id: c170f431-47bc-471f-b539-e73d1135bbf3
+  description: Attackers may create a new local account and add it to the local Administrators group.
+  status: stable
+  author: SOC Prime Team
+  references:
+      - https://www.anthropic.com/news/disrupting-AI-espionage
+      - https://assets.anthropic.com/m/ec212e6566a0d47/original/Disrupting-the-first-reported-AI-orchestrated-cyber-espionage-campaign.pdf
+      - https://github.com/Wh04m1001/CVE-2023-36874/blob/32fd2fc7976a45475ceedf202385141d1f433827/wermgr/main.cpp#L10
+      - https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/event.aspx?eventid=4732
+      - https://socprime.com/detectflow/ # FOR DF DEMO
+  tags:
+      - attack.persistence
+      - attack.t1098
+  logsource:
+      product: windows
+      service: security
+  detection:
+      selection:
+          EventID: 4732
+          TargetUserName|contains: 'adm'
+      filter:
+          SubjectUserName|endswith: '$'
+      condition: selection and not filter
+  falsepositives:
+      - Administrative activity.
+  level: medium
+level: medium
+created: '2020-02-03T15:26:15Z'
+updated: '2026-08-12T11:06:56.699000Z'

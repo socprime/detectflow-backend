@@ -1,0 +1,45 @@
+id: ZvkRCZcY1nxv
+name: Possible CVE-2026-109618 / CVE-2026-109619 Exploitation Attempt - PHP Memory Exhaustion / PHP Worker Crash (via webserver error logs)
+body: |-
+  title: Possible CVE-2026-109618 / CVE-2026-109619 Exploitation Attempt - PHP Memory Exhaustion / PHP Worker Crash (via webserver error logs)
+  id: 42cd03f3-6b9f-49ea-9bf4-ce0caed6f772
+  status: experimental
+  author: SOC Prime Team
+  description: Detects PHP fatal errors - Allowed memory size of N bytes exhausted ... in Unknown on line 0 in web server or PHP-FPM error logs. This error pattern matches the publicly available PoC for CVE-2026-109618, part of the PHP2Shell remote code execution chain, where a crafted request exhausts memory while PHP parses the request, before any script runs. The rule detects this crash symptom, not successful code execution. Requires PHP error logging (log_errors=On) to the collected error.log.
+  references:
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+  tags:
+      - attack.initial_access
+      - attack.t1190
+  logsource:
+      category: webserver
+      definition: Requires error.log log file collection (May be located at /var/log/php-fpm/error.log, /var/log/nginx/error.log, var/log/httpd/error_log, /var/log/apache2/error.log)
+  detection:
+      keywords_mem_part1:
+          - 'Allowed memory size of'
+      keywords_mem_part2:
+          - 'bytes exhausted' #Allowed memory size of xxxxx bytes exhausted
+      keywords_unk:
+          - 'in Unknown on line 0' # Unknown on line 0
+          - 'rfc1867.c' # rfc1867.c (multipart parser)
+      keywords_apache_signal:
+          - 'exit signal Segmentation fault (11)'
+          - 'exit signal Abort (6)' # AH00051: child pid 104 exit signal Abort (6) internal research
+          - 'exit signal Aborted (6)'
+          - 'exit signal Bus error (7)'
+      keywords_leak:
+          - 'PHP Request Startup: Session ID is too long' # PHP Warning:  PHP Request Startup: Session ID is too long or contains illegal characters internal research
+      keywords_fpm_signal:
+          - 'signal 11 (SIGSEGV'
+          - 'signal 6 (SIGABRT'
+          - 'signal 7 (SIGBUS'
+      keywords_body_limit:
+          - 'Request body no files data length is larger than the configured limit'
+          - 'Request body excluding files is bigger than the maximum expected'
+      condition: (keywords_mem_part1 and keywords_mem_part2 and keywords_unk) or keywords_apache_signal or keywords_fpm_signal or keywords_body_limit or keywords_leak
+  falsepositives:
+      - Legitimate requests exhausting memory during request parsing (large POST/multipart bodies with low memory_limit)
+  level: medium
+level: medium
+created: '2026-10-22T13:24:46Z'
+updated: '2026-10-26T09:00:15.262000Z'

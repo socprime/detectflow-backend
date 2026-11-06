@@ -1,117 +1,30 @@
 """Settings endpoints.
 
 This module provides REST API endpoints for application settings:
-- Get settings (API key status)
-- Set SOCPrime API key
 - Get/Set Flink defaults
 - Get Flink parameters schema (for UI)
+
+SOCPrime API key management has been migrated to the Integrations module
+(POST /api/v1/integrations with integration_type="socprime_tdm").
 """
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.clients.tdm_api import TDMAPIClient, TdmApiError, TdmApiUnauthorizedError
 from apps.core.auth import get_current_active_user, get_current_admin_user
 from apps.core.database import get_db
-from apps.core.exceptions import ExternalServiceError
 from apps.core.models import User
+from apps.core.openapi import FORBIDDEN, UNAUTHORIZED, errors
 from apps.core.schemas import (
-    ErrorResponse,
     FlinkDefaultsResponse,
     FlinkDefaultsSchemaResponse,
     FlinkDefaultsUpdateRequest,
-    RepositoryApiKeyUpdateResponse,
-    SettingsResponse,
 )
 from apps.managers.flink_config import FlinkConfigManager
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.postgre.config import ConfigDAO
 
 router = APIRouter(prefix="/api/v1", tags=["Settings"])
-
-
-@router.get(
-    "/settings",
-    response_model=SettingsResponse,
-    summary="Get application settings",
-    responses={
-        200: {"description": "Settings retrieved successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
-)
-@router.get("/settings/", include_in_schema=False)
-async def get_settings(
-    _: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Get application settings.
-
-    Returns current settings including whether SOCPrime API key is configured
-    and masked version of the API key (first 3 and last 3 characters).
-    """
-    config_repo = ConfigDAO(db)
-    api_key = await config_repo.get_api_key()
-    api_key_configured = api_key is not None
-
-    api_key_mask = None
-    if api_key:
-        if len(api_key) <= 10:
-            api_key_mask = "***"
-        else:
-            api_key_mask = f"{api_key[:3]}***{api_key[-3:]}"
-
-    return SettingsResponse(
-        api_key_configured=api_key_configured,
-        api_key_mask=api_key_mask,
-    )
-
-
-@router.put(
-    "/socprime-api-key",
-    response_model=RepositoryApiKeyUpdateResponse,
-    summary="Set SOCPrime API key",
-    responses={
-        200: {"description": "API key updated successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Invalid API key"},
-    },
-)
-@router.put("/socprime-api-key/", include_in_schema=False)
-async def update_socprime_api_key(
-    api_key: str = Body(..., description="SOCPrime API key", embed=True, min_length=1, max_length=255),
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Create or update the SOCPrime TDM API key.
-
-    The API key is validated by fetching repositories from TDM API.
-    """
-    config_repo = ConfigDAO(db)
-    tdm_api_client = TDMAPIClient(api_key=api_key)
-
-    # Validate API key by fetching repositories
-    try:
-        await tdm_api_client.get_repositories()
-    except TdmApiUnauthorizedError:
-        raise  # Global handler returns 401
-    except TdmApiError as e:
-        raise ExternalServiceError("SOCPrime API", f"Failed to validate API key: {e}") from e
-
-    await config_repo.set_api_key(api_key)
-
-    await activity_producer.log_action(
-        action="update",
-        entity_type="settings",
-        entity_id="socprime_api_key",
-        entity_name="SOCPrime API key",
-        user=current_user,
-        details=f"User {current_user.email} updated SOCPrime API key",
-        source="user",
-    )
-
-    return RepositoryApiKeyUpdateResponse(message="API key updated successfully")
 
 
 # =============================================================================
@@ -123,10 +36,7 @@ async def update_socprime_api_key(
     "/settings/flink-defaults",
     response_model=FlinkDefaultsResponse,
     summary="Get Flink default configuration",
-    responses={
-        200: {"description": "Flink defaults retrieved successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 @router.get("/settings/flink-defaults/", include_in_schema=False)
 async def get_flink_defaults(
@@ -134,10 +44,11 @@ async def get_flink_defaults(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Get global Flink default configuration for new pipelines.
+    Get the global Flink defaults applied to **newly created** pipelines.
 
-    These defaults are used when creating pipelines without explicit resource configuration.
-    Individual pipelines can override these values.
+    These resource/processing/autoscaler values seed a pipeline only at creation time when no
+    explicit config is supplied; an existing pipeline's own values always take precedence and are
+    not affected by reading this. Read-only.
     """
     config_dao = ConfigDAO(db)
     return await config_dao.get_flink_defaults()
@@ -147,12 +58,7 @@ async def get_flink_defaults(
     "/settings/flink-defaults",
     response_model=FlinkDefaultsResponse,
     summary="Update Flink default configuration",
-    responses={
-        200: {"description": "Flink defaults updated successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        403: {"model": ErrorResponse, "description": "Admin access required"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(UNAUTHORIZED, FORBIDDEN),
 )
 @router.put("/settings/flink-defaults/", include_in_schema=False)
 async def update_flink_defaults(
@@ -161,10 +67,13 @@ async def update_flink_defaults(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Update global Flink default configuration.
+    Update the global Flink defaults used when creating new pipelines.
 
-    **Admin only.** This is a partial update - only provided (non-null) fields are updated.
-    Existing pipelines are not affected; only new pipelines use these defaults.
+    **Admin only** (403 otherwise). Partial update — only provided (non-null) fields change. This
+    only changes the seed values for **future** pipelines; it never restarts or reconfigures
+    existing pipelines and triggers no Flink redeploy itself. (Whether a given parameter, once set
+    on a real pipeline, needs a Flink restart or applies via hot-reload is described by each
+    parameter's `impact` in the schema endpoint below.) Writes an `update` entry to the activity log.
     """
     config_dao = ConfigDAO(db)
     updated = await config_dao.set_flink_defaults(update)
@@ -188,22 +97,18 @@ async def update_flink_defaults(
     "/settings/flink-defaults/schema",
     response_model=FlinkDefaultsSchemaResponse,
     summary="Get Flink configuration schema",
-    responses={
-        200: {"description": "Schema retrieved successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 @router.get("/settings/flink-defaults/schema/", include_in_schema=False)
 async def get_flink_defaults_schema(
     _: User = Depends(get_current_active_user),
 ):
     """
-    Get Flink configuration parameter schema for UI.
+    Get the editable Flink parameter schema for the settings UI.
 
-    Returns detailed documentation for each configurable parameter including:
-    - Data types and valid ranges
-    - Descriptions and usage tips
-    - Categories for UI grouping
-    - Impact information (restart required vs hot-reload)
+    Returns, per configurable parameter, its data type and valid range, description and tips, UI
+    category, and an `impact` flag indicating whether changing that parameter on a live pipeline
+    forces a Flink restart (`restart`) or applies without downtime (`hot_reload`). Static and
+    read-only — describes the parameters, not any pipeline's current values.
     """
     return FlinkConfigManager.get_schema()

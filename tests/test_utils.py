@@ -1,6 +1,6 @@
 """Unit tests for apps/modules/utils.py."""
 
-from apps.modules.utils import get_fields_from_sigma
+from apps.modules.utils import build_rule_folder_tree, get_fields_from_sigma
 
 
 class TestGetFieldsFromSigma:
@@ -107,3 +107,97 @@ detection:
         assert "EventID" in fields
         # condition value should not be treated as a field
         assert "selection" not in fields
+
+
+class TestBuildRuleFolderTree:
+    """Tests for virtual rule folder tree construction."""
+
+    def test_builds_tree_with_subtree_counts(self):
+        """Should build nested folders and accumulate counts up the tree."""
+        tree = build_rule_folder_tree(
+            {
+                "_product/windows/_category/process_creation": 3,
+                "_product/windows/_service/security": 2,
+                "_product/windows": 1,
+            }
+        )
+
+        assert tree == [
+            {
+                "path": "_product",
+                "rules_count": 6,
+                "children": [
+                    {
+                        "path": "_product/windows",
+                        "rules_count": 6,
+                        "children": [
+                            {
+                                "path": "_product/windows/_category",
+                                "rules_count": 3,
+                                "children": [
+                                    {
+                                        "path": "_product/windows/_category/process_creation",
+                                        "rules_count": 3,
+                                        "children": [],
+                                    }
+                                ],
+                            },
+                            {
+                                "path": "_product/windows/_service",
+                                "rules_count": 2,
+                                "children": [
+                                    {
+                                        "path": "_product/windows/_service/security",
+                                        "rules_count": 2,
+                                        "children": [],
+                                    }
+                                ],
+                            },
+                        ],
+                    }
+                ],
+            },
+        ]
+
+    def test_normalizes_paths_to_lowercase_and_merges_duplicates(self):
+        """Should merge folder counts that differ only by case."""
+        tree = build_rule_folder_tree(
+            {
+                "_product/Windows/_service/Security": 2,
+                "_product/windows/_service/security": 3,
+            }
+        )
+
+        assert tree == [
+            {
+                "path": "_product",
+                "rules_count": 5,
+                "children": [
+                    {
+                        "path": "_product/windows",
+                        "rules_count": 5,
+                        "children": [
+                            {
+                                "path": "_product/windows/_service",
+                                "rules_count": 5,
+                                "children": [
+                                    {
+                                        "path": "_product/windows/_service/security",
+                                        "rules_count": 5,
+                                        "children": [],
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+
+    def test_ignores_empty_path_segments(self):
+        """Should skip empty path segments without creating empty folders."""
+        tree = build_rule_folder_tree({"_product//windows///_service/security": 1})
+
+        assert tree[0]["path"] == "_product"
+        assert tree[0]["children"][0]["path"] == "_product/windows"
+        assert tree[0]["children"][0]["children"][0]["path"] == "_product/windows/_service"

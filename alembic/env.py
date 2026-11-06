@@ -9,11 +9,20 @@ from apps.core.database import Base
 
 # Import all models to register them with Base.metadata
 from apps.core.models import (  # noqa: F401
+    ActiveThreat,
+    ActiveThreatHighOrderSigma,
+    AttackChain,
+    AttackChainConfiguration,
+    AttackChainEvent,
     AuditLog,
     Config,
+    CorrelationPipeline,
     Event,
     Filter,
     HealthCheck,
+    HighOrderSigma,
+    HighOrderSigmaRuleRef,
+    Integration,
     LogSource,
     Parser,
     Pipeline,
@@ -22,7 +31,9 @@ from apps.core.models import (  # noqa: F401
     PipelineRuleMetric,
     Repository,
     Rule,
+    RuleContent,
     User,
+    correlation_pipeline_members,
     pipeline_repositories,
 )
 

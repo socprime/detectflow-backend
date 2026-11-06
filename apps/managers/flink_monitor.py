@@ -30,6 +30,7 @@ from apps.core.schemas import StatusDetails
 from apps.managers.pipeline_status import pipeline_status_manager
 from apps.modules.kafka.activity import activity_producer
 from apps.providers import get_flink_provider
+from apps.providers.base import FlinkProvider
 
 logger = get_logger(__name__)
 
@@ -120,8 +121,6 @@ class FlinkMonitorService:
 
     def __init__(self):
         """Initialize the monitor service."""
-        self._flink = get_flink_provider()
-
         # Track pipeline states
         # Key: pipeline_id (str), Value: PipelineState
         self._states: dict[str, PipelineState] = {}
@@ -129,6 +128,16 @@ class FlinkMonitorService:
         # Background task handle
         self._task: asyncio.Task | None = None
         self._is_running: bool = False
+
+    @property
+    def _flink(self) -> FlinkProvider:
+        """Resolve the Flink provider lazily (cached by ``get_flink_provider``).
+
+        The module-level singleton below is created at import time; resolving the provider
+        eagerly would build a Kubernetes client (kubeconfig required) as an import side effect
+        and break imports in environments without cluster access (unit tests, CI).
+        """
+        return get_flink_provider()
 
     async def start(self) -> None:
         """Start the background monitoring task."""

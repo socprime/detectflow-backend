@@ -14,13 +14,14 @@ from apps.core.auth import get_current_active_user
 from apps.core.database import get_db
 from apps.core.logger import get_logger
 from apps.core.models import Pipeline, User
+from apps.core.openapi import UNAUTHORIZED, err, errors
 from apps.core.schemas import (
-    ErrorResponse,
     PipelineSimpleResponse,
     TopicDetailResponse,
     TopicEventItem,
     TopicsEventsRequest,
     TopicsResponse,
+    destination_topics_from_pipeline,
 )
 from apps.modules.kafka.parsers import KafkaParsersEventsReader
 from apps.modules.kafka.topics import get_topics_from_kafka
@@ -30,11 +31,22 @@ logger = get_logger(__name__)
 
 
 async def _fetch_pipelines(db: AsyncSession):
-    """Fetch pipelines from db with only id, name, source_topics, destination_topic.
+    """Fetch pipelines from db with only id, name, source_topics, destinations.
+
+    ``destination_topic`` is selected as the legacy fallback for
+    ``destination_topics_from_pipeline``.
 
     Returns Row objects that can be accessed via attribute notation (e.g., row.id, row.name).
     """
-    result = await db.execute(select(Pipeline.id, Pipeline.name, Pipeline.source_topics, Pipeline.destination_topic))
+    result = await db.execute(
+        select(
+            Pipeline.id,
+            Pipeline.name,
+            Pipeline.source_topics,
+            Pipeline.destinations,
+            Pipeline.destination_topic,
+        )
+    )
     return result.all()
 
 
@@ -42,29 +54,27 @@ async def _fetch_pipelines(db: AsyncSession):
     "/topics",
     response_model=TopicsResponse,
     summary="List Kafka topics",
-    responses={
-        200: {"description": "Paginated list of topics with associated pipelines"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 async def get_topics(
-    search: str | None = Query(None, description="Search in topic name"),
-    type_filter: str | None = Query(None, alias="type", description="Filter by type: source, destination, both"),
+    search: str | None = Query(None, description="Filter by topic name (case-insensitive substring)"),
+    type_filter: str | None = Query(
+        None,
+        alias="type",
+        description="Filter by how pipelines use the topic: source, destination, or both",
+    ),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    limit: int = Query(50, ge=1, le=200, description="Pagination limit"),
+    limit: int = Query(50, ge=1, le=200, description="Page size"),
     _: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Get all Kafka topics with their pipeline associations.
 
-    Returns topics fetched directly from Kafka, showing which pipelines
-    use each topic as source or destination.
-
-    Supports:
-    - search: Filter by topic name (case-insensitive)
-    - type: Filter by topic type (source, destination, both)
-    - offset/limit: Pagination
+    Topic names are fetched live from the Kafka cluster and cross-referenced with the
+    pipelines in the database, so each topic shows which pipelines use it as a source,
+    destination, or both. Read-only; nothing is published. Results are filterable by name
+    and usage type, then paginated.
     """
     topic_names, pipelines = await asyncio.gather(
         get_topics_from_kafka(),
@@ -88,13 +98,14 @@ async def get_topics(
                     "type": "source",
                 }
 
-        # Handle destination topic
-        if pipeline.destination_topic in topic_info:
-            # Check if this pipeline already uses this topic as source
-            if pipeline_id_str in topic_info[pipeline.destination_topic]:
-                topic_info[pipeline.destination_topic][pipeline_id_str]["type"] = "both"
+        # Handle destination topics (all destinations[].topic)
+        for dest_topic in destination_topics_from_pipeline(pipeline):
+            if dest_topic not in topic_info:
+                continue
+            if pipeline_id_str in topic_info[dest_topic]:
+                topic_info[dest_topic][pipeline_id_str]["type"] = "both"
             else:
-                topic_info[pipeline.destination_topic][pipeline_id_str] = {
+                topic_info[dest_topic][pipeline_id_str] = {
                     "name": pipeline.name,
                     "type": "destination",
                 }
@@ -144,22 +155,24 @@ async def get_topics(
 @router.post(
     "/topic-events",
     response_model=list[TopicEventItem],
-    summary="Get events from topics",
-    responses={
-        200: {"description": "Events from requested topics"},
-        400: {"description": "One or more topics not found"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    summary="Sample events from topics",
+    responses=errors(
+        UNAUTHORIZED,
+        err(400, "One or more requested topics do not exist in Kafka"),
+    ),
 )
 async def get_topics_events(
     request: TopicsEventsRequest,
     _: User = Depends(get_current_active_user),
 ):
     """
-    Get events from a list of Kafka topics.
+    Sample recent events from a list of Kafka topics.
 
-    Returns up to 10 events from each specified topic. Each event includes
-    the event data as a string and the topic name it came from.
+    Reads each requested topic directly from Kafka and returns a flat list of
+    `TopicEventItem` (each carries the source `topic` name and the raw `event` payload as a
+    string). At most **10 events per topic** are returned; topics are read concurrently.
+    Read-only — nothing is consumed permanently or published. All requested topics must
+    exist, otherwise the request is rejected with 400.
     """
     # Validate that all requested topics exist
     available_topics = await get_topics_from_kafka()
