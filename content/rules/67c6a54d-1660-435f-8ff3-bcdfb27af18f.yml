@@ -1,0 +1,52 @@
+id: e1OU1IQ4Fo0i
+name: Suspicious Shell via Web Server [Linux] (via process_creation)
+body: |-
+  title: Suspicious Shell via Web Server [Linux] (via process_creation)
+  id: 67c6a54d-1660-435f-8ff3-bcdfb27af18f
+  description: Suspicious commands executed via a web server, which may suggest a vulnerability and remote shell access
+  status: stable
+  author: SOC Prime Team
+  references:
+      - https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+      - https://www.elastic.co/security-labs/wp2shell-wordpress-rce-detection-elastic-defend
+      - https://thehackernews.com/2024/12/apache-tomcat-vulnerability-cve-2024.html
+      - https://securitylabs.datadoghq.com/articles/openssl-november-1-vulnerabilities/
+      - https://www.hackercoolmagazine.com/uploading-shell-hacking-website-metasploit/
+      - https://www.tecmint.com/best-open-source-web-servers/
+      - https://www.redhat.com/sysadmin/favorite-shell
+      - https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/
+  tags:
+      - attack.t1505.003
+      - attack.persistence
+  logsource:
+    product: linux
+    category: process_creation
+  detection:
+    selection:
+      User|contains:
+        - 'apache'
+        - 'nginx'
+        - 'lighttpd'
+        - 'tomcat' # CVE-2024-56337 / CVE-2024-50379
+        - 'caddy'
+        - 'lshttpd'
+        - 'hiawatha'
+        - 'node' # Node.js process https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+        - 'www'
+        - 'www-data'
+      Image|contains:
+        - '/bash' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+        - '/dash'
+        - '/sh' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+        - '/csh'
+        - '/ksh'
+        - '/zsh'
+    filters:
+      CommandLine|contains: 'MISP/app/Console/cake' # Misp
+    condition: selection and not filters
+  falsepositives:
+    - A web server component in network monitoring or management software may perform shell commands as part of normal operation.
+  level: medium
+level: medium
+created: '2022-06-08T18:04:41Z'
+updated: '2026-10-25T18:47:34.971000Z'

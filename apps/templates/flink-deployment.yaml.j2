@@ -46,35 +46,50 @@ spec:
 
     # Adaptive scheduler for in-place rescaling (Flink 1.18+/2.1)
     jobmanager.scheduler: adaptive
+    # Hold out for stragglers before starting at partial parallelism
+    jobmanager.adaptive-scheduler.submission.resource-stabilization-timeout: 60s
+    # Be patient for slow pod creation instead of failing / starting degraded
+    jobmanager.adaptive-scheduler.submission.resource-wait-timeout: 15min
 
+    # The three state roots below carry NO per-pipeline segment on purpose: every mount is
+    # scoped by `state_subpath` (the bare pipeline_id — architecture §22), so the container
+    # already sees only its own directory at /mnt/<kind>. Putting the id back into the path
+    # double-nests the tree on the PVC, orphans every existing checkpoint and cold-starts the job:
+    #
+    #   |                | before (whole volume) | now (scoped mount) | if the segment returned |
+    #   | container path | /mnt/<kind> + /ID     | /mnt/<kind>        | /mnt/<kind> + /ID       |
+    #   | path on PVC    | <pvc>/ID              | <pvc>/ID       OK  | <pvc>/ID/ID       WRONG |
+    #
     # High Availability (Kubernetes native)
     high-availability.type: kubernetes
-    high-availability.storageDir: file:///mnt/ha/{{ pipeline_id }}
+    high-availability.storageDir: file:///mnt/ha
 
-    # State Backend and Checkpointing
-    state.backend.type: rocksdb
-    execution.checkpointing.dir: file:///mnt/checkpoints/{{ pipeline_id }}
-    execution.checkpointing.savepoint-dir: file:///mnt/savepoints/{{ pipeline_id }}
-    execution.checkpointing.incremental: "true"
+    # State / Python companions from apps/providers/matcher_runtime_tuning.py
+    # (MATCHER_STATE_BACKEND × MATCHER_PYTHON_EXECUTION_MODE). ``state.backend.type`` and
+    # ``execution.checkpointing.incremental`` come from that matrix — do not pin them here.
+{% for key, value in runtime.flink_conf.items() %}
+    {{ key }}: "{{ value }}"
+{% endfor %}
+
+    # Checkpoint locations + interval. No pipeline_id segment: the three PVCs are mounted with
+    # `subPath` (§22), so /mnt/<kind> already IS this pipeline's directory — see the table above.
+    # Appending the id here is the "if the segment returned" column: <pvc>/ID/ID.
+    execution.checkpointing.dir: file:///mnt/checkpoints
+    execution.checkpointing.savepoint-dir: file:///mnt/savepoints
     execution.checkpointing.interval: {{ checkpoint_interval_sec }}s
     execution.checkpointing.min-pause: {{ (checkpoint_interval_sec // 2) | int }}s
     execution.checkpointing.timeout: 10min
     execution.checkpointing.mode: EXACTLY_ONCE
     execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
 
-    # RocksDB Performance Tuning (conservative)
-    state.backend.rocksdb.writebuffer.size: 64MB
-    state.backend.rocksdb.writebuffer.count: "3"
-    state.backend.rocksdb.block.cache-size: 256MB
-    state.backend.rocksdb.block.blocksize: 4KB
-    state.backend.rocksdb.compaction.style: LEVEL
-    state.backend.rocksdb.thread.num: "4"
-
     # TaskManager Configuration (1 slot per TM; replicas = parallelism)
     taskmanager.numberOfTaskSlots: "1"
     taskmanager.cpu.cores: "{{ taskmanager_cpu }}"
-    taskmanager.memory.process.size: {{ taskmanager_memory }}
-    taskmanager.memory.managed.fraction: "0.4"
+    # JVM/Flink process budget. In process mode Python workers allocate outside
+    # process.size; limit-factor raises the pod *limit* above the memory *request*.
+    # In thread mode nearly all configured memory is process.size (Python in-JVM).
+    taskmanager.memory.process.size: "{{ taskmanager_process_memory }}"
+    kubernetes.taskmanager.memory.limit-factor: "{{ taskmanager_memory_limit_factor }}"
 
     # JobManager Configuration
     jobmanager.memory.process.size: {{ jobmanager_memory }}
@@ -93,6 +108,9 @@ spec:
   # JobManager Spec
   jobManager:
     replicas: 1
+    resource:
+      cpu: {{ jobmanager_cpu }}
+      memory: {{ jobmanager_memory }}
 
     podTemplate:
       apiVersion: v1
@@ -106,39 +124,59 @@ spec:
         serviceAccountName: flink
         securityContext:
           fsGroup: 9999  # Flink user GID
+          # Where the volume plugin honours fsGroup this skips a recursive chown of the whole
+          # RocksDB tree on every pod start; on RWX/NFS-style volumes that skip fsGroup entirely
+          # it is a no-op — which is why the init container below is not optional (§22).
+          fsGroupChangePolicy: OnRootMismatch
         nodeSelector:
           {{ node_selector_key }}: {{ node_selector_value }}
         initContainers:
+          # The kubelet creates a missing scoped-mount directory as root, so a uid-9999 Flink
+          # container could not write into a fresh one. This fixes ownership of the three
+          # directories it can see — with the mounts scoped below, this deployment's own state
+          # roots and nothing else. No `-R`: everything under them was written by uid 9999
+          # already. (The recursive world-writable chmod this replaces walked a live RocksDB
+          # tree on every restart AND made every pod on the shared PVC a writer.)
+          # No kafka-ssl-certs mount: this container reads no certs.
           - name: prepare-volumes
             image: busybox:latest
+            securityContext:
+              runAsUser: 0  # needs root to chown; the main container does not
             command:
               - sh
               - -c
               - |
-                mkdir -p /mnt/checkpoints/{{ pipeline_id }}
-                mkdir -p /mnt/ha/{{ pipeline_id }}/job-result-store
-                mkdir -p /mnt/savepoints/{{ pipeline_id }}
-                chmod -R 777 /mnt/checkpoints/{{ pipeline_id }} /mnt/ha/{{ pipeline_id }} /mnt/savepoints/{{ pipeline_id }}
-                echo "Volumes prepared for {{ deployment_name }}"
+                set -eu
+                mkdir -p /mnt/ha/job-result-store
+                chown 9999:9999 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                chmod 2770 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                echo "state roots prepared for {{ state_subpath }}"
             volumeMounts:
-              {% if kafka_auth_method != "PLAINTEXT" %}
-              - name: kafka-ssl-certs
-                mountPath: /certs
-              {% endif %}
               - name: checkpoints
                 mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
               - name: ha-storage
                 mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
               - name: savepoints
                 mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
         containers:
           - name: flink-main-container
             env:
+              # Driven by MATCHER_* via apps/providers/matcher_runtime_tuning.py.
+              - name: PYTHON_EXECUTION_MODE
+                value: "{{ runtime.python_execution_mode }}"
+              - name: STATE_BACKEND
+                value: "{{ runtime.state_backend }}"
               # Pipeline-specific parameters
               - name: JOB_ID
                 value: "{{ job_id }}"
               - name: KAFKA_INPUT_TOPICS
                 value: "{{ input_topics | join(',') }}"
+              - name: KAFKA_OUTPUT_DESTINATIONS
+                value: {{ kafka_output_destinations | tojson }}
+              {# Legacy shims for older match-node images (ignored when KAFKA_OUTPUT_DESTINATIONS is set) #}
               - name: KAFKA_OUTPUT_TOPIC
                 value: "{{ output_topic }}"
               - name: OUTPUT_MODE
@@ -164,6 +202,10 @@ spec:
                 value: "{{ rules_topic }}"
               - name: KAFKA_METRICS_TOPIC
                 value: "{{ metrics_topic }}"
+              # Tagged-events side-output topic — must match the correlation-job's
+              # KAFKA_INPUT_TOPICS (CORRELATION_JOB_INPUT_TOPIC)
+              - name: KAFKA_TAGGED_EVENTS_TOPIC
+                value: "{{ tagged_events_topic }}"
             envFrom:
               - configMapRef:
                   name: flink-config
@@ -174,12 +216,18 @@ spec:
               - name: kafka-ssl-certs
                 mountPath: /certs
               {% endif %}
+              # Each deployment sees ONLY its own directory: the PVCs are shared RWX and a
+              # whole-volume mount exposes (and lets this pod delete) every other customer's
+              # RocksDB checkpoints. Epic Decision D6 / architecture §22.
               - name: checkpoints
                 mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
               - name: ha-storage
                 mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
               - name: savepoints
                 mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
             startupProbe:
               httpGet:
                 path: /config
@@ -211,6 +259,11 @@ spec:
   taskManager:
     replicas: {{ taskmanager_replicas }}
 
+    resource:
+      # Operator maps this to taskmanager.memory.process.size; pod limit is raised by limit-factor.
+      memory: "{{ taskmanager_process_memory }}"
+      cpu: {{ taskmanager_cpu }}
+
     podTemplate:
       apiVersion: v1
       kind: Pod
@@ -223,35 +276,57 @@ spec:
         serviceAccountName: flink
         securityContext:
           fsGroup: 9999
+          fsGroupChangePolicy: OnRootMismatch
         nodeSelector:
           {{ node_selector_key }}: {{ node_selector_value }}
         initContainers:
+          # Same rationale as the JobManager's init container above (§22).
           - name: prepare-volumes
             image: busybox:latest
+            securityContext:
+              runAsUser: 0  # needs root to chown; the main container does not
             command:
               - sh
               - -c
               - |
-                mkdir -p /mnt/checkpoints/{{ pipeline_id }}
-                mkdir -p /mnt/ha/{{ pipeline_id }}/job-result-store
-                mkdir -p /mnt/savepoints/{{ pipeline_id }}
-                chmod -R 777 /mnt/checkpoints/{{ pipeline_id }} /mnt/ha/{{ pipeline_id }} /mnt/savepoints/{{ pipeline_id }}
-                echo "Volumes prepared for {{ deployment_name }}"
+                set -eu
+                mkdir -p /mnt/ha/job-result-store
+                chown 9999:9999 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                chmod 2770 /mnt/checkpoints /mnt/ha /mnt/savepoints /mnt/ha/job-result-store
+                echo "state roots prepared for {{ state_subpath }}"
             volumeMounts:
               - name: checkpoints
                 mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
               - name: ha-storage
                 mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
               - name: savepoints
                 mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
         containers:
           - name: flink-main-container
             env:
+              # Driven by MATCHER_* via apps/providers/matcher_runtime_tuning.py.
+              - name: PYTHON_EXECUTION_MODE
+                value: "{{ runtime.python_execution_mode }}"
+              - name: STATE_BACKEND
+                value: "{{ runtime.state_backend }}"
+              # Python/native memory controls for TaskManager Python operators
+              - name: LD_PRELOAD
+                value: "/usr/lib/libjemalloc.so.2"
+              - name: MALLOC_CONF
+                value: "background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000"
+              - name: POLARS_MAX_THREADS
+                value: "1"
               # Pipeline-specific parameters
               - name: JOB_ID
                 value: "{{ job_id }}"
               - name: KAFKA_INPUT_TOPICS
                 value: "{{ input_topics | join(',') }}"
+              - name: KAFKA_OUTPUT_DESTINATIONS
+                value: {{ kafka_output_destinations | tojson }}
+              {# Legacy shims for older match-node images (ignored when KAFKA_OUTPUT_DESTINATIONS is set) #}
               - name: KAFKA_OUTPUT_TOPIC
                 value: "{{ output_topic }}"
               - name: OUTPUT_MODE
@@ -277,6 +352,10 @@ spec:
                 value: "{{ rules_topic }}"
               - name: KAFKA_METRICS_TOPIC
                 value: "{{ metrics_topic }}"
+              # Tagged-events side-output topic — must match the correlation-job's
+              # KAFKA_INPUT_TOPICS (CORRELATION_JOB_INPUT_TOPIC)
+              - name: KAFKA_TAGGED_EVENTS_TOPIC
+                value: "{{ tagged_events_topic }}"
             envFrom:
               - configMapRef:
                   name: flink-config
@@ -287,12 +366,18 @@ spec:
               - name: kafka-ssl-certs
                 mountPath: /certs
               {% endif %}
+              # Each deployment sees ONLY its own directory: the PVCs are shared RWX and a
+              # whole-volume mount exposes (and lets this pod delete) every other customer's
+              # RocksDB checkpoints. Epic Decision D6 / architecture §22.
               - name: checkpoints
                 mountPath: /mnt/checkpoints
+                subPath: {{ state_subpath }}
               - name: ha-storage
                 mountPath: /mnt/ha
+                subPath: {{ state_subpath }}
               - name: savepoints
                 mountPath: /mnt/savepoints
+                subPath: {{ state_subpath }}
         volumes:
           {% if kafka_auth_method != "PLAINTEXT" %}
           - name: kafka-ssl-certs
@@ -313,7 +398,7 @@ spec:
   # PyFlink Job Configuration
   job:
     # PyFlink jar
-    jarURI: local:///opt/flink/opt/flink-python_2.12-1.20.0.jar
+    jarURI: local:///opt/flink/opt/flink-python-2.2.0.jar
     entryClass: org.apache.flink.client.python.PythonDriver
 
     # Args for PyFlink module
@@ -340,7 +425,6 @@ spec:
   mode: native
 
   # Logging Configuration (Flink K8s Operator native)
-  # Ref: .claude/docs/kubernetes-operator/operations/metrics-logging.md
   logConfiguration:
     log4j-console.properties: |+
       # Root logger - INFO for production observability

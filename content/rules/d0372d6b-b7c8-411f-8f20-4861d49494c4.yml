@@ -1,0 +1,54 @@
+id: TiCPK3HR2uYp
+name: Possible Web Shell Drop - PHP Script or Web Config File Written by PHP Web Worker [Linux] (via file_event)
+body: |-
+  title: Possible Web Shell Drop - PHP Script or Web Config File Written by PHP Web Worker [Linux] (via file_event)
+  id: d0372d6b-b7c8-411f-8f20-4861d49494c4
+  status: stable
+  description: Detects a PHP web worker (php-fpm, php-cgi, lsphp, frankenphp, apache2, httpd) writing PHP scripts, .htaccess or .user.ini files. After PHP2Shell remote code execution, attackers drop web shells or set auto_prepend_file in .user.ini for persistence.
+  author: SOC Prime Team
+  references:
+    - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+  tags:
+    - attack.persistence
+    - attack.t1505.003
+  logsource:
+    product: linux
+    category: file_event
+  detection:
+      selection_image:
+        - Image|endswith:
+              - '/php-fpm'
+              - '/php-cgi'
+              - '/sw-engine-fpm'
+              - '/httpd'
+              - '/apache2'
+              - '/nginx'
+              - '/lsphp'
+              - '/frankenphp'
+        - Image|contains:
+              - '/php-fpm' #php-fpm; php-fpm8.3, etc
+              - '/lsphp'
+      selection_target:
+          TargetFilename|endswith:
+              - '.php5'
+              - '.php7'
+              - '.php'
+              - '.phtml'
+              - '.phar'
+              - '.pht'
+              - '/.user.ini'
+              - '/.htaccess'
+      filters:
+          TargetFilename|contains:
+              - '/wp-content/cache'
+              - '/wp-content/upgrade'
+              - '/bootstrap' # Laravel
+              - '/var/cache'
+      condition: selection_image and selection_target and not filters
+  falsepositives:
+    - CMS plugin / theme installation and auto-updates via web UI
+    - Template engines compiling PHP cache files outside filtered paths
+  level: medium
+level: medium
+created: '2026-10-25T18:11:35Z'
+updated: '2026-10-27T10:25:40.919000Z'

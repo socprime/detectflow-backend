@@ -1,0 +1,153 @@
+id: WZc0QlT74Ri0
+name: Call Suspicious .NET Classes/Methods from Powershell CommandLine (via process_creation)
+body: |-
+  title: Call Suspicious .NET Classes/Methods from Powershell CommandLine (via process_creation)
+  id: 5c411f93-3f10-4a48-bf16-20e7bea45769
+  status: stable
+  description: Detects suspicious .net methods/classes which are using in offensive purpose.
+  references:
+      - https://hunt.io/blog/philippine-government-employment-agency-records-stolen
+      - https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
+      - https://socradar.io/blog/inc-gentlemen-ransomware-ai-infrastructure/
+      - https://www.darktrace.com/blog/cikabika-bot-inside-a-discord-rat#cq=i1
+      - https://www.security.com/threat-intelligence/warlock-ransomware-critical-infrastructure
+      - https://socradar.io/blog/operation-conflict-compass-konni-ukraine-lnk-lure/
+      - https://www.microsoft.com/en-us/security/blog/2026/08/28/terminalfix-campaign-deploys-reverse-tunnel-through-multistage-intrusion/
+      - https://blog.talosintelligence.com/uat-11795-deploys-novel-starland-rat-and-bespoke-wldr-c2-implant-in-financially-motivated-campaign/
+      - https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown
+      - https://www.picussecurity.com/resource/blog/aquatic-panda-earth-lusca-analysis-campaigns-malware-and-ttps
+      - https://www.lac.co.jp/lacwatch/report/20260604_004759.html
+      - https://www.securonix.com/blog/deepdoor-python-backdoor-and-credential-stealer/
+      - https://www.zscaler.com/blogs/security-research/memory-loader-drops-screenconnect
+      - https://intel.breakglass.tech/post/silverfox-valleyrat-telegram-chinese-langpack-zpaq-bytedance-ctg
+      - https://www.pointwild.com/threat-intelligence/desckvb-rat-analysis-from-javascript-loader-to-fileless-net-rat/
+      - https://www.sentinelone.com/labs/phantomcaptcha-multi-stage-websocket-rat-targets-ukraine-in-single-day-spearphishing-operation/
+      - https://strikeready.com/blog/cn-apt-targets-serbian-government/
+      - https://cert.gov.ua/article/6284949
+      - https://www.cloudsek.com/blog/fileless-asyncrat-distributed-via-clickfix-technique-targeting-german-speaking-users
+      - https://www.attackiq.com/2025/04/09/emulating-catb-ransomware/
+      - https://cert.gov.ua/article/6282517
+      - https://cert.gov.ua/article/6281681
+      - https://www.attackiq.com/2024/10/17/response-to-cisa-advisory-aa24-290a/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-290a
+      - https://research.checkpoint.com/2024/magnet-goblin-targets-publicly-facing-servers-using-1-day-vulnerabilities/
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://arcticwolf.com/resources/blog/tellmethetruth-exploitation-of-cve-2023-46604-leading-to-ransomware/
+      - https://www.securonix.com/blog/threat-labs-security-advisory-new-starkvortex-attack-campaign-threat-actors-use-drone-manual-lures-to-deliver-merlinagent-payloads/
+      - https://www.mcafee.com/blogs/security-news/agent-teslas-unique-approach-vbs-and-steganography-for-delivery-and-intrusion/
+      - https://cert.gov.ua/article/5628441
+      - https://unit42.paloaltonetworks.com/nodestealer-2-targets-facebook-business/
+      - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/Syssphinx-FIN8-backdoor
+      - https://cert.gov.ua/article/5160737
+      - https://cert.gov.ua/article/5158006
+      - https://www.securonix.com/securonix-threat-labs-security-advisory-multistorm-leverages-python-based-loader-as-onedrive-utilities-to-drop-rat-payloads/
+      - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/shuckworm-russia-ukraine-military
+      - https://www.microsoft.com/en-us/security/blog/2023/06/14/cadet-blizzard-emerges-as-a-novel-and-distinct-russian-threat-actor/
+      - https://cert.gov.ua/article/4818341
+      - https://cert.gov.ua/article/4755642
+      - https://cert.gov.ua/article/4555802
+      - https://cert.gov.ua/article/4492467
+      - https://cert.gov.ua/article/3761023
+      - https://github.com/alt3kx/CVE-2023-24055_PoC
+      - https://www.rapid7.com/blog/post/2023/01/19/etr-cve-2022-47966-rapid7-observed-exploitation-of-critical-manageengine-vulnerability/
+      - https://practicalsecurityanalytics.com/new-amsi-bypass-using-clr-hooking/
+      - https://redteamer.tips/a-tale-of-net-assemblies-cobalt-strike-size-constraints-and-reflection/
+      - https://docs.microsoft.com/en-us/dotnet/api/system.reflection?view=netframework-4.8
+      - https://thedfirreport.com/2023/01/09/unwrapping-ursnifs-gifts/
+      - https://blog.talosintelligence.com/new-horabot-targets-americas/
+      - https://decoded.avast.io/martinchlumecky/hotrat-the-risks-of-illegal-software-downloads-and-hidden-autohotkey-script-within/
+      - https://asec.ahnlab.com/en/59042/
+      - https://www.bitdefender.com/blog/businessinsights/deep-dive-into-unfading-sea-haze-a-new-threat-actor-in-the-south-china-sea/
+      - https://www.fortinet.com/blog/threat-research/emansrepo-stealer-multi-vector-attack-chains
+      - https://www.securonix.com/blog/shroudedsleep-a-deep-dive-into-north-koreas-ongoing-campaign-against-southeast-asia/
+      - https://blog.talosintelligence.com/emerging-interlock-ransomware/
+      - https://blog.talosintelligence.com/new-pxa-stealer/
+      - https://asec.ahnlab.com/en/85400/
+      - https://www.securonix.com/blog/analyzing-obscurebat-threat-actors-lure-victims-into-executing-malicious-batch-scripts-to-deploy-stealthy-rootkits/
+      - https://arcticwolf.com/resources/blog/unc6384-weaponizes-zdi-can-25373-vulnerability-to-deploy-plugx/
+      - https://www.picussecurity.com/resource/blog/xhunt-apt-cyber-espionage-operations-targeting-kuwait-and-exchange-servers
+      - https://www.malwarebytes.com/blog/threats/2025/11/we-opened-a-fake-invoice-and-fell-down-a-retro-xworm-shaped-wormhole
+      - https://www.picussecurity.com/resource/blog/greencharlie-apt-irans-powershell-based-cyber-espionage-campaigns
+      - https://asec.ahnlab.com/en/92160/
+      - https://www.elastic.co/security-labs/mimicrat-custom-rat-mimics-c2-frameworks
+  tags:
+      - attack.execution
+      - attack.t1059.001
+  author: SOC Prime Team
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith: '.exe' #windows bins scope.
+          CommandLine|contains:
+              - 'GetProcessById' #$a = [System.Diagnostics.Process]::GetProcessById(%PID%);$b...
+              - 'WriteAllBytes' #https://cert.gov.ua/article/6281681; https://cert.gov.ua/article/6284949; https://www.lac.co.jp/lacwatch/report/20260604_004759.html; https://www.security.com/threat-intelligence/warlock-ransomware-critical-infrastructure; https://www.darktrace.com/blog/cikabika-bot-inside-a-discord-rat#cq=i1
+              - 'Assembly.Load'
+              - 'TCPClient'
+              - 'ASCIIEncoding'
+              - 'GetTypeFromCLSID'
+              - 'System.Runtime.InteropServices.Marshal'
+              - 'System.Windows.Forms.Clipboard'
+              - 'System.Net.Sockets.TcpListener'
+              - 'Reflection.Assembly' #https://www.elastic.co/security-labs/mimicrat-custom-rat-mimics-c2-frameworks; https://hunt.io/blog/philippine-government-employment-agency-records-stolen
+              - 'Net.Sockets.SocketFlags'
+              - 'System.Security.Cryptography' #https://cert.gov.ua/article/6282517
+              - 'System.IO.File]'
+              - 'ReadAllBytes' # powershell -WindowStyle Hidden Start-Process 'Presentation_Generale.pdf.pdf' ...[IO.File]::ReadAllBytes(...);$key=$data[239];$file=$env:TEMP+'\IfyuUapz.txt';...[IO.File]::WriteAllBytes($file, $xdata);cmd /c $file https://www.darktrace.com/blog/cikabika-bot-inside-a-discord-rat; https://strikeready.com/blog/cn-apt-targets-serbian-government/
+              - 'ReadAllText' #https://cert.gov.ua/article/6284949; https://www.zscaler.com/blogs/security-research/memory-loader-drops-screenconnect; https://www.securonix.com/blog/deepdoor-python-backdoor-and-credential-stealer/
+              - 'AssemblyBuilderAccess'
+              - 'SuspendThread'
+              - 'Runtime.InteropServices.DllImportAttribute'
+              - 'Reflection.Emit.AssemblyBuilderAccess'
+              - 'DownloadString' #https://asec.ahnlab.com/en/92160/; https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown; https://socradar.io/blog/operation-conflict-compass-konni-ukraine-lnk-lure/; https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
+              - 'DownloadFile' #https://www.picussecurity.com/resource/blog/xhunt-apt-cyber-espionage-operations-targeting-kuwait-and-exchange-servers; https://blog.talosintelligence.com/uat-11795-deploys-novel-starland-rat-and-bespoke-wldr-c2-implant-in-financially-motivated-campaign/; https://www.microsoft.com/en-us/security/blog/2026/08/28/terminalfix-campaign-deploys-reverse-tunnel-through-multistage-intrusion/
+              - 'DownloadData' #https://www.attackiq.com/2025/04/09/emulating-catb-ransomware/; https://www.pointwild.com/threat-intelligence/desckvb-rat-analysis-from-javascript-loader-to-fileless-net-rat/
+              - 'WebRequest.' #request = HttpWebRequest.Create(uri) as HttpWebRequest;
+              - 'GetRandomFileName' # Get random file/folder name.
+      filters:
+          - Image|endswith:
+              - 'courgette64.exe'
+              - 'Connect\DAAW.exe' # Checkpoint
+          - ParentImage|endswith:
+              - 'OInstallLite.exe' #"powershell" -command "& { (New-Object Net.WebClient).DownloadFile('http://officecdn.microsoft.com/pr/5030841d-c919-4594-8d2d-84ae4f96e58e/Office/Data/16.0.14332.20791/i641033.cab', 'C:\Users\admin\AppData\Local\Temp\over494851\i641033.cab') }"
+              - 'ngentask.exe'
+              - '\slack.exe' #Invoke-WebRequest -Uri https://slackb.com/error -Method POST...
+              - 'protection\senseir.exe' #MDATP
+              - 'system32\svchost.exe' #GPO Tasks with powershell job.
+              - '\bin\runnerw64.exe' #phpstorm
+              - '\cmd\git.exe' #git
+              - 'SenseIR.exe' #Windows Defender
+              - 'ptoneclk.exe' #Webex
+              - 'ptupdate.exe' #Webex
+              - 'CcmExec.exe' #CCM
+          - CommandLine|contains:
+              - 'officecdn.microsoft.com' #"powershell" -command "& { (New-Object Net.WebClient).DownloadFile('http://officecdn.microsoft.com/pr/5030841d-c919-4594-8d2d-84ae4f96e58e/Office/Data/v32.cab', 'C:\Users\xxx\AppData\Local\Temp\over106830\v32.cab') }"
+              - 'ExternalComponents\Xls2PdfConverter' #ArtZvit
+              - 'cru-inc.com' #https://it-forensik.fiw.hs-wismar.de/images/3/33/Write-blocking2022.pdf CRUWBlocker-1.2.1.2-(2018.09.04).tmp
+              - '\MAS_'
+              #- '\Program Files'
+              - 'DellSupportAssistRemediationServiceInstaller' #dell stuff
+              - 'SARemediation' #dell stuff
+          - CommandLine|contains|all:
+              - 'sysvol' #GPO scripts
+              - 'Policies'
+          - CommandLine|contains|all:
+              - 'noroot' #/noroot /LegacyServiceBehavior
+              - 'LegacyServiceBehavior'
+              - 'ngen'
+              - 'NativeImages'
+              - 'Cryptography'
+          - CommandLine|contains|all:
+              - 'Defender' #Defender Advanced Threat Protection\DataCollection
+              - 'Advanced'
+              - 'Threat'
+              - 'Protection'
+              - 'DataCollection'
+      condition: selection and not filters
+  falsepositives:
+      - Administrative activity, GPO Tasks, etc.
+  level: medium
+level: medium
+created: '2020-03-24T12:02:17Z'
+updated: '2026-11-02T13:17:11.277000Z'

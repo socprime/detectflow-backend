@@ -1,0 +1,40 @@
+id: fa1U48Mpcc4h
+name: Possible Powershell Executing Process In Suspicious Working Directory (via cmdline)
+body: |-
+  title: Possible Powershell Executing Process In Suspicious Working Directory (via cmdline)
+  id: 4a73122b-10d6-4465-8cec-c11d616ec1de
+  status: stable
+  description: Identifies powershell executing process in suspicious working directory, which may be an indicator of malicious activity.
+  author: SOC Prime Team
+  references:
+      - https://www.seqrite.com/blog/threat-actors-are-targeting-us-tax-session-with-new-tactics-of-stealerium-infostealer/
+      - https://www.zscaler.com/blogs/security-research/technical-analysis-marco-stealers
+      - https://www.microsoft.com/en-us/security/blog/2026/02/05/clickfix-variant-crashfix-deploying-python-rat-trojan/
+      - https://www.pointwild.com/threat-intelligence/covert-rat-phishing-campaign/
+      - https://www.elastic.co/security-labs/silentconnect-delivers-screenconnect
+  tags:
+      - attack.t1059.001
+      - attack.execution
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_base:
+          Image|endswith: 'powershell.exe'
+          CommandLine|contains|all:
+              - 'Start' # Start-Process -FilePath revolaomt.exe -WorkingDirectory Senv:TEMP
+              - 'Process'
+              - 'WorkingDirectory'
+      selection_path:
+          CommandLine|contains:
+              - 'TEMP' #https://www.elastic.co/security-labs/silentconnect-delivers-screenconnect
+              - 'AppData' # https://www.pointwild.com/threat-intelligence/covert-rat-phishing-campaign/
+              - 'ProgramData'
+              - 'Public'
+      condition: selection_base and selection_path
+  falsepositives:
+      - Unknown
+  level: medium
+level: medium
+created: '2025-05-16T06:45:02Z'
+updated: '2026-03-24T16:29:20.374000Z'

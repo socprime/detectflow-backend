@@ -69,12 +69,25 @@ class PipelineStatusManager:
         status_str, details = await pipeline_status_manager.get_status_details(...)
     """
 
-    CACHE_TTL_SECONDS = 5
+    # 15s (> the 10s FlinkMonitorService refresh loop) so a status refreshed by the monitor is
+    # generally served from cache instead of re-hitting Flink REST -> K8s on every read. User
+    # actions that change deployment state call invalidate_cache() so they still see fresh status.
+    CACHE_TTL_SECONDS = 15
     FLINK_TIMEOUT_SECONDS = 3.0
 
     def __init__(self, flink_provider: FlinkProvider | None = None):
         self._cache: dict[str, _CachedStatus] = {}
-        self._flink = flink_provider or get_flink_provider()
+        self._flink_override = flink_provider
+
+    @property
+    def _flink(self) -> FlinkProvider:
+        """Resolve the Flink provider lazily (cached by ``get_flink_provider``).
+
+        The module-level singleton below is created at import time; resolving the provider
+        eagerly would build a Kubernetes client (kubeconfig required) as an import side effect
+        and break imports in environments without cluster access (unit tests, CI).
+        """
+        return self._flink_override or get_flink_provider()
 
     # =========================================================================
     # Public API

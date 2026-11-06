@@ -1,0 +1,49 @@
+id: LdQ1NKvMzSsZ
+name: Possible Malicious JS File with Double Extension (via cmdline)
+body: |-
+  title: Possible Malicious JS File with Double Extension (via cmdline)
+  id: e943e0d4-84be-43ef-ae7b-0292a9840589
+  status: stable
+  description: Detects suspicious use of an .js extension.
+  author: SOC Prime Team
+  references:
+      - https://cert.gov.ua/article/6032734
+      - https://cert.gov.ua/article/5269451
+      - https://www.resecurity.com/blog/article/the-new-version-of-jsoutprox-is-attacking-financial-institutions-in-apac-and-mena-via-gitlab-abuse
+      - https://www.cloudsek.com/blog/getsmoked-uac-0006-returns-with-smokeloader-targeting-ukraines-largest-state-owned-bank
+      - https://any.run/cybersecurity-blog/xworm-latam-campaign/
+  tags:
+      - attack.defense_evasion
+      - attack.t1036.007
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|contains: '.'
+          CommandLine|contains:
+              - '.doc.js'
+              - '.docx.js'
+              - '.xls.js'
+              - '.xlsx.js'
+              - '.ppt.js'
+              - '.pptx.js'
+              - '.rtf.js'
+              - '.pdf.js' #Ahmad_Aldhefairi_Visa_Appeal_Letter_PDF.pdf; https://cert.gov.ua/article/6282902
+              - '.txt.js'
+              - '.jpg.js' #photo_15.09.24_JPG.js; https://cert.gov.ua/article/6282902
+              - '.gif.js'
+              - '.png.js'
+              - '.zip.js'
+              - '.7z.js'
+              - '.dat.js'
+      filters:
+          CommandLine|contains:
+              - 'PDF.js viewer'
+      condition: selection and not filters
+  falsepositives:
+      - none
+  level: high
+level: high
+created: '2023-07-24T11:14:43Z'
+updated: '2026-02-17T13:32:18.588000Z'

@@ -35,18 +35,20 @@ async def create_default_admin() -> bool:
             print(f"Found {count} existing users, skipping default admin creation")
             return False
 
+        password = DEFAULT_ADMIN_PASSWORD
+
         print("Creating default admin user...")
         await user_dao.create(
             full_name=DEFAULT_ADMIN_NAME,
             email=DEFAULT_ADMIN_EMAIL,
-            password=hash_password(DEFAULT_ADMIN_PASSWORD),
+            password=hash_password(password),
             is_active=True,
             role=UserRole.ADMIN,
             must_change_password=True,
         )
         await session.commit()
 
-        print(f"Default admin created: {DEFAULT_ADMIN_EMAIL} / {DEFAULT_ADMIN_PASSWORD}")
+        print(f"Default admin created: {DEFAULT_ADMIN_EMAIL} / {password}")
         print("WARNING: Please change the password after first login!")
         return True
 

@@ -1,0 +1,64 @@
+id: tNvBSMYAQCnM
+name: Risky Microsoft Defender Exclusions Added (via cmdline)
+body: |-
+  title: Risky Microsoft Defender Exclusions Added (via cmdline)
+  id: f9e8820a-f863-4766-9b2b-761cf3702424
+  status: stable
+  description: Adversaries may add exclusions to Defender to make it blind for their malicious files.
+  author: SOC Prime Team
+  references:
+      - https://cert.gov.ua/article/6287707
+      - https://www.huntress.com/blog/how-proactive-account-review-uncovered-unauthorized-surveillance-tools
+      - https://www.attackiq.com/2025/11/14/sandworm/
+      - https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+  tags:
+      - attack.defense_evasion
+      - attack.t1564.012
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_base_cmd:
+          Image|endswith:
+              - '.exe'
+              - '.tmp'
+              - '.src'
+          CommandLine|contains|all:
+              - 'Add'
+              - 'MpPreference' #Add-MpPreference -ExclusionPath C:\Windows\temp
+      selection_excl_path_arg:
+          CommandLine|contains: 'ExclusionPath'
+      selection_excl_ext_arg:
+          CommandLine|contains: 'ExclusionExtension'
+      selection_excl_proc_arg:
+          CommandLine|contains: 'ExclusionProcess'
+      selection_excl_path:
+          CommandLine|contains:
+              - '\Temp\' #https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/; https://cert.gov.ua/article/6287707
+              - '%TEMP%'
+              - '\Downloads\' #Add-MpPreference -ExclusionPath CSIDL_PROFILE\downloads
+              - '\Desktop\'
+              - '\Startup\'
+              - '\Users\Public\'
+      selection_excl_ext:
+          CommandLine|contains:
+              - '.exe'
+              - '.dll'
+              - '.ps1'
+              - '.msi'
+              - '.vbs'
+              - '.iso'
+      selection_excl_proc:
+              - 'powershell.exe'
+              - 'wscript.exe'
+              - 'rundll32.exe'
+              - 'chrome.exe'
+              - 'outlook.exe'
+              - 'mshta.exe'
+      condition: selection_base_cmd and ((selection_excl_path_arg and selection_excl_path) or (selection_excl_ext_arg and selection_excl_ext) or (selection_excl_proc_arg and selection_excl_proc))
+  falsepositives:
+      - Approved admins activity.
+  level: high
+level: high
+created: '2025-06-30T07:15:42Z'
+updated: '2026-03-02T15:53:16.190000Z'

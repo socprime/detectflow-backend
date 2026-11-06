@@ -1,0 +1,30 @@
+id: b8iBZ54cBsrJ
+name: Suspicious Windows DNS Query by Windows Script Host [wscript.exe] (via dns_query)
+body: |-
+  title: Suspicious Windows DNS Query by Windows Script Host [wscript.exe] (via dns_query)
+  id: 63f2ae8a-6912-4ea9-ad2c-369f4555a549
+  description: Detects suspicious DNS queries made by Windows Script Host (wscript.exe).
+  status: stable
+  author: SOC Prime Team
+  references:
+    - https://asec.ahnlab.com/en/94552/
+    - https://www.trendmicro.com/en_au/research/20/l/investigating-the-gootkit-loader.html
+    - https://www.trellix.com/blogs/research/malware-as-a-service-redefined-xworm-rat/
+  tags:
+    - attack.execution
+    - attack.t1059.005
+  logsource:
+    product: windows
+    category: dns_query
+  detection:
+    selection:
+      #EventCode: 22 # Optionally used to reduce SIEM resource consumption.
+      Image|endswith: 'wscript.exe'
+      DestinationHostname|contains: '.'
+    condition: selection
+  falsepositives:
+    - DNS queries by legitimate scripts.
+  level: medium
+level: medium
+created: '2022-03-17T19:39:15Z'
+updated: '2026-07-23T13:04:25.849000Z'

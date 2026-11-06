@@ -1,0 +1,68 @@
+id: 4M6Cf3M5p90s
+name: LOLBAS WScript / Cscript with Powershell (via process_creation)
+body: |-
+  title: LOLBAS WScript / Cscript with Powershell (via process_creation)
+  id: 634171d9-675b-46a0-b75c-3c995ba86fdd
+  status: stable
+  description: Identifies the employment of WScript as a living-off-the-land tactic in conjunction with PowerShell.
+  author: SOC Prime Team
+  references:
+      - https://expel.com/blog/gootloaders-malformed-zip/
+      - https://cert.gov.ua/article/6286219
+      - https://www.trellix.com/blogs/research/xworm-v6-exploring-pivotal-plugins/
+      - https://www.seqrite.com/blog/judicial-notification-phish-colombia-svg-asyncrat/
+      - https://www.trendmicro.com/en_us/research/25/a/cve-2025-0411-ukrainian-organizations-targeted.html
+      - https://cyble.com/blog/strela-stealer-targets-europe-stealthily-via-webdav/
+      - https://www.welivesecurity.com/en/eset-research/cyberespionage-gamaredon-way-analysis-toolset-used-spy-ukraine-2022-2023/
+      - https://twitter.com/doc_guard/status/1759572032503578664
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/from-email-to-rat-deciphering-a-vbs-script-driven-campaign/
+      - https://cert.gov.ua/article/6276988
+      - https://www.mcafee.com/blogs/security-news/agent-teslas-unique-approach-vbs-and-steganography-for-delivery-and-intrusion/
+      - https://www.zscaler.com/blogs/security-research/hibernating-qakbot-comprehensive-study-and-depth-campaign-analysis
+      - https://cert.gov.ua/article/4818341
+      - https://news.sophos.com/en-us/2023/04/13/tax-firms-targeted-by-precision-malware-attacks/
+      - https://redcanary.com/blog/intelligence-insights-march-2023/
+      - https://lolbas-project.github.io/lolbas/Binaries/Wscript/
+      - https://threatresearch.ext.hp.com/raspberry-robin-now-spreading-through-windows-script-files/
+      - https://unit42.paloaltonetworks.com/phantomvai-loader-delivers-infostealers/
+      - https://www.recordedfuture.com/research/graycharlie-hijacks-law-firm-sites-suspected-supply-chain-attack
+  tags:
+      - attack.defense_evasion
+      - attack.execution
+      - attack.t1216
+      - attack.t1059.001 #Powershell
+      - attack.t1059.005 #Visual Basic
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_ws:
+          ParentImage|endswith: 'wscript.exe'
+          Image|endswith: 'powershell.exe' #https://cert.gov.ua/article/6286219
+          #CommandLine|contains:
+          #    - 'Unrestricted'
+          #    - 'Webrequest'
+          #    - 'iwr'
+          #    - 'hidden'
+          #    - 'bypass'
+          #    - 'download'
+          #    - 'http'
+          #    - '[String]'
+          #    - '-command'
+      selection_cs:
+          ParentImage|endswith: 'cscript.exe'
+          Image|endswith: 'powershell.exe'
+      filters:
+          CommandLine|contains|all:
+              - 'File' #"powershell.exe" -ExecutionPolicy Bypass -nologo -File C:\Windows\secops\secops.ps1
+              - 'Windows'
+              - 'secops.ps1'
+      condition: (selection_ws and not filters) or selection_cs
+  falsepositives:
+      - Administrative script files.
+      - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+      - It is highly recommended to baseline your activity and tune out common business use cases.
+  level: high
+level: high
+created: '2023-03-31T10:10:04Z'
+updated: '2026-02-19T15:25:12.511000Z'

@@ -1,6 +1,6 @@
 [project]
 name = "detectflow-backend"
-version = "1.1.0"
+version = "2.3.2"
 description = "DetectFlow Backend for managing pipelines, rules, and repositories"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,7 +23,12 @@ dependencies = [
     "fastapi>=0.121.3",
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
-    "kubernetes>=34.1.0",
+    # Upper bound at 36 — kubernetes-36.0.0 (released 2026-05-20) regressed
+    # load_incluster_config(): the SA token is stored under api_key["authorization"]
+    # while generated API methods look up the auth scheme as "BearerToken", so
+    # the Authorization header is silently dropped → every K8s API call returns
+    # 401. Lift the cap once a fixed 36.x ships and is verified in stage.
+    "kubernetes>=34.1.0,<36",
     "psycopg2-binary>=2.9.0",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
@@ -36,10 +41,11 @@ dependencies = [
     "lz4>=4.4.5",
     "zstd>=1.5.7.3",
     "python-snappy>=0.7.3",
+    "stix2>=3.0.1",
 ]
 
 [tool.uv.sources]
-schema-parser = { git = "https://github.com/socprime/detectflow-parser.git", tag = "v0.3.4" }
+schema-parser = { git = "https://github.com/socprime/detectflow-parser.git", tag = "v0.7.0" }
 
 [build-system]
 requires = ["hatchling"]
@@ -53,13 +59,12 @@ packages = ["apps"]
 managed = true                            # Mark as uv-managed project
 package = true                            # Enable package management
 default-groups = ["dev"]                  # Auto-install dev dependencies
-exclude-newer = "2026-04-18T00:00:00Z"    # Aviod Supply Chain Attacks
+exclude-newer = "2026-10-23T00:00:00Z"    # Aviod Supply Chain Attacks
 
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.8.0",
-    "pre-commit>=4.3.0",
     "pytest-asyncio>=0.24.0",
     "httpx>=0.28.1",
 ]

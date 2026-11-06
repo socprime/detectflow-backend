@@ -1,0 +1,142 @@
+id: oOjog0OJ4QzD
+name: Possible Data Infiltration / Exfiltration / C2 via Third Party Services / Tools (via dns_query)
+body: |-
+  title: Possible Data Infiltration / Exfiltration / C2 via Third Party Services / Tools (via dns_query)
+  id: 2e025289-ae4b-4eab-a00a-58bc4a5623d7
+  status: stable
+  description: Need to exclude approved services! Attackers may utilize third-party services and tools in an effort to aid data infiltration / exfiltration and command and control efforts. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  author: SOC Prime Team
+  references:
+    - https://asec.ahnlab.com/en/95599/
+    - https://d01a.github.io/xloader/
+    - https://cert.gov.ua/article/6318634
+    - https://www.welivesecurity.com/en/eset-research/gamaredon-2025-leveraging-tunnels-workers-dead-drops-new-alliances/
+    - https://blog.exatrack.com/Tracking_APT28_PixyNetLoader/
+    - https://blog.sekoia.io/fsbs-matryoshka-1-3-gamaredons-gifts-that-keeps-unpacking-gammaphish-and-gammaworm/
+    - https://thehackernews.com/2026/03/north-korean-hackers-publish-26-npm.html
+    - https://kmsec.uk/blog/dprk-text-steganography/
+    - https://www.microsoft.com/en-us/security/blog/2026/02/24/c2-developer-targeting-campaign/
+  tags:
+    - attack.exfiltration
+    - attack.t1537
+    - attack.t1567.002
+    - attack.command_and_control
+    - attack.t1105
+    - attack.t1071.001
+  logsource:
+      category: dns_query
+      product: windows
+  detection:
+      selection_procs:
+          Image|endswith:
+              - 'cmd.exe'
+              - 'powershell.exe'
+              - 'python.exe'
+              - 'wscript.exe'
+              - 'cscript.exe'
+              - 'mshta.exe'
+              - 'ruby.exe'
+      selection_domains:
+          QueryName|contains:
+              - 'cdn.imageurlgenerator.com' #https://cert.gov.ua/article/6318634
+              - 'easysend.co' #https://cert.gov.ua/article/6318634
+              - 'filemail.com' #https://cert.gov.ua/article/6318634
+              - 'cleverapps.io'
+              - 'pastee.dev'
+              - 'nopaste.net'
+              - 'lesma.eu'
+              - 'write.as'
+              - 'supabase.co'
+              - 'loca.lt'
+              - 'loophole.site'
+              - 'loophole.cloud'
+              - 'workers.dev'
+              - 'glot.io' #https://blog.virustotal.com/2026/02/from-automation-to-infection-how.html
+              - 'filen.io' #https://cert.gov.ua/article/6287250; CERT-UA#19542
+              - 'filen.dev' #https://cert.gov.ua/article/6287250; CERT-UA#19542
+              - 'filen.net' #https://cert.gov.ua/article/6287250; CERT-UA#19542
+              - 'secfileshare.com' #https://cert.gov.ua/article/6284949
+              - 'qaz.im' #CERT-UA#11776
+              - 'qaz.is' #CERT-UA#11776
+              - 'qaz.su' #CERT-UA#11776
+              - 'filedn.eu'
+              - 'onehub.com' #https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/
+              - 'terabox.com'
+              - 'egnyte.com' #ttps://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/
+              - 'sync.com'
+              - 'filebin.net'
+              - 'keep.sh'
+              - 'gitea.com'
+              - 'oshi.at' #OshiUpload
+              - 'ipapi.co' #CERT-UA#7469, but noizy.
+              - 'files.catbox.moe' #CERT-UA#6995, CERT-UA#7183
+              - 'bayfiles.com'
+              - 'usrfiles.com'
+              - 'dropbox.com'
+              - 'dropboxapi.com' # content.dropboxapi.com/2/files/upload
+              - 'mediafire.com' #https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+              - 'onedrive.com' #api.onedrive.com; https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+              #- 'wire.com'
+              - 'massive.io'
+              - 'efilecabinet.com'
+              - 'c-v.sh'
+              - 'file.io' #CERT-UA#7469, used unc961 / also covered - ufile.io #https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-022a
+              - '0x0.st'
+              - 'instant.io'
+              - 'copy.com'
+              - 'mega.co.nz'
+              - 'mega.nz'
+              - 'mega.io' #https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/; https://www.picussecurity.com/resource/blog/hunters-international-ransomware
+              - 'mega.io' #https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/; https://sosransomware.com/en/ransomware-groups/worldleaks-between-pure-extortion-and-traditional-ransomware-whats-the-difference/
+              - 'icloud.com'
+              - 'pcloud.com'
+              - 'icedrive.net' #https://cert.gov.ua/article/6284080
+              - 'app.koofr.net' #https://cert.gov.ua/article/6284080; https://www.picussecurity.com/resource/blog/apt28-cyber-threat-profile-and-detailed-ttps
+              - 'WeTransfer.com'
+              - 'Onehub.com'
+              - 'getfilecloud.com'
+              - 'ki.tc'
+              - 'uguu.se'
+              - 'flyle.app'
+              - 'transfer.sh'
+              - 'expirebox.com'
+              - 'disk.yandex.com'
+              - 'filestage.io'
+              - 'zippyshare.com'
+              - 'drive.google.com' #https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/
+              - 'docs.google.com' #https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.recordedfuture.com/research/purplebravos-targeting-it-software-supply-chain; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and
+              - 'firebase.google.com' #https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and
+              - '.box.com'
+              - 'hubic.com'
+              - 'wikisend.com'
+              - 'dropsend.com'
+              - 'anonymousfiles.io'
+              - 'anonfiles.com'
+              - 'filedropper.com'
+              - 'privatlab.com'
+              - 'dropmefiles.com' #unc961
+              - 'onionshare.org'
+              - 'sendGB.com'
+              - 'volafile.org'
+              - 'openload.co'
+              - 'uploadfiles.io'
+              - 'gofile.io'
+              - 'put.io'
+              - '4shared.com'
+              - 'dropboxusercontent.com' #https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html
+              - 'supabase.co' # https://blog.sekoia.io/fsbs-matryoshka-1-3-gamaredons-gifts-that-keeps-unpacking-gammaphish-and-gammaworm/
+              - 'glitch.me'
+              - 'run.app'
+              - 'bitbucket.org'
+              - 'temspend.com'
+              - 'netlify.com' #https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+              - 'netlify.app'
+              - 'vercel.app' #https://kmsec.uk/blog/dprk-text-steganography/
+      condition: selection_procs and selection_domains
+  falsepositives:
+    - Storage providers approved for business use.
+    - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: medium
+level: medium
+created: '2026-02-26T12:47:07Z'
+updated: '2026-10-01T09:29:26.600000Z'

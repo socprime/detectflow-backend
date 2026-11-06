@@ -1,7 +1,7 @@
 """Kafka Custom Fields Sync Service.
 
 Publishes custom fields to Kafka for Flink jobs to consume.
-Uses the same topic as rules (sigma-rules) but with type="custom_fields" to distinguish.
+Uses the same topic as rules (detectflow.sigma-rules) but with type="custom_fields" to distinguish.
 """
 
 import asyncio
@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 class KafkaCustomFieldsSyncService(BaseKafkaSyncClient):
     """Service for publishing custom fields to Kafka.
 
-    Custom fields use the same topic as rules (sigma-rules) but are distinguished
+    Custom fields use the same topic as rules (detectflow.sigma-rules) but are distinguished
     by the "type": "custom_fields" field in the message payload.
 
     Message format:

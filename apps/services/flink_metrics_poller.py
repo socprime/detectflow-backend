@@ -1,10 +1,12 @@
 """Flink metrics poller service.
 
-This module provides a background service that periodically polls Flink REST API
-to retrieve pipeline metrics (input/output EPS, consumer lag) for the dashboard.
+Background service that periodically polls the Flink REST API for pipeline
+metrics (input/output EPS, consumer lag) and keeps them in an **in-process**
+cache the dashboard snapshot/SSE endpoints read.
 
-Replaces the Kafka metrics consumer approach with direct REST API polling.
-Also updates pipeline events_tagged/events_untagged counters in PostgreSQL.
+Must run on every API worker: the cache is not shared, and followers that
+skip polling serve 0 EPS. It is read-only against Flink (no Postgres writes);
+per-rule counters still come from the leader-only Kafka metrics consumer.
 """
 
 import asyncio
@@ -57,7 +59,8 @@ class FlinkMetricsPoller:
     """Background service that polls Flink REST API for pipeline metrics.
 
     Maintains an in-memory cache of metrics for each active pipeline.
-    Dashboard service reads from this cache instead of Kafka consumer.
+    Dashboard service reads from this cache instead of the Kafka consumer.
+    Started per worker in the server lifespan (not leader-only).
 
     Attributes:
         is_running: Whether the poller is actively running

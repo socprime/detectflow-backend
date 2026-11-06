@@ -1,0 +1,47 @@
+id: XezIZhiB437Q
+name: Possible Self-Extracting Archive was Executed (via file_event)
+body: |-
+  title: Possible Self-Extracting Archive was Executed (via file_event)
+  id: 9d3c0f31-8fa0-4ebe-ad3f-65cff1e9fb31
+  status: stable
+  description: Self-extracting archives are executable files that are designed to extract their contents automatically when run. Adversaries may attempt to use self-extracting archives as a way to deliver malicious payloads onto a victim's system. Need to correlate this event with execution events that occurred within the same short timeframe (some_sfx_sample.exe --> file creation with patterts related to SFX).
+  author: SOC Prime Team
+  references:
+    - https://cert.gov.ua/article/6281202
+    - https://www.welivesecurity.com/en/eset-research/cyberespionage-gamaredon-way-analysis-toolset-used-spy-ukraine-2022-2023/
+    - https://cert.gov.ua/article/6279600
+    - https://cert.gov.ua/article/6279561
+    - https://cert.gov.ua/article/6277285
+    - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+    - https://cert.gov.ua/article/6032734
+    - https://cert.gov.ua/article/5269451
+    - https://app.any.run/tasks/b27a5ff4-c41b-426c-855c-1f495630dd99
+    - https://www.crowdstrike.com/blog/self-extracting-archives-decoy-files-and-their-hidden-payloads/
+    - https://menshaway.blogspot.com/2021/05/nanocore-malware.html
+    - https://menshaway.blogspot.com/2021/03/njrat-malware.html
+    - https://blog.talosintelligence.com/gophish-powerrat-dcrat/
+  tags:
+    - attack.execution
+    - attack.t1204.002
+    - attack.defense_evasion
+    - attack.t1027
+  logsource:
+    product: windows
+    category: file_event
+  detection:
+    selection:
+      TargetFilename|contains: 'tmp_rar_sfx_access_check' # C:\Users\xxx\AppData\Local\Temp\__tmp_rar_sfx_access_check_1089359
+    filters:
+      - Image|contains|all:
+        - 'Temp' #...\AppData\Local\Temp\56F136~1\target.exe
+        - 'target.exe'
+        - 'AppData'
+      - Image|contains|all:
+        - 'winrar-'
+    condition: selection and not filters
+  falsepositives:
+    - Legitimate self-extracting archives execution, requires further investigation.
+  level: high
+level: high
+created: '2023-07-24T12:21:41Z'
+updated: '2024-10-31T20:00:58.668000Z'

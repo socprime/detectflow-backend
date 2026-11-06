@@ -14,6 +14,12 @@
       {# TaskManager replicas are NOT set explicitly.
          The Flink K8s Operator auto-calculates: replicas = ceil(parallelism / numberOfTaskSlots).
          With numberOfTaskSlots=1, this gives replicas = parallelism, i.e. one TM pod per parallel slot. #}
+      {# Companions from apps/providers/matcher_runtime_tuning.py
+         (MATCHER_PYTHON_EXECUTION_MODE × MATCHER_STATE_BACKEND). #}
+      "kubernetes.taskmanager.memory.limit-factor": "{{ taskmanager_memory_limit_factor }}",
+{% for key, value in runtime.flink_conf.items() %}
+      "{{ key }}": "{{ value }}",
+{% endfor %}
       "python.executable": "/opt/flink/pyflink/.venv/bin/python3",
       "python.client.executable": "/opt/flink/pyflink/.venv/bin/python3"
     },
@@ -22,7 +28,7 @@
     "imagePullPolicy": "{{ image_pull_policy }}",
     "serviceAccount": "flink",
     "job": {
-      "jarURI": "local:///opt/flink/opt/flink-python_2.12-2.0.0.jar",
+      "jarURI": "local:///opt/flink/opt/flink-python-2.0.0.jar",
       "entryClass": "org.apache.flink.client.python.PythonDriver",
       "args": [
         "-pyclientexec",
@@ -49,6 +55,7 @@
     },
     "taskManager": {
       "resource": {
+        {# JVM-only budget; pod limit raised by kubernetes.taskmanager.memory.limit-factor. #}
         "memory": "{{ taskmanager_memory }}",
         "cpu": {{ taskmanager_cpu }}
       },
@@ -67,12 +74,24 @@
             "name": "flink-main-container",
             "env": [
               {
+                "name": "PYTHON_EXECUTION_MODE",
+                "value": "{{ runtime.python_execution_mode }}"
+              },
+              {
+                "name": "STATE_BACKEND",
+                "value": "{{ runtime.state_backend }}"
+              },
+              {
                 "name": "JOB_ID",
                 "value": "{{ job_id }}"
               },
               {
                 "name": "KAFKA_INPUT_TOPICS",
                 "value": "{{ input_topics | join(',') }}"
+              },
+              {
+                "name": "KAFKA_OUTPUT_DESTINATIONS",
+                "value": {{ kafka_output_destinations | tojson }}
               },
               {
                 "name": "KAFKA_OUTPUT_TOPIC",
@@ -109,6 +128,10 @@
               {
                 "name": "KAFKA_METRICS_TOPIC",
                 "value": "{{ metrics_topic }}"
+              },
+              {
+                "name": "KAFKA_TAGGED_EVENTS_TOPIC",
+                "value": "{{ tagged_events_topic }}"
               },
               {
                 "name": "KAFKA_BOOTSTRAP_SERVERS",

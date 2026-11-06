@@ -4,6 +4,8 @@ from typing import Literal
 
 from fastapi import Query
 
+from apps.core.enums import ActiveThreatSortField, AttackChainSortField, CorrelationPipelineSortField
+
 
 def get_pagination_params(
     page: int | None = Query(default=1, ge=1, description="Page number"),
@@ -46,6 +48,80 @@ def get_pagination_params_no_page(
         "limit": limit,
         "offset": offset,
         "sort": sort,
+        "order": order,
+        "search": search,
+        "skip": offset,
+    }
+
+
+def get_attack_chains_list_params(
+    limit: int | None = Query(default=10, ge=1, le=500, description="Items per page"),
+    offset: int | None = Query(default=0, ge=0, description="Offset"),
+    sort: AttackChainSortField | None = Query(
+        default=AttackChainSortField.LAST_SEEN,
+        description=(
+            "Field to sort by (date fields: `last_seen`, `first_seen`, `created_at`, `updated_at`, `window_start`)"
+        ),
+    ),
+    order: Literal["asc", "desc"] | None = Query(default="asc", description="Sort order"),
+    search: str | None = Query(
+        default=None,
+        description=(
+            "Case-insensitive search over hostname, username, status, threat id, chain type, "
+            "HoS/threat name, severity, and hit MITRE technique IDs"
+        ),
+    ),
+):
+    """Pagination params for attack chains list (offset/limit, typed sort fields)."""
+    return {
+        "limit": limit,
+        "offset": offset,
+        "sort": sort.value if sort else None,
+        "order": order,
+        "search": search,
+        "skip": offset,
+    }
+
+
+def get_correlation_pipelines_list_params(
+    limit: int | None = Query(default=10, ge=1, le=500, description="Items per page"),
+    offset: int | None = Query(default=0, ge=0, description="Offset"),
+    sort: CorrelationPipelineSortField | None = Query(
+        default=CorrelationPipelineSortField.NAME,
+        description="Field to sort by (`attack_chains` sorts on the per-pipeline chain count)",
+    ),
+    order: Literal["asc", "desc"] | None = Query(default="asc", description="Sort order"),
+    search: str | None = Query(default=None, description="Case-insensitive substring match on the pipeline name"),
+):
+    """Pagination params for the correlation pipelines list (offset/limit, typed sort fields)."""
+    return {
+        "limit": limit,
+        "offset": offset,
+        "sort": sort.value if sort else None,
+        "order": order,
+        "search": search,
+        "skip": offset,
+    }
+
+
+def get_active_threats_list_params(
+    limit: int | None = Query(default=10, ge=1, le=500, description="Items per page"),
+    offset: int | None = Query(default=0, ge=0, description="Offset"),
+    sort: ActiveThreatSortField | None = Query(
+        default=None,
+        description="Field to sort by (`release_date` uses TDM release time with local fallback)",
+    ),
+    order: Literal["asc", "desc"] | None = Query(default="asc", description="Sort order"),
+    search: str | None = Query(
+        default=None,
+        description="Case-insensitive search over name, severity, and MITRE technique IDs",
+    ),
+):
+    """Pagination params for active threats list (offset/limit, typed sort fields)."""
+    return {
+        "limit": limit,
+        "offset": offset,
+        "sort": sort.value if sort else None,
         "order": order,
         "search": search,
         "skip": offset,

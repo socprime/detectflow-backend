@@ -1,0 +1,188 @@
+id: xYL8amUbmyA5
+name: Schtasks Points to Suspicious Directory / Binary / Script (via cmdline)
+body: |-
+  title: Schtasks Points to Suspicious Directory / Binary / Script (via cmdline)
+  id: a762e4b2-8596-4442-bd84-7ec5f224dc8a
+  status: stable
+  description: Detects use of schtasks whereit points to suspicious directory.
+  author: SOC Prime Team
+  references:
+      - https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat
+      - https://asec.ahnlab.com/en/96295/
+      - https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
+      - https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
+      - https://www.pointwild.com/threat-intelligence/bothelper-rat-from-encrypted-payload-to-live-screen-surveillance/
+      - https://www.trellix.com/blogs/research/when-agents-go-rogue-openclaw-supply-chain-crisis/
+      - https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/
+      - https://www.picussecurity.com/resource/blog/dropping-elephant-patchwork-espionage-apt-tactics-and-tools
+      - https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown
+      - https://unit42.paloaltonetworks.com/cl-sta-1062-tinyrct-backdoor/?utm_campaign=u42+research_tinyrct-backdoor
+      - https://www.picussecurity.com/resource/blog/aquatic-panda-earth-lusca-analysis-campaigns-malware-and-ttps
+      - https://www.genians.co.kr/en/blog/threat_intelligence/narwhalrat
+      - https://www.security.com/blog-post/stock-exchange-espionage
+      - https://blog.exatrack.com/Tracking_APT28_PixyNetLoader/
+      - https://www.microsoft.com/en-us/security/blog/2026/05/26/poisoned-search-results-gpu-mining-cryptojacking-campaign-abusing-screenconnect-microsoft-net-utilities/
+      - https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps
+      - https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/
+      - https://www.rapid7.com/blog/post/tr-it-support-dissecting-modelorat-campaign-microsoft-teams-compromise/
+      - https://www.genians.co.kr/en/blog/threat_intelligence/python?hsCtaAttrib=343278473915
+      - https://www.cyberproof.com/blog/beyond-powershell-analyzing-the-multi-action-clickfix-variant/
+      - https://blog.talosintelligence.com/uat-8302/
+      - https://www.stormshield.com/news/analyzing-full-clickfix-attack-chain-part1/
+      - https://www.zscaler.com/blogs/security-research/tropic-trooper-pivots-adaptixc2-and-custom-beacon-listener
+      - https://cert.gov.ua/article/6288271
+      - https://www.zscaler.com/blogs/security-research/apt28-leverages-cve-2026-21509-operation-neusploit
+      - https://cert.gov.ua/article/6287250
+      - https://www.security.com/threat-intelligence/ukraine-russia-attacks
+      - https://cert.gov.ua/article/6284949
+      - https://redcanary.com/blog/threat-intelligence/intelligence-insights-july-2025/
+      - https://blog.eclecticiq.com/sandworm-apt-targets-ukrainian-users-with-trojanized-microsoft-kms-activation-tools-in-cyber-espionage-campaigns
+      - https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html
+      - https://cert.gov.ua/article/6281681
+      - https://medium.com/@knownsec404team/the-patchwork-group-has-updated-its-arsenal-launching-attacks-for-the-first-time-using-brute-ratel-175741987d87
+      - https://cyberarmor.tech/white-snake-latest-campaign-with-multi-stage-malware-dropper/
+      - https://www.gdatasoftware.com/blog/2024/07/37977-turla-evasion-lnk-files
+      - https://redcanary.com/blog/threat-intelligence/intelligence-insights-may-2024/
+      - https://asec.ahnlab.com/en/63396/
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-new-deepgosu-attack-campaign/
+      - https://asec.ahnlab.com/en/59763/
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/critical-infrastructure-attacks
+      - https://cert.gov.ua/article/4818341
+      - https://www.cybereason.com/blog/strifewater-rat-iranian-apt-moses-staff-adds-new-trojan-to-ransomware-operations
+      - https://decoded.avast.io/martinchlumecky/hotrat-the-risks-of-illegal-software-downloads-and-hidden-autohotkey-script-within
+      - https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/
+      - https://research.checkpoint.com/2023/stayin-alive-targeted-attacks-against-telecoms-and-government-ministries-in-asia/
+      - https://thedfirreport.com/2023/10/30/netsupport-intrusion-results-in-domain-compromise/
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/unmasking-asyncrat-new-infection-chain/
+      - https://www.esentire.com/blog/unveiling-parallax-rat-a-journey-from-infection-to-lateral-movement
+      - https://www.deepinstinct.com/blog/threat-actor-uac-0099-continues-to-target-ukraine
+      - https://twitter.com/RexorVc0/status/1753322883370168777
+      - https://www.trustwave.com/hubfs/Web/Library/Documents_pdf/FaceBook_Ad_Spreads_Novel_Malware.pdf
+      - https://www.reliaquest.com/blog/new-python-socgholish-infection-chain/
+      - https://www.trendmicro.com/en_us/research/24/d/earth-freybug.html
+      - https://www.esentire.com/blog/unraveling-not-azorult-but-koi-loader-a-precursor-to-koi-stealer
+      - https://www.microsoft.com/en-us/security/blog/2024/04/22/analyzing-forest-blizzards-custom-post-compromise-tool-for-exploiting-cve-2022-38028-to-obtain-credentials/
+      - https://www.genians.co.kr/blog/threat_intelligence/interview
+      - https://news.sophos.com/en-us/2024/06/05/operation-crimson-palace-a-technical-deep-dive/
+      - https://www.sentinelone.com/labs/fin7-reboot-cybercrime-gang-enhances-ops-with-new-edr-bypasses-and-automated-attacks/
+      - https://www.huntress.com/blog/advanced-persistent-threat-targeting-vietnamese-human-rights-defenders
+      - https://www.securonix.com/blog/from-cobalt-strike-to-mimikatz-slowtempest/
+      - https://hunt.io/blog/toneshell-backdoor-used-to-target-attendees-of-the-iiss-defence-summit
+      - https://thedfirreport.com/2024/09/30/nitrogen-campaign-drops-sliver-and-ends-with-blackcat-ransomware/
+      - https://cyble.com/blog/silent-intrusion-unraveling-the-sophisticated-attack-leveraging-vs-code-for-unauthorized-access/
+      - https://threatbook.io/blog/APT-Group---Konni-Launches-New-Attacks-on-South-Korea
+      - https://blog.talosintelligence.com/gophish-powerrat-dcrat/
+      - https://www.proofpoint.com/us/blog/threat-insight/hidden-plain-sight-ta397s-new-attack-chain-delivers-espionage-rats
+      - https://thedfirreport.com/2025/01/27/cobalt-strike-and-a-pair-of-socks-lead-to-lockbit-ransomware/
+      - https://www.trendmicro.com/en_us/research/25/c/socgholishs-intrusion-techniques-facilitate-distribution-of-rans.html
+      - https://www.zscaler.com/blogs/security-research/coffeeloader-brew-stealthy-techniques
+      - https://www.esentire.com/blog/the-long-and-shortcut-of-it-koiloader-analysis
+      - https://threatbook.io/blog/id/1094
+      - https://blog.talosintelligence.com/introducing-toymaker-an-initial-access-broker/
+      - https://www.attackiq.com/2025/05/08/emulating-termite-ransomware/
+      - https://www.proofpoint.com/us/blog/threat-insight/bitter-end-unraveling-eight-years-espionage-antics-part-one
+      - https://research.checkpoint.com/2025/from-trust-to-threat-hijacked-discord-invites-used-for-multi-stage-malware-delivery/
+      - https://www.gdatasoftware.com/blog/2025/07/38228-monero-malware-xmrig-resurgence
+      - https://www.trellix.com/blogs/research/from-click-to-compromise-unveiling-the-sophisticated-attack-of-donot-apt-group-on-southern-european-government-entities/
+      - https://www.trendmicro.com/en_us/research/25/i/evilai.html
+      - https://hunt.io/blog/asyncrat-screenconnect-open-directory-campaigns
+      - https://www.picussecurity.com/resource/blog/cabinetrat-malware-windows-targeted-campaign-explained
+      - https://www.trendmicro.com/en_us/research/25/j/active-water-saci-campaign-whatsapp-update.html
+      - https://www.security.com/threat-intelligence/china-apt-us-policy
+      - https://blog.pulsedive.com/dissecting-the-infection-chain-technical-analysis-of-the-kimsuky-javascript-dropper/
+      - https://www.0x0v1.com/endclientrat/
+      - https://www.picussecurity.com/resource/blog/xhunt-apt-cyber-espionage-operations-targeting-kuwait-and-exchange-servers
+      - https://www.attackiq.com/2025/11/14/sandworm/
+      - https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/
+      - https://asec.ahnlab.com/ko/91678/
+      - https://asec.ahnlab.com/en/92183/
+      - https://www.splunk.com/en_us/blog/security/common-ttps-rats-malware-analysis.html
+      - https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+      - https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+      - https://isc.sans.edu/diary/rss/32682
+      - https://www.microsoft.com/en-us/security/blog/2026/02/05/clickfix-variant-crashfix-deploying-python-rat-trojan/
+      - https://www.microsoft.com/en-us/security/blog/2026/02/06/active-exploitation-solarwinds-web-help-desk/
+      - https://www.elastic.co/security-labs/solarwinds-whd-exploitation
+      - https://www.forcepoint.com/blog/x-labs/phorpiex-global-group-ransomware-lnk-phishing
+      - https://any.run/cybersecurity-blog/emerging-ransomware-bqtlock-greenblood/
+      - https://www.bitdefender.com/en-us/blog/labs/lummastealer-second-life-castleloader
+      - https://blog.sekoia.io/oysterloader-unmasked-the-multi-stage-evasion-loader/
+      - https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html
+      - https://www.trendmicro.com/en_us/research/26/c/kongtuke-clickfix-abuse-of-compromised-wordpress-sites.html
+      - https://www.huntress.com/blog/data-exfiltration-threat-actor-infrastructure-exposed
+      - https://sect.iij.ad.jp/blog/2026/03/dropbox-api-kimsuky-malware/
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk
+      - https://www.security.com/threat-intelligence/asyncrat-libya-oil-cyberattack
+      - https://cyble.com/blog/professional-networks-under-attack-by-infostealer/
+  tags:
+      - attack.defense_evasion
+      - attack.execution
+      - attack.t1053.005
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          ParentImage|endswith:
+              - '.exe'
+              - '.tmp'
+              - '.src'
+          Image|endswith: 'schtasks.exe'
+          CommandLine|contains: 'Create'
+      selection_points:
+          CommandLine|contains:
+              - 'ProgramData' # schtasks /create /sc minute /mo 15 /tr "conhost --headless cmd /c more C:\programdata\talk.log|c^m^d" /tn BiosUpdates\update101 /f https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat; scheduled task disguised as OneDrive update -> C:\ProgramData scripts https://asec.ahnlab.com/en/96295/
+              - 'Fonts' #schtasks /create /tn "ApphostRagistreationVerifier" /tr "%SystemRoot%\Fonts\ApphostRagistreationVerifier.exe" /sc ONSTART /ru "NT AUTHORITY\SYSTEM" /f
+              - '\Users' # schtasks /create /sc minute /mo 30 /tn MicrosoftUpdates\updates11678 /tr "conhost --headless cmd /c more C:\users\public\music\err.log|cmd" /f https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat; C:\Users\Admin\AppData\Local; https://blog.eclecticiq.com/sandworm-apt-targets-ukrainian-users-with-trojanized-microsoft-kms-activation-tools-in-cyber-espionage-campaigns; https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/; https://isc.sans.edu/diary/rss/32682; https://www.security.com/threat-intelligence/asyncrat-libya-oil-cyberattack; https://cert.gov.ua/article/6288271; https://www.genians.co.kr/en/blog/threat_intelligence/python?hsCtaAttrib=343278473915; https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/; https://www.genians.co.kr/en/blog/threat_intelligence/narwhalrat; https://www.picussecurity.com/resource/blog/dropping-elephant-patchwork-espionage-apt-tactics-and-tool; https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/; https://www.pointwild.com/threat-intelligence/bothelper-rat-from-encrypted-payload-to-live-screen-surveillance/
+              - '\temp' #chtasks /create /sc MINUTE /mo 5 /tn "\Microsoft\Windows\SideShow\SystemDataProvider" /tr "powershell -exec bypass -file C:\Windows\Temp\xpsrchvw.ps1" /ru SYSTEM; https://any.run/cybersecurity-blog/emerging-ransomware-bqtlock-greenblood/; https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps; https://www.microsoft.com/en-us/security/blog/2026/05/26/poisoned-search-results-gpu-mining-cryptojacking-campaign-abusing-screenconnect-microsoft-net-utilities/; https://www.security.com/blog-post/stock-exchange-espionage
+              - '$temp' #"$windir\$system32\schtasks.exe" /Create /TN "Updates\aPCyDwLsApDgb" /XML "$user\$temp\tmp8ACB.tmp"
+              - '$home' #..$c;schtasks.exe /create /TN OneDriveUpdateCoreFilesStart /SC minute /mo 15 /tr $home\appdata\local\...
+              - 'Framework64' #%windir%\Microsoft.NET\Framework64\v4.0.30319\MSBuild %temp%\ChromeConnection" /f...
+              - '.js' #schtasks.exe /create /tn OneDriveStandal0ne /tr C:\Users\Public\Libraries\OneDriveUpdate.js /sc minute /mo 3 /f
+              - 'MSBuild' #%windir%\Microsoft.NET\Framework64\v4.0.30319\MSBuild %temp%\ChromeConnection" /f...
+              - '.xml' #https://cert.gov.ua/article/6287250; https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html; https://www.cyberproof.com/blog/beyond-powershell-analyzing-the-multi-action-clickfix-variant/
+              - '.bat' #https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk; https://cyble.com/blog/professional-networks-under-attack-by-infostealer/; https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
+              - '.vbs' # https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown
+              - '.py'
+              - 'vbscript'
+              - 'wscript' # https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
+              - 'cscript'
+              - '.jar'
+              - '.au3'
+              - 'rundll32' #schtasks /create /sc minute /mo 30 /tn asd /ru system /rl highest /f /tr "CSIDL_SYSTEM\rundll32.exe c:\windows\system32\comsvcs.dll, minidump 1020 c:\users\defautl\out.dmp full"; https://redcanary.com/blog/threat-intelligence/intelligence-insights-july-2025/; https://www.security.com/threat-intelligence/ukraine-russia-attacks; https://www.attackiq.com/2025/11/14/sandworm/; https://asec.ahnlab.com/en/92183/; https://blog.sekoia.io/oysterloader-unmasked-the-multi-stage-evasion-loader/
+              - '.com' #https://cert.gov.ua/article/6281681
+              - 'PUBLIC' # /tr "cmd /c more C:\users\public\music\err.log|cmd" https://www.fortinet.com/blog/threat-research/bitter-expands-its-arsenal-with-paprat; %PUBLIC% #https://cert.gov.ua/article/6281681
+              - '%TMP%' #https://cert.gov.ua/article/6284949
+              - 'PerfLog' #schtasks.exe" /create /tn P /xml C:\PerfLog\sch_ha.db /f; https://sect.iij.ad.jp/blog/2026/03/dropbox-api-kimsuky-malware/
+      filters:
+          - CommandLine|contains:
+              - 'SqlServerExtension' #schtasks /create /tn "\Microsoft\SqlServerExtension\SqlServerExtensionPermissionProvider" /xml C:\Windows\TEMP\tmp7714.tmp
+              - 'NDIToolsLaunch'
+              - '\ClickToRun'
+          - ParentImage|endswith:
+              - 'msiexec.exe'
+              - 'SupportAssistAgent.exe' #for case when parent is binary only
+              - 'RtkAudUService64.exe'
+              - 'RadeonInstaller.exe'
+              - 'InstallManager.exe' # AMD
+              - 'AsusOptimization.exe' # Asus
+              - 'avira_spotlight_setup_laun.tmp' # Avira
+          - ParentImage|contains:
+              - '32\driverstore\'
+          - ParentImage|contains|all:
+              - '\Program'
+              - 'Files' #"SCHTASKS.exe" /Create /XML C:\Windows\TEMP\AutoUpdateScheduler.xml /TN "Dell SupportAssistAgent AutoUpdate"
+              - 'supportassistagent'
+          - ParentImage|contains|all:
+              - 'system32' # --> schtasks /create /Tn RtkAudUService64_BG /XML "C:\WINDOWS\TEMP\ST_CPL.pkg.XML" /F
+              - 'driverstore'
+              - 'filerepository'
+      condition: (selection and selection_points) and not filters
+  falsepositives:
+      - Administrative GPO tasks (rare)
+      - Administrative tasks (rare)
+  level: medium
+level: medium
+created: '2022-02-01T19:31:39Z'
+updated: '2026-11-03T10:27:57.054000Z'

@@ -2,17 +2,25 @@
 
 This module provides REST API endpoints for generating field mappings
 between parsed log data and Sigma rule fields using AI assistance.
+
+Mapping generation is asynchronous: ``POST /generate-mapping`` enqueues a job and
+returns a ``job_id`` (202 Accepted); the client then polls
+``GET /generate-mapping/status/{job_id}`` until the job reaches ``completed`` or ``failed``.
 """
 
-from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Path, status
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import get_current_active_user
+from apps.core.auth import get_current_active_user, require_write_access
 from apps.core.database import get_db
 from apps.core.exceptions import NotFoundError
 from apps.core.models import User
-from apps.core.schemas import ErrorResponse
+from apps.core.openapi import BAD_REQUEST, UNAUTHORIZED, err, errors
+from apps.core.schemas import RepositorySelection, normalize_repository_selections
 from apps.managers.mapping import MappingManager
 from apps.services.mapping_watcher import get_mapping_watcher
 
@@ -20,21 +28,47 @@ from apps.services.mapping_watcher import get_mapping_watcher
 class GenerateMappingRequest(BaseModel):
     """Request for AI-assisted field mapping generation."""
 
-    repository_ids: list[str] = Field(description="Repository IDs to extract Sigma fields from")
+    repository_ids: list[RepositorySelection] = Field(description="Repository selections to extract Sigma fields from")
     topics: list[str] = Field(description="Kafka topics to sample events from")
-    parser_query: str = Field(description="Parser query to apply to events")
+    parser_query: str = Field(description="Parser query to apply to sampled events")
+
+    @field_validator("repository_ids", mode="before")
+    @classmethod
+    def validate_repository_selections(cls, v: object) -> list[dict] | None:
+        return normalize_repository_selections(v)
+
+
+class GenerateMappingJobResponse(BaseModel):
+    """Response returned when a mapping generation job is enqueued."""
+
+    job_id: str = Field(description="Identifier of the enqueued job; poll /generate-mapping/status/{job_id} for result")
 
 
 class GenerateMappingPromptResponse(BaseModel):
     """Response containing the generated prompt for manual or LLM-assisted mapping."""
 
-    prompt: str
+    prompt: str = Field(description="Generated prompt describing Sigma and event fields for manual mapping")
+
+
+class GenerateMappingStatusResponse(BaseModel):
+    """Response containing status and optional result for a mapping generation job."""
+
+    status: Literal["queued", "running", "completed", "failed"] = Field(description="Current job status")
+    started_at: datetime | None = Field(default=None, description="When processing started")
+    completed_at: datetime | None = Field(default=None, description="When processing completed or failed")
+    error: str | None = Field(default=None, description="Error message for failed jobs")
+    mapping: str | None = Field(default=None, description="Generated mapping YAML for completed jobs")
 
 
 class GetSigmaFieldsRequest(BaseModel):
     """Request for getting Sigma fields from repositories."""
 
-    repository_ids: list[str] = Field(description="Repository IDs to extract Sigma fields from")
+    repository_ids: list[RepositorySelection] = Field(description="Repository selections to extract Sigma fields from")
+
+    @field_validator("repository_ids", mode="before")
+    @classmethod
+    def validate_repository_selections(cls, v: object) -> list[dict] | None:
+        return normalize_repository_selections(v)
 
 
 class GetSigmaFieldsResponse(BaseModel):
@@ -43,29 +77,31 @@ class GetSigmaFieldsResponse(BaseModel):
     sigma_fields: list[str] = Field(description="List of unique Sigma fields from the specified repositories")
 
 
-router = APIRouter(tags=["Mapping"])
+router = APIRouter(prefix="/api/v1", tags=["Mapping"])
 
 
 @router.post(
-    "/api/v1/generate-mapping",
+    "/generate-mapping",
+    response_model=GenerateMappingJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Start field mapping generation",
-    responses={
-        202: {"description": "Job enqueued, returns job_id"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
-@router.post("/api/v1/generate-mapping/", include_in_schema=False, status_code=status.HTTP_202_ACCEPTED)
+@router.post("/generate-mapping/", include_in_schema=False, status_code=status.HTTP_202_ACCEPTED)
 async def generate_mapping(
     request: GenerateMappingRequest,
-    _: User = Depends(get_current_active_user),
+    _: User = Depends(require_write_access),
 ):
     """
-    Enqueue a field mapping generation job.
+    Enqueue an asynchronous field mapping generation job.
 
-    Returns 202 Accepted with job_id. Poll GET /api/v1/generate-mapping/status/{job_id}
-    for status and result (same format: status, started_at, completed_at, error, mapping when completed).
+    The job samples events from the requested Kafka topics, extracts Sigma fields
+    from the repositories, and calls the TDM API to produce a mapping. It runs in a
+    background worker and is not awaited here.
+
+    Returns 202 Accepted with a `job_id`. Poll
+    `GET /api/v1/generate-mapping/status/{job_id}` until `status` is `completed`
+    (the response then carries `mapping`) or `failed`.
     """
     watcher = get_mapping_watcher()
     job_id = watcher.enqueue(
@@ -73,30 +109,34 @@ async def generate_mapping(
         topics=request.topics,
         parser_query=request.parser_query,
     )
-    return {"job_id": job_id}
+    return GenerateMappingJobResponse(job_id=job_id)
 
 
 @router.get(
-    "/api/v1/generate-mapping/status/{job_id}",
+    "/generate-mapping/status/{job_id}",
+    response_model=GenerateMappingStatusResponse,
     summary="Get mapping job status",
-    responses={
-        200: {"description": "Job status (status, started_at, completed_at, error, mapping when completed)"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Job not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Mapping job not found")),
 )
-@router.get("/api/v1/generate-mapping/status/{job_id}/", include_in_schema=False)
+@router.get(
+    "/generate-mapping/status/{job_id}/",
+    include_in_schema=False,
+    response_model=GenerateMappingStatusResponse,
+)
 async def get_generate_mapping_status(
-    job_id: str,
+    job_id: str = Path(..., description="Identifier returned by POST /generate-mapping"),
     _: User = Depends(get_current_active_user),
 ):
     """
-    Get status for a mapping job by job_id.
+    Poll the status of a mapping generation job by `job_id`.
 
-    **Status values:** `queued`, `running`, `completed`, `failed`
-    When status is `completed`, the response includes `mapping` with the result.
-    The job is removed after the first fetch when status is `completed` or `failed`;
-    subsequent requests for the same job_id will return 404.
+    Returned by `POST /generate-mapping`; call this until `status` is `completed`
+    (the response then carries `mapping`) or `failed` (the response carries `error`).
+
+    **Status values:** `queued`, `running`, `completed`, `failed`.
+
+    The job is removed after the first fetch once it reaches `completed` or `failed`,
+    so subsequent requests for the same `job_id` return 404.
     """
     watcher = get_mapping_watcher()
     s = watcher.get_status(job_id)
@@ -112,25 +152,27 @@ async def get_generate_mapping_status(
         body["mapping"] = s.result
     if s.status in ("completed", "failed"):
         watcher.remove_job(job_id)
-    return body
+    return GenerateMappingStatusResponse(**body)
 
 
 @router.post(
-    "/api/v1/generate-mapping-prompt",
+    "/generate-mapping-prompt",
     response_model=GenerateMappingPromptResponse,
     summary="Generate mapping prompt",
-    responses={
-        200: {"description": "Generated mapping prompt"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(UNAUTHORIZED, BAD_REQUEST),
 )
 async def generate_mapping_prompt(
     request: GenerateMappingRequest,
     _: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a prompt for manual AI-assisted mapping generation."""
+    """
+    Generate a prompt for manual AI-assisted mapping generation.
+
+    Samples events from the requested topics and extracts Sigma fields from the
+    repositories synchronously, then returns a ready-to-use LLM prompt. Returns 400
+    if no Sigma fields or no event fields can be resolved.
+    """
     manager = MappingManager(db)
     prompt = await manager.generate_mapping_prompt(
         repository_ids=request.repository_ids,
@@ -141,14 +183,10 @@ async def generate_mapping_prompt(
 
 
 @router.post(
-    "/api/v1/get-sigma-fields",
+    "/get-sigma-fields",
     response_model=GetSigmaFieldsResponse,
     summary="Get Sigma fields from repositories",
-    responses={
-        200: {"description": "List of Sigma fields"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        422: {"description": "Validation error"},
-    },
+    responses=errors(UNAUTHORIZED, BAD_REQUEST),
 )
 async def get_sigma_fields(
     request: GetSigmaFieldsRequest,
@@ -158,8 +196,8 @@ async def get_sigma_fields(
     """
     Get Sigma fields from specified repositories.
 
-    Extracts all unique field names referenced by Sigma rules
-    in the specified repositories.
+    Extracts all unique field names referenced by Sigma rules in the specified
+    repositories. Returns 400 if `repository_ids` is empty or contains an invalid UUID.
     """
     manager = MappingManager(db)
     sigma_fields = await manager.get_sigma_fields(request.repository_ids)

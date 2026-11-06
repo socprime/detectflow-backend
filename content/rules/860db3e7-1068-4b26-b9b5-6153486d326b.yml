@@ -1,0 +1,151 @@
+id: 5o6umGVYMFiw
+name: Suspicious VSSADMIN Activity (via cmdline)
+body: |-
+  title: Suspicious VSSADMIN Activity (via cmdline)
+  id: 860db3e7-1068-4b26-b9b5-6153486d326b
+  status: stable
+  description: Volume Shadow Copy allows adversaries to obtain copies of sensitive files such as Ntds.dit or SYSTEM files.
+  author: SOC Prime Team
+  references:
+      - https://www.seqrite.com/blog/the-evolution-of-qilin-agenda-a-comparative-reverse-engineering-analysis-of-qilin-agenda-ransomware-across-2026/
+      - https://www.acronis.com/en/tru/posts/the-gentlemen-a-closer-look-at-a-not-so-gentle-ransomware-as-a-service-operation/
+      - https://socradar.io/blog/n0n-ransomware-ai-assisted-extortion/
+      - https://www.security.com/expert-perspectives/detection-gap-mitre-attck-t1490
+      - https://www.picussecurity.com/resource/blog/dire-wolf-ransomware-attacks-how-to-test-and-strengthen-your-defenses
+      - https://blog.talosintelligence.com/ransomware-incidents-in-japan-in-the-first-half-of-2026/
+      - https://www.huntress.com/blog/vss-abuse-explained
+      - https://andreafortuna.org/2026/09/07/panzer-ransomware-italian-victims/
+      - https://www.microsoft.com/en-us/security/blog/2026/09/01/counterfeit-installers-system-compromise-tracking-deceptive-software-download-campaign/
+      - https://www.attackiq.com/2026/08/20/updated-response-to-aa25-071a/
+      - https://www.attackiq.com/2026/07/31/analyzing-nova-ransomware/
+      - https://www.extrahop.com/blog/anatomy-of-an-attack-vect-20-ransomware
+      - https://webflow.sysdig.com/blog/jadepuffer-evolves-the-agentic-threat-actor-deploys-ransomware-built-to-destroy-ai-models
+      - https://www.picussecurity.com/resource/blog/everest-ransomware-triple-threat-of-encryption-access-and-insiders
+      - https://www.derp.ca/research/silverfox-panasonic-sauron-loader-chain/
+      - https://www.picussecurity.com/resource/blog/tengu-ransomware-attack-chain-from-initial-access-to-encryption
+      - https://www.attackiq.com/2026/05/22/gentlemen-ransomware/
+      - https://isc.sans.edu/diary/rss/33024
+      - https://hackers-arise.com/digital-forensics-hunting-chinese-apts-abusing-native-windows-tools/
+      - https://research.checkpoint.com/2026/vect-ransomware-by-design-wiper-by-accident/
+      - https://www.persistent-security.net/post/introducing-the-month-of-bypasses-what-defender-can-t-see
+      - https://www.zscaler.com/blogs/security-research/payouts-king-takes-aim-ransomware-throne
+      - https://www.team-cymru.com/post/yurei-double-extortion-ransomware-campaign-toolkit
+      - https://www.fortinet.com/blog/threat-research/evolution-of-chaos-ransomware-faster-smarter-and-more-dangerous
+      - https://asec.ahnlab.com/ko/90360/
+      - https://www.trendmicro.com/en_us/research/25/i/unmasking-the-gentlemen-ransomware.html
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-071a
+      - https://cyble.com/blog/technical-look-at-termite-ransomware-blue-yonder/
+      - https://unit42.paloaltonetworks.com/threat-assessment-blacksuit-ransomware-ignoble-scorpius/
+      - https://www.volexity.com/blog/2024/11/22/the-nearest-neighbor-attack-how-a-russian-apt-weaponized-nearby-wi-fi-networks-for-covert-access/
+      - https://unit42.paloaltonetworks.com/repellent-scorpius-cicada3301-ransomware/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-061a
+      - https://research.checkpoint.com/2024/bad-karma-no-justice-void-manticore-destructive-activities-in-israel/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-131a
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060a
+      - https://www.huntress.com/blog/blackcat-ransomware-affiliate-ttps
+      - https://asec.ahnlab.com/en/58753/
+      - https://posts.specterops.io/domain-of-thrones-part-i-c183ee4bf379
+      - https://www.cisa.gov/news-events/alerts/2023/09/20/fbi-and-cisa-release-advisory-snatch-ransomware
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-263a
+      - https://www.cisa.gov/sites/default/files/2023-09/joint-cybersecurity-advisory-stopransomware-snatch-ransomware_0.pdf
+      - https://unit42.paloaltonetworks.com/mallox-ransomware/
+      - https://blogs.vmware.com/security/2023/06/8base-ransomware-a-heavy-hitting-player.html
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-144a
+      - https://research.nccgroup.com/2022/06/06/shining-the-light-on-black-basta/
+      - https://www.dionach.com/blog/active-directory-password-auditing
+      - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/3am-ransomware-lockbit
+      - https://www.secureworks.com/research/gold-melody-profile-of-an-initial-access-broker
+      - https://thedfirreport.com/2023/09/25/from-screenconnect-to-hive-ransomware-in-61-hours/
+      - https://unit42.paloaltonetworks.com/stately-taurus-attacks-se-asian-government/
+      - https://www.fortinet.com/content/dam/fortinet/assets/threat-reports/rhysida-ransomware-intrusion.pdf
+      - https://montysecurity.medium.com/hunting-sandworm-teams-ttps-57a6fb31dd4b
+      - https://unit42.paloaltonetworks.com/medusa-ransomware-escalation-new-leak-site/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a
+      - https://www.trellix.com/blogs/research/the-evolution-of-the-kuiper-ransomware/
+      - https://blog.cyber5w.com/cryptnet-ransomware-analysis
+      - https://asec.ahnlab.com/ko/64345/
+      - https://thedfirreport.com/2024/04/29/from-icedid-to-dagon-locker-ransomware-in-29-days/
+      - https://www.cybereason.com/blog/hardening-of-hardbit
+      - https://www.acronis.com/en-us/cyber-protection-center/posts/zola-ransomware-the-many-faces-of-the-proton-family/
+      - https://thedfirreport.com/2024/08/12/threat-actors-toolkit-leveraging-sliver-poshc2-batch-scripts/
+      - https://www.attackiq.com/2024/08/30/emulating-mallox-ransomware/
+      - https://www.trendmicro.com/en_us/research/24/i/how-ransomhub-ransomware-uses-edrkillshifter-to-disable-edr-and-.html
+      - https://thedfirreport.com/2024/12/02/the-curious-case-of-an-egg-cellent-resume/
+      - https://www.attackiq.com/2025/01/27/emulating-the-splintered-hunters/
+      - https://www.picussecurity.com/resource/blog/qilin-ransomware
+      - https://www.picussecurity.com/resource/blog/ransomhub
+      - https://www.security.com/threat-intelligence/medusa-ransomware-attacks
+      - https://thedfirreport.com/2025/03/31/fake-zoom-ends-in-blacksuit-ransomware/
+      - https://www.trendmicro.com/vinfo/us/security/news/ransomware-spotlight/ransomware-spotlight-water-ouroboros
+      - https://www.attackiq.com/2025/05/08/emulating-termite-ransomware/
+      - https://www.attackiq.com/2025/05/23/emulating-dragonforce-ransomware/
+      - https://www.trendmicro.com/en_us/research/25/f/water-curse.html
+      - https://www.acronis.com/en-us/tru/posts/safepay-ransomware-the-fast-rising-threat-targeting-msps/
+      - https://www.cybereason.com/blog/blacksuit-data-exfil
+      - https://blog.talosintelligence.com/new-chaos-ransomware/
+      - https://asec.ahnlab.com/en/89397/
+      - https://www.huntress.com/blog/exploitation-of-sonicwall-vpn
+      - https://businessinsights.bitdefender.com/curly-comrades-new-threat-actor-targeting-geopolitical-hotbeds
+      - https://www.trendmicro.com/en_no/research/25/h/crypto24-ransomware-stealth-attacks.html
+      - https://blog.talosintelligence.com/ransomware_incidents_in_japan_during_the_first_half_of_2025/
+      - https://labs.k7computing.com/index.php/examining-the-tactics-of-bqtlock-ransomware-its-variants/
+      - https://www.esentire.com/blog/threat-actors-deploy-sinobi-ransomware-via-compromised-sonicwall-ssl-vpn-credentials
+      - https://www.picussecurity.com/resource/blog/crypto24-ransomware-uncovered-stealth-persistence-and-enterprise-scale-impact
+      - https://any.run/cybersecurity-blog/funklocker-malware-analysis/
+      - https://www.cyfirma.com/research/yurei-ransomware-the-digital-ghost/
+      - https://www.forescout.com/blog/a-year-later-interlock-ransomware-keeps-leveling-up/
+      - https://blog.talosintelligence.com/uncovering-qilin-attack-methods-exposed-through-multiple-cases/
+      - https://www.picussecurity.com/resource/blog/prophet-spider-threat-actor-explained
+      - https://www.attackiq.com/2025/11/06/ransom-tales-5/
+      - https://blog.talosintelligence.com/kraken-ransomware-group/
+      - https://www.picussecurity.com/resource/dev-1084-and-mercury-inside-irans-darkbit-ransomware-operations
+      - https://www.picussecurity.com/resource/blog/inside-sandworm-decade-of-cyber-sabotage-and-espionage-activity
+      - https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+      - https://wazuh.com/blog/detecting-and-responding-to-funklocker-ransomware-with-wazuh/
+      - https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+      - https://www.picussecurity.com/resource/blog/riddle-spider-avaddon-ransomware-analysis-and-technical-overview
+      - https://www.picussecurity.com/resource/blog/the-lockbit-comeback-how-the-group-evolved-after-a-global-takedown
+      - https://www.picussecurity.com/resource/blog/apt28-cyber-threat-profile-and-detailed-ttps
+      - https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/
+      - https://www.picussecurity.com/resource/blog/funksec-raas-operations-hacktivism-meets-cybercrime
+      - https://www.picussecurity.com/resource/blog/hardbit-4.0-ransomware-analysis
+      - https://www.picussecurity.com/resource/blog/inside-safepay-analyzing-the-new-centralized-ransomware-group
+      - https://www.picussecurity.com/resource/blog/hunters-international-ransomware
+      - https://www.attackiq.com/2025/09/25/ransom-tales-4/
+      - https://cert.pl/uploads/docs/CERT_Polska_Energy_Sector_Incident_Report_2025.pdf
+      - https://www.welivesecurity.com/en/eset-research/dynowiper-update-technical-analysis-attribution/
+      - https://www.picussecurity.com/resource/blog/is-babuk-back-babuk-locker-2-0-analysis
+      - https://www.forcepoint.com/blog/x-labs/phorpiex-global-group-ransomware-lnk-phishing
+      - https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492
+      - https://www.attackiq.com/2026/02/26/emulating-lokilocker-ransomware/
+      - https://labs.k7computing.com/index.php/gibcrypto-the-destructive-ransomware-with-a-snake-keylogger-connection/
+      - https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+  tags:
+      - attack.credential_access
+      - attack.t1003.003
+      - attack.impact
+      - attack.t1490
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith: 'vssadmin.exe'
+          CommandLine|contains: 'shadow' #3. vssadmin.exe delete shadows /all /quiet; https://www.fortinet.com/blog/threat-research/evolution-of-chaos-ransomware-faster-smarter-and-more-dangerous; https://www.picussecurity.com/resource/blog/apt28-cyber-threat-profile-and-detailed-ttps
+      selection_vars:
+          CommandLine|contains:
+              #- 'list' #noizy DellSupportAssistRemedationService.exe, etc.
+              - 'create' #https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://hackers-arise.com/digital-forensics-hunting-chinese-apts-abusing-native-windows-tools/; https://www.huntress.com/blog/vss-abuse-explained
+              - 'delete' # vssadmin purge Volume Shadow Copies https://www.seqrite.com/blog/the-evolution-of-qilin-agenda-a-comparative-reverse-engineering-analysis-of-qilin-agenda-ransomware-across-2026/; https://www.trendmicro.com/en_us/research/25/i/unmasking-the-gentlemen-ransomware.html; https://asec.ahnlab.com/ko/90360/; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.picussecurity.com/resource/blog/the-lockbit-comeback-how-the-group-evolved-after-a-global-takedown; https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/; https://www.picussecurity.com/resource/blog/funksec-raas-operations-hacktivism-meets-cybercrime; https://www.attackiq.com/2025/09/25/ransom-tales-4/; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server; https://research.checkpoint.com/2026/vect-ransomware-by-design-wiper-by-accident/; https://isc.sans.edu/diary/rss/33024; https://www.extrahop.com/blog/anatomy-of-an-attack-vect-20-ransomwarehttps://www.extrahop.com/blog/anatomy-of-an-attack-vect-20-ransomware; https://www.attackiq.com/2026/07/31/analyzing-nova-ransomware/; https://andreafortuna.org/2026/09/07/panzer-ransomware-italian-victims/; https://blog.talosintelligence.com/ransomware-incidents-in-japan-in-the-first-half-of-2026/; https://socradar.io/blog/n0n-ransomware-ai-assisted-extortion/
+      filters:
+          - ParentImage|endswith:
+              - 'vssshadowfix.exe' #c:\programdata\dell\supportassist\agent\downloads\notification\addons\10044\vssshadowfix.exe
+          - CommandLine|contains:
+              - 'AutoRetry' #...Create Shadow /AutoRetry=15 /For=\\?\Volume{2d64da14-16d3-4387-a1a7-482f6eb5322f}\
+      condition: (selection and selection_vars) and not filters
+  falsepositives:
+      - Administrative activity of foreign staff, backup operations.
+  level: high
+level: high
+created: '2020-04-07T12:00:19Z'
+updated: '2026-11-03T10:55:29.378000Z'

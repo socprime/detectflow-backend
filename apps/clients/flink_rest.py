@@ -503,7 +503,18 @@ class FlinkMetricsService:
             flink_provider: Optional FlinkProvider instance.
                            Uses get_flink_provider() if not provided.
         """
-        self._flink = flink_provider or get_flink_provider()
+        self._flink_override = flink_provider
+
+    @property
+    def _flink(self) -> FlinkProvider:
+        """Resolve the Flink provider lazily (cached by ``get_flink_provider``).
+
+        The module-level ``flink_metrics_service`` singleton is created at import time, but
+        building a provider eagerly would construct a Kubernetes client (kubeconfig required)
+        as an import side effect — breaking any import of ``server``/managers in environments
+        without cluster access (unit tests, CI). Deferring to first use keeps imports pure.
+        """
+        return self._flink_override or get_flink_provider()
 
     async def get_pipeline_metrics(self, pipeline_id: str) -> FlinkJobMetrics | None:
         """Get metrics for a pipeline.

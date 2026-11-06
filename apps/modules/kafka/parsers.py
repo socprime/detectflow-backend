@@ -12,6 +12,7 @@ from apps.core.logger import get_logger
 from apps.core.settings import settings
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.base import BaseKafkaAsyncClient, BaseKafkaSyncClient
+from apps.modules.utils import parse_mapping_metadata, strip_mapping_metadata
 
 logger = get_logger(__name__)
 
@@ -120,7 +121,7 @@ class KafkaParsersEventsReader(BaseKafkaAsyncClient):
 class KafkaParserPublisher(BaseKafkaSyncClient):
     """Publishes parser configs and mappings to Kafka for Flink jobs.
 
-    Uses the same topic as rules (sigma-rules) with type="parser".
+    Uses the same topic as rules (detectflow.sigma-rules) with type="parser".
     Each pipeline has exactly one parser+mapping (through LogSource).
     """
 
@@ -157,7 +158,7 @@ class KafkaParserPublisher(BaseKafkaSyncClient):
             log_source_id: LogSource UUID string (used as parser ID)
             log_source_name: LogSource name
             parsing_config: Parser configuration dict
-            mapping: LogSource mapping (optional)
+            mapping: LogSource mapping with optional Detect Flow metadata keys
         """
         return await asyncio.get_running_loop().run_in_executor(
             self._executor,
@@ -190,8 +191,13 @@ class KafkaParserPublisher(BaseKafkaSyncClient):
                 raise RuntimeError(f"Failed to deliver parser message: {err}")
 
         key_bytes, value_bytes = self._prepare_message(
-            pipeline_id, log_source_id, log_source_name, parsing_config, mapping
+            pipeline_id,
+            log_source_id,
+            log_source_name,
+            parsing_config,
+            mapping,
         )
+        mapping_metadata = parse_mapping_metadata(mapping)
 
         self.producer.produce(
             topic=self.topic,
@@ -208,6 +214,8 @@ class KafkaParserPublisher(BaseKafkaSyncClient):
                 "log_source_id": log_source_id,
                 "log_source_name": log_source_name,
                 "has_mapping": mapping is not None,
+                "hostname_fields": mapping_metadata.hostname_fields,
+                "timestamp_fields": mapping_metadata.timestamp_fields,
             },
         )
 
@@ -246,6 +254,7 @@ class KafkaParserPublisher(BaseKafkaSyncClient):
         parsing_config: dict[str, Any],
         mapping: str | None = None,
     ) -> tuple[bytes, bytes]:
+        mapping_metadata = parse_mapping_metadata(mapping)
         kafka_message = {
             "type": "parser",
             "job_id": pipeline_id,
@@ -254,7 +263,9 @@ class KafkaParserPublisher(BaseKafkaSyncClient):
                 "name": log_source_name,
                 "config": parsing_config,
             },
-            "mapping": mapping,
+            "mapping": strip_mapping_metadata(mapping),
+            "hostname_fields": mapping_metadata.hostname_fields,
+            "timestamp_fields": mapping_metadata.timestamp_fields,
         }
 
         key_bytes = self._get_composite_key(pipeline_id)

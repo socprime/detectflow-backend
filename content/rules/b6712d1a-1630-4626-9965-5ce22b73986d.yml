@@ -1,0 +1,39 @@
+id: uCzsjiNxw3va
+name: Possible Microsoft Defender Suspending / Abusing Attempt (via cmdline)
+body: |-
+  title: Possible Microsoft Defender Suspending / Abusing Attempt (via cmdline)
+  id: b6712d1a-1630-4626-9965-5ce22b73986d
+  status: stable
+  description: It detects potential attempts to suspend or manipulate a Microsoft Defender process using a tool such as PsSuspend (or similar), where the process name is provided as an argument or spawns suspicious child processes.
+  references:
+    - https://www.cyderes.com/howler-cell/rogueplanet-windows-zero-day
+    - https://github.com/MSNightmare/RoguePlanet
+    - https://www.picussecurity.com/resource/blog/rogueplanet-anatomy-of-the-nightmare-eclipse-microsoft-defender-zero-day
+    - https://twitter.com/0gtweet/status/1638069413717975046
+  tags:
+    - attack.t1562.001
+    - attack.defense_evasion
+    - attack.t1068
+    - attack.privilege_escalation
+  author: SOC Prime Team
+  logsource:
+    product: windows
+    category: process_creation
+  detection:
+    selection_cmd:
+      CommandLine|endswith: 'MsMpEng.exe' #pssuspend.exe msmpeng.exe
+    selection_child:
+      ParentImage:
+        - 'MsMpEng.exe'
+        - 'wermgr.exe' # rogueplanet exploit
+      Image|endswith:
+        - 'cmd.exe'
+        - 'conhost.exe' # rogueplanet exploit
+        - 'powershell.exe'
+    condition: selection_cmd or selection_child
+  falsepositives:
+    - Unknown
+  level: medium
+level: medium
+created: '2023-03-22T14:37:17Z'
+updated: '2026-06-12T08:46:23.275000Z'

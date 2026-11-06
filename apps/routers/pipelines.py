@@ -10,14 +10,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.auth import get_current_active_user
+from apps.core.auth import get_current_active_user, require_write_access
 from apps.core.database import get_db
 from apps.core.enums import PipelineRuleSortField, PipelineSortField
 from apps.core.exceptions import NotFoundError
 from apps.core.logger import get_logger
 from apps.core.models import User
+from apps.core.openapi import UNAUTHORIZED, err, errors
 from apps.core.schemas import (
-    ErrorResponse,
     PipelineCreateRequest,
     PipelineDetailResponse,
     PipelineListResponse,
@@ -25,6 +25,7 @@ from apps.core.schemas import (
     PipelineRulesListResponse,
     PipelineUpdateRequest,
     RuleListItem,
+    TaggedEventsTopicAssignRequest,
 )
 from apps.managers.pipeline_orchestrator import (
     PipelineNotFoundError,
@@ -44,10 +45,7 @@ logger = get_logger(__name__)
     "",
     response_model=PipelineListResponse,
     summary="List pipelines",
-    responses={
-        200: {"description": "Paginated list of pipelines"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-    },
+    responses=errors(UNAUTHORIZED),
 )
 async def get_pipelines(
     _: User = Depends(get_current_active_user),
@@ -55,14 +53,16 @@ async def get_pipelines(
     limit: int = Query(default=10, ge=1, le=100, description="Items per page"),
     sort: PipelineSortField | None = Query(default=None, description="Field to sort by"),
     order: Literal["asc", "desc"] = Query(default="asc", description="Sort order"),
-    search: str | None = Query(default=None, description="Search by pipeline name"),
+    search: str | None = Query(default=None, description="Search by pipeline name (case-insensitive)"),
     db: AsyncSession = Depends(get_db),
 ):
     """
     List all ETL pipelines with pagination and filtering.
 
     Returns pipelines with their associated topics, log sources, repositories,
-    and real-time statistics (events tagged/untagged).
+    correlation-pipeline membership (`correlation_pipelines` id/name chips),
+    real-time statistics (events tagged/untagged), and live Flink deployment status
+    (resolved per-pipeline at request time, not stored).
 
     Sort options: name, source_topics, destination_topic, log_source, filters, rules,
     events_tagged, events_untagged, created, enabled, status
@@ -86,31 +86,37 @@ async def get_pipelines(
     response_model=PipelineResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create pipeline",
-    responses={
-        201: {"description": "Pipeline created successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Log source, filter, or repository not found"},
-        422: {
-            "model": ErrorResponse,
-            "description": "Validation error: source=destination (infinite loop), or reserved system topic used",
+    responses=errors(
+        UNAUTHORIZED,
+        err(404, "Referenced log source, filter, or repository not found"),
+        {
+            422: {
+                "description": (
+                    "Request validation failed (e.g. source topic equals destination topic, "
+                    "or a reserved system topic was used)"
+                )
+            }
         },
-        500: {"model": ErrorResponse, "description": "Failed to create Flink deployment"},
-    },
+        err(500, "Failed to create the Flink deployment (pipeline is rolled back)"),
+    ),
 )
 async def create_pipeline(
     pipeline: PipelineCreateRequest,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Create a new ETL pipeline.
 
-    Creates a pipeline with the specified configuration. If `enabled=true`,
-    automatically deploys a Flink job to Kubernetes.
+    Persists the pipeline configuration. If `enabled=true`, also deploys a Flink job to
+    Kubernetes and publishes the pipeline's rules, filters, parser, and custom fields to
+    Kafka so the match node picks them up. On Flink-deployment failure the deployment is
+    rolled back and a 500 is returned. The action is recorded in the activity log.
 
-    **Required fields:** name, source_topic, destination_topic, log_source_id
+    **Required fields:** name, source_topics, destinations (or legacy destination_topic), log_source_id
 
-    **Flink deployment:** Created automatically when enabled. Use optional `kafka_starting_offset_earliest=true` to start from earliest offset; otherwise `latest`.
+    **Kafka offset:** set optional `kafka_starting_offset_earliest=true` to consume from the
+    earliest offset on first start; otherwise consumption starts from `latest`.
     """
     try:
         orchestrator = PipelineOrchestrator(db)
@@ -119,15 +125,49 @@ async def create_pipeline(
         raise NotFoundError(str(e)) from e
 
 
+@router.post(
+    "/{pipeline_id}/duplicate",
+    response_model=PipelineResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Duplicate pipeline",
+    responses=errors(
+        UNAUTHORIZED,
+        err(404, "Pipeline not found"),
+        err(503, "Kafka unavailable — the topic could not be provisioned"),
+    ),
+)
+async def duplicate_pipeline(
+    pipeline_id: str = Path(..., description="Pipeline UUID"),
+    current_user: User = Depends(require_write_access),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Create a copy of an existing pipeline.
+
+    The copy is named `<source name> (Copy)` and keeps the source configuration: source and
+    destination topics, log source, filters, custom fields, Flink resources, the selected
+    repositories with their folder paths, and the pipeline's rules — including each rule's
+    enabled/disabled state.
+
+    The copy is always created **disabled** (Run/Stop off): no Flink deployment is created and no
+    filters/custom fields/parser are published to Kafka. A dedicated tagged-events topic is
+    provisioned and the copy is auto-added to matching correlation pipelines (same as create).
+    Runtime state (status, deployment, event counters, last sync) is not copied. Pipeline names
+    are not unique, so duplicating the same pipeline twice yields two identically named copies.
+    The action is recorded in the activity log.
+    """
+    try:
+        orchestrator = PipelineOrchestrator(db)
+        return await orchestrator.duplicate_pipeline(UUID(pipeline_id), current_user)
+    except PipelineNotFoundError as e:
+        raise NotFoundError(str(e)) from e
+
+
 @router.get(
     "/{pipeline_id}",
     response_model=PipelineDetailResponse,
     summary="Get pipeline details",
-    responses={
-        200: {"description": "Pipeline details with Flink status"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Pipeline not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Pipeline not found")),
 )
 async def get_pipeline(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
@@ -137,7 +177,9 @@ async def get_pipeline(
     """
     Get detailed information about a pipeline.
 
-    Returns full configuration, associated resources, and real-time Flink deployment status.
+    Returns full configuration, associated resources (including correlation-pipeline
+    membership as `correlation_pipelines` id/name chips), rule-validation counts, warnings,
+    and the real-time Flink deployment status (queried live, not stored). Read-only.
 
     **Status values:** `running`, `disabled`, `deploying`, `failed`, `not_found`, `unknown`
     """
@@ -152,38 +194,54 @@ async def get_pipeline(
     "/{pipeline_id}",
     response_model=PipelineResponse,
     summary="Update pipeline",
-    responses={
-        200: {"description": "Pipeline updated successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Pipeline not found"},
-        422: {
-            "model": ErrorResponse,
-            "description": "Validation error: source=destination (infinite loop), or reserved system topic used",
+    responses=errors(
+        UNAUTHORIZED,
+        err(404, "Pipeline not found"),
+        {
+            422: {
+                "description": (
+                    "Request validation failed (e.g. source topic equals destination topic, "
+                    "or a reserved system topic was used)"
+                )
+            }
         },
-        500: {"model": ErrorResponse, "description": "Failed to update Flink deployment"},
-    },
+        err(409, "Enable rejected: cluster resource quota (CPU/memory/pods) exceeded"),
+        err(500, "Failed to update the Flink deployment"),
+    ),
 )
 async def update_pipeline(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
     pipeline: PipelineUpdateRequest = ...,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Update an existing pipeline.
 
-    **Hot-reloadable fields** (no Flink restart):
-    - `name`, `filters`, `log_source_id`, `repository_ids`, `custom_fields`
+    The update path depends on which fields changed and on the enabled state. Changes are
+    classified into two buckets (the authoritative restart set is `FLINK_RESTART_FIELDS` in
+    `apps/managers/pipeline_orchestrator.py` — consult it rather than this summary):
 
-    **Restart-required fields** (Flink job recreated):
-    - `source_topics`, `destination_topic`, `save_untagged`
-
-    **Not modifiable** (delete and recreate pipeline to change):
-    - `resources` (parallelism, memory, CPU) - changing causes Flink checkpoint incompatibility
+    - **Hot-reload (no downtime):** name, filters, log source, repositories, and custom fields
+      are republished to Kafka and the match node applies them live.
+    - **Flink last-state upgrade (~30s):** changing source topics, destinations (topic /
+      output_mode / apply_parser, including via the legacy `destination_topic`, `save_untagged`,
+      parser-on-output fields), or `resources` (CPU, RAM, parallelism, window/checkpoint,
+      autoscaler) patches the FlinkDeployment spec. The operator restores from the last
+      checkpoint; job ID is kept. Checkpoints are wiped only when `source_topics` change.
 
     **Enable/Disable behavior:**
-    - Enable: Creates new Flink deployment (offset=latest) and sends all data to Kafka
-    - Disable: Deletes Flink deployment only (data preserved in DB and Kafka for future enable)
+    - Enable: patches the existing deployment with the current DB spec (so resource edits made
+      while disabled take effect) and resumes from checkpoint, or creates a fresh one; then
+      republishes all rules/filters/parser/custom fields to Kafka.
+    - Disable: suspends the deployment (state and job ID preserved); DB and Kafka data are kept.
+    - Neither restarts any correlation pipeline any more: a correlation job's input list is derived
+      from membership, and a member's tagged-events topic exists from creation, so a disabled
+      pipeline simply stops producing into a topic that still exists.
+
+    Changing destination topics is SIEM output only and does not republish chains-config or
+    restart a correlation job. Membership is ``member_pipeline_ids``; isolation is the dedicated
+    tagged-events topic. The action is recorded in the activity log.
     """
     try:
         orchestrator = PipelineOrchestrator(db)
@@ -192,33 +250,73 @@ async def update_pipeline(
         raise NotFoundError(str(e)) from e
 
 
-@router.delete(
-    "/{pipeline_id}",
+@router.post(
+    "/{pipeline_id}/tagged-events-topic",
     response_model=PipelineResponse,
-    summary="Delete pipeline",
-    responses={
-        200: {"description": "Pipeline deleted successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Pipeline not found"},
-    },
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Assign a dedicated tagged-events topic",
+    responses=errors(
+        UNAUTHORIZED,
+        err(404, "Pipeline not found"),
+        err(503, "Kafka unavailable — the topic could not be provisioned"),
+    ),
 )
-async def delete_pipeline(
+async def assign_tagged_events_topic(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
-    current_user: User = Depends(get_current_active_user),
+    request: TaggedEventsTopicAssignRequest = ...,
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Permanently delete a pipeline.
+    Move a pre-epic pipeline off the shared tagged-events topic onto its own.
 
-    **This action is irreversible.** Deletes:
-    - Flink deployment from Kubernetes
-    - Checkpoints and savepoints
-    - Pipeline configuration from database
-    - Associated metrics history
+    Creates `detectflow.tagged-events.<pipeline_id>`, pins it on the pipeline, and — if the
+    pipeline is enabled — updates `KAFKA_TAGGED_EVENTS_TOPIC` on the matcher deployment, which
+    the Flink Operator applies by upgrading the job from its last checkpoint.
+
+    **⚠️ This restarts the detection pipeline (~30s)** and is the only operation that does so for
+    correlation reasons, hence the required `confirm_restart=true`. The topic name is then fixed
+    for the pipeline's lifetime. Pipelines without one keep writing to the shared legacy topic.
+
+    Idempotent: a pipeline that already has a dedicated topic returns 202 with no restart. The
+    owning correlation pipeline (if any) is refreshed afterwards, non-critically. The action is
+    recorded in the activity log.
     """
     try:
         orchestrator = PipelineOrchestrator(db)
-        return await orchestrator.delete_pipeline(UUID(pipeline_id), current_user)
+        return await orchestrator.assign_tagged_events_topic(UUID(pipeline_id), request, current_user)
+    except PipelineNotFoundError as e:
+        raise NotFoundError(str(e)) from e
+
+
+@router.delete(
+    "/{pipeline_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete pipeline",
+    responses=errors(
+        {204: {"description": "Pipeline deleted successfully"}},
+        UNAUTHORIZED,
+        err(404, "Pipeline not found"),
+    ),
+)
+async def delete_pipeline(
+    pipeline_id: str = Path(..., description="Pipeline UUID"),
+    current_user: User = Depends(require_write_access),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """
+    Permanently delete a pipeline.
+
+    **This action is irreversible.** Deletes the Flink deployment from Kubernetes, its
+    checkpoints/savepoints, the pipeline's rules/filters/parser/custom fields from Kafka,
+    and the pipeline configuration (with its metrics history) from the database. Membership of a
+    correlation pipeline is cascade-removed: that correlation job is re-rendered without the
+    departing topic, and only then is the pipeline's own tagged-events topic retired. The deletion
+    is recorded in the activity log.
+    """
+    try:
+        orchestrator = PipelineOrchestrator(db)
+        await orchestrator.delete_pipeline(UUID(pipeline_id), current_user)
     except PipelineNotFoundError as e:
         raise NotFoundError(str(e)) from e
 
@@ -227,11 +325,7 @@ async def delete_pipeline(
     "/{pipeline_id}/details/rules",
     response_model=PipelineRulesListResponse,
     summary="List pipeline rules",
-    responses={
-        200: {"description": "Paginated list of rules with statistics and validation status"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Pipeline not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Pipeline not found")),
 )
 async def get_pipeline_rules(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
@@ -240,7 +334,7 @@ async def get_pipeline_rules(
     limit: int = Query(default=10, ge=1, le=100, description="Items per page"),
     sort: PipelineRuleSortField | None = Query(default=None, description="Field to sort by"),
     order: Literal["asc", "desc"] = Query(default="asc", description="Sort order"),
-    search: str | None = Query(default=None, description="Search by rule name"),
+    search: str | None = Query(default=None, description="Search by rule name or Sigma UUID"),
     tagged_filter: Literal["all", "tagged", "untagged"] = Query(
         default="all", description="Filter by tagged events: all, tagged (>0 matches), untagged (0 matches)"
     ),
@@ -253,7 +347,9 @@ async def get_pipeline_rules(
     List all rules associated with a pipeline.
 
     Returns rules with their enabled status, tagged events count, and validation status.
-    Supports pagination, search by rule name, and filtering by supported/unsupported status.
+    Supports pagination and filtering by supported/unsupported status. `search` matches either the
+    rule name (substring) or a whole Sigma UUID — dashed, undashed, upper-case or URN-wrapped. Only
+    a whole UUID is treated as an id; any other term stays a plain name search.
     """
     skip = (page - 1) * limit
     logger.info(
@@ -294,15 +390,19 @@ async def get_pipeline_rules(
         rule_name = pipeline_rule.rule.name if pipeline_rule.rule else ""
         repository_name = ""
         repository_id = None
+        sigma_uuid = None
         is_supported = True
         unsupported_reason = None
+        level = None
 
         if pipeline_rule.rule:
             if pipeline_rule.rule.repository:
                 repository_name = pipeline_rule.rule.repository.name
                 repository_id = str(pipeline_rule.rule.repository.id)
+            sigma_uuid = str(pipeline_rule.rule.sigma_uuid) if pipeline_rule.rule.sigma_uuid else None
             is_supported = pipeline_rule.rule.is_supported
             unsupported_reason = pipeline_rule.rule.unsupported_reason
+            level = pipeline_rule.rule.level
 
         # Track counts
         if is_supported:
@@ -320,12 +420,14 @@ async def get_pipeline_rules(
                 name=rule_name,
                 repository=repository_name,
                 repository_id=repository_id,
+                sigma_uuid=sigma_uuid,
                 enabled=pipeline_rule.enabled,
                 tagged_events=tagged_events,
                 created=pipeline_rule.created.isoformat() if pipeline_rule.created else "",
                 updated=pipeline_rule.updated.isoformat() if pipeline_rule.updated else "",
                 is_supported=is_supported,
                 unsupported_reason=unsupported_reason,
+                level=level,
             )
         )
 
@@ -350,23 +452,20 @@ async def get_pipeline_rules(
     "/{pipeline_id}/details/rules/{rule_id}/disable",
     response_model=PipelineResponse,
     summary="Disable rule in pipeline",
-    responses={
-        200: {"description": "Rule disabled successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Pipeline or rule not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Pipeline or rule not found")),
 )
 async def disable_rule_in_pipeline(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
     rule_id: str = Path(..., description="Rule UUID"),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Disable a specific rule in a pipeline.
 
-    The rule will no longer be used for event tagging in this pipeline.
-    Change is synced to Kafka for hot-reload.
+    The rule stops being used for event tagging in this pipeline. The change is a
+    **hot-reload**: the rule is removed from Kafka (no Flink restart) and the match node
+    drops it live. Recorded in the activity log.
     """
     await RulesOrchestrator(db).disable_rule_in_pipeline(UUID(pipeline_id), UUID(rule_id), current_user)
     return PipelineResponse(id=pipeline_id, status=True, message="Rule disabled successfully")
@@ -376,23 +475,20 @@ async def disable_rule_in_pipeline(
     "/{pipeline_id}/details/rules/{rule_id}/enable",
     response_model=PipelineResponse,
     summary="Enable rule in pipeline",
-    responses={
-        200: {"description": "Rule enabled successfully"},
-        401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "Pipeline or rule not found"},
-    },
+    responses=errors(UNAUTHORIZED, err(404, "Pipeline or rule not found")),
 )
 async def enable_rule_in_pipeline(
     pipeline_id: str = Path(..., description="Pipeline UUID"),
     rule_id: str = Path(..., description="Rule UUID"),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_write_access),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Enable a specific rule in a pipeline.
 
-    The rule will be used for event tagging in this pipeline.
-    Change is synced to Kafka for hot-reload.
+    The rule starts being used for event tagging in this pipeline. The change is a
+    **hot-reload** (no Flink restart): a supported rule is republished to Kafka and the
+    match node applies it live; an unsupported rule is not sent. Recorded in the activity log.
     """
     await RulesOrchestrator(db).enable_rule_in_pipeline(UUID(pipeline_id), UUID(rule_id), current_user)
     return PipelineResponse(id=pipeline_id, status=True, message="Rule enabled successfully")

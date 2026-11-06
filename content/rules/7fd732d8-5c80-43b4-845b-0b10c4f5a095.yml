@@ -1,0 +1,35 @@
+id: r9H5KNdiuwhl
+name: Possible Stomping Shadow Copies (via cmdline)
+body: |-
+  title: Possible Stomping Shadow Copies (via cmdline)
+  id: 7fd732d8-5c80-43b4-845b-0b10c4f5a095
+  status: stable
+  description: Resizing is a relatively new approach among ransomware families compared to the previous methods like delete.
+  author: SOC Prime Team
+  references:
+      - https://www.attackiq.com/2026/08/20/updated-response-to-aa25-071a/
+      - https://www.cloudsek.com/blog/aurora-ransomware-affiliate-ai-attack-planning-crypto-payments
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-071a
+      - https://www.fortinet.com/blog/threat-research/stomping-shadow-copies-a-second-look-into-deletion-methods
+  tags:
+      - attack.impact
+      - attack.t1490
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          CommandLine|contains|all:
+              - 'vssadmin'
+              - 'resize'
+              - 'shadowstorage'
+      filters:
+          ParentImage|endswith:
+              - 'vssshadowfix.exe' #Dell stuff
+      condition: selection and not filters
+  falsepositives:
+      - Unknown
+  level: medium
+level: medium
+created: '2020-10-21T10:47:27Z'
+updated: '2026-09-02T10:44:33.110000Z'

@@ -1,0 +1,129 @@
+id: SbMV3b45fIeV
+name: Suspicious Extracted Files from an Archive (via file_event)
+body: |-
+  title: Suspicious Extracted Files from an Archive (via file_event)
+  id: f3bb828c-7019-4b8e-8ef4-212b744ced01
+  status: stable
+  description: Detects suspicious files and scripts which extracted from archives.
+  references:
+      - https://www.welivesecurity.com/en/eset-research/gorbag-orcs-border-harvesting-intelligence-ukraine/
+      - https://sect.iij.ad.jp/blog/2026/06/continuous-evolution-of-kimjongrat-2026/
+      - https://cert.gov.ua/article/6315762
+      - https://asec.ahnlab.com/ko/93289/
+      - https://www.proofpoint.com/us/blog/threat-insight/id-come-running-back-eu-again-ta416-resumes-european-government-espionage
+      - https://cert.gov.ua/article/6287707
+      - https://www.welivesecurity.com/en/eset-research/update-winrar-tools-now-romcom-and-others-exploiting-zero-day-vulnerability/
+      - https://github.com/Marcejr117/CVE-2025-24071_PoC
+      - https://unit42.paloaltonetworks.com/javascript-malware-gootloader/
+      - https://jp.security.ntt/tech_blog/controlplug
+      - https://app.any.run/tasks/80d106e5-c197-4afe-80d4-c3722fef3db4
+      - https://cert.gov.ua/article/6278521
+      - https://securityintelligence.com/x-force/hive0051-all-in-triple-threat/
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://cert.gov.ua/article/6032734
+      - https://cert.gov.ua/article/5702579
+      - https://cert.gov.ua/article/5661411
+      - https://cert.gov.ua/article/5628441
+      - https://cert.gov.ua/article/5269451
+      - https://cert.gov.ua/article/4755642
+      - https://cert.gov.ua/article/4555802
+      - https://cert.gov.ua/article/3931296
+      - https://cert.gov.ua/article/3863542
+      - https://cert.gov.ua/article/3804703
+      - https://cert.gov.ua/article/3349703
+      - https://cert.gov.ua/article/39086
+      - https://cert.gov.ua/article/39386
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/astaroth-banking-trojan-abusing-github-for-resilience/
+      - https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+      - https://www.seqrite.com/blog/9479-2/
+      - https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/
+      - https://www.trendmicro.com/en_us/research/25/l/valleyrat-campaign.html
+      - https://news.sophos.com/en-us/2025/12/05/sharpening-the-knife-gold-blades-strategic-evolution/
+      - https://asec.ahnlab.com/en/92160/
+      - https://asec.ahnlab.com/en/92183/
+      - https://www.picussecurity.com/resource/blog/hunters-international-ransomware
+      - https://www.resecurity.com/blog/article/pdfsider-malware-exploitation-of-dll-side-loading-for-av-and-edr-evasion
+      - https://www.malwarebytes.com/blog/news/2026/01/can-you-use-too-many-lolbins-to-drop-some-rats
+      - https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-gogitter-gitshellpad-and-goshell
+      - https://www.esentire.com/blog/weaponized-in-china-deployed-in-india-the-syncfuture-espionage-targeted-campaign
+      - https://cloud.google.com/blog/topics/threat-intelligence/exploiting-critical-winrar-vulnerability?e=48754805
+      - https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and
+      - https://blog.talosintelligence.com/knife-cutting-the-edge/
+      - https://www.recordedfuture.com/research/graycharlie-hijacks-law-firm-sites-suspected-supply-chain-attack
+      - https://www.fortinet.com/blog/threat-research/massive-winos-40-campaigns-target-taiwan
+      - https://lab52.io/blog/plugx-meeting-invitation-via-msbuild-and-gdata/
+      - https://www.malwarebytes.com/blog/scams/2026/02/huorong
+      - https://sect.iij.ad.jp/blog/2026/02/plugx-executed-via-staticplugin/
+      - https://isc.sans.edu/diary/rss/32754
+      - https://www.huntress.com/blog/fake-tech-support-havoc-command-control
+      - https://www.malwarebytes.com/blog/threat-intel/2026/03/a-fake-filezilla-site-hosts-a-malicious-download
+      - https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492
+      - https://isc.sans.edu/diary/32766
+      - https://research.checkpoint.com/2026/silver-dragon-targets-organizations-in-southeast-asia-and-europe/
+      - https://securityaffairs.com/188895/apt/from-phishing-to-google-drive-c2-silver-dragon-expands-apt41-playbook.html
+      - https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html
+      - https://www.bitdefender.com/en-us/blog/businessinsights/apt36-nightmare-vibeware
+      - https://blog.checkpoint.com/research/china-nexus-activity-against-qatar-observed-amid-expanding-regional-tensions/
+      - https://hackread.com/china-hackers-qatar-backdoor-fake-war-news/
+      - https://www.zscaler.com/blogs/security-research/middle-east-conflict-fuels-opportunistic-cyber-attacks
+      - https://www.threatdown.com/blog/castlerat-cyber-attack-is-the-first-to-abuse-deno-javascript-runtime-to-evade-enterprise-security/
+      - https://www.sonicwall.com/blog/pdf-borne-living-off-the-land-attacks-with-rmm-abuse
+      - https://www.derp.ca/research/hellsuchecker-clickfix-etherhiding/
+      - https://www.trellix.com/blogs/research/malware-as-a-service-redefined-xworm-rat/
+      - https://www.proofpoint.com/us/blog/threat-insight/iran-conflict-drives-heightened-espionage-activity-against-middle-east-targets
+      - https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/
+      - https://www.microsoft.com/en-us/security/blog/2026/03/12/storm-2561-uses-seo-poisoning-to-distribute-fake-vpn-clients-for-credential-theft/
+      - https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/
+      - https://blog.sekoia.io/silver-fox-the-only-tax-audit-where-the-fine-print-installs-malware/
+      - https://cyble.com/blog/professional-networks-under-attack-by-infostealer/
+      - https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch-clickfix/
+  author: SOC Prime Team
+  tags:
+      - attack.initial_access
+      - attack.t1566.001
+  logsource:
+      category: file_event
+      product: windows
+  detection:
+      selection_images:
+          Image|endswith:
+              - 'WinRAR.exe' # Повідомлення 4726-49.rar CVE-2025-8088 https://www.welivesecurity.com/en/eset-research/gorbag-orcs-border-harvesting-intelligence-ukraine/
+              - '7z.exe'
+              - 'tar.exe'
+              - 'rar.exe'
+      selection_ext:
+          TargetFilename|endswith:
+              - '.library-ms' #CVE-2025-24071; https://medium.com/@mhwee/unmasking-windows-library-files-a-deep-dive-into-client-side-exploitation-6bf3371a5262
+              - '.vbs' #https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/; https://asec.ahnlab.com/en/92160/; https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html
+              - '.js' #https://www.recordedfuture.com/research/graycharlie-hijacks-law-firm-sites-suspected-supply-chain-attack; https://isc.sans.edu/diary/32766; https://cert.gov.ua/article/6315762
+              - '.jse'
+              - '.bat' #https://asec.ahnlab.com/en/92160/; https://isc.sans.edu/diary/rss/32754
+              - '.url'
+              - '.cmd' #https://www.sonicwall.com/blog/pdf-borne-living-off-the-land-attacks-with-rmm-abuse; https://cyble.com/blog/professional-networks-under-attack-by-infostealer/
+              - '.exe' #https://www.trendmicro.com/en_us/research/25/l/valleyrat-campaign.html; https://asec.ahnlab.com/en/92160/; https://www.picussecurity.com/resource/blog/hunters-international-ransomware; https://www.resecurity.com/blog/article/pdfsider-malware-exploitation-of-dll-side-loading-for-av-and-edr-evasion; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-gogitter-gitshellpad-and-goshell; https://blog.talosintelligence.com/knife-cutting-the-edge/; https://lab52.io/blog/plugx-meeting-invitation-via-msbuild-and-gdata/; https://sect.iij.ad.jp/blog/2026/02/plugx-executed-via-staticplugin/; https://www.malwarebytes.com/blog/scams/2026/02/huorong; https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html; https://www.threatdown.com/blog/castlerat-cyber-attack-is-the-first-to-abuse-deno-javascript-runtime-to-evade-enterprise-security/; https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx; https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/; https://blog.sekoia.io/silver-fox-the-only-tax-audit-where-the-fine-print-installs-malware/; https://cyble.com/blog/professional-networks-under-attack-by-infostealer/; https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch-clickfix/
+              - '.lnk' # Startup LNK from Повідомлення 4726-49.rar https://virusbulletin.com/uploads/pdf/conference/vb2026/papers/Gorbag-Orcs-at-the-border.pdf; https://www.welivesecurity.com/en/eset-research/update-winrar-tools-now-romcom-and-others-exploiting-zero-day-vulnerability/; CVE-2025-8088; https://www.mcafee.com/blogs/other-blogs/mcafee-labs/astaroth-banking-trojan-abusing-github-for-resilience/; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.seqrite.com/blog/9479-2/; https://news.sophos.com/en-us/2025/12/05/sharpening-the-knife-gold-blades-strategic-evolution/; https://cloud.google.com/blog/topics/threat-intelligence/exploiting-critical-winrar-vulnerability?e=48754805; https://www.fortinet.com/blog/threat-research/massive-winos-40-campaigns-target-taiwan; https://cert.gov.ua/article/6287707; https://www.bitdefender.com/en-us/blog/businessinsights/apt36-nightmare-vibeware; https://blog.checkpoint.com/research/china-nexus-activity-against-qatar-observed-amid-expanding-regional-tensions/; https://www.zscaler.com/blogs/security-research/middle-east-conflict-fuels-opportunistic-cyber-attacks; https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx; https://www.proofpoint.com/us/blog/threat-insight/iran-conflict-drives-heightened-espionage-activity-against-middle-east-targets; https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/; https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk; https://www.proofpoint.com/us/blog/threat-insight/id-come-running-back-eu-again-ta416-resumes-european-government-espionage
+              - '.hta'
+              - '.msc'
+              #- '.doc' #old file format which can contain macros.
+              - '.iso' #https://news.sophos.com/en-us/2025/12/05/sharpening-the-knife-gold-blades-strategic-evolution/
+              - '.img' #https://news.sophos.com/en-us/2025/12/05/sharpening-the-knife-gold-blades-strategic-evolution/
+              - '.dll' #https://www.resecurity.com/blog/article/pdfsider-malware-exploitation-of-dll-side-loading-for-av-and-edr-evasion; https://www.esentire.com/blog/weaponized-in-china-deployed-in-india-the-syncfuture-espionage-targeted-campaign; https://blog.talosintelligence.com/knife-cutting-the-edge/; https://www.fortinet.com/blog/threat-research/massive-winos-40-campaigns-target-taiwan; https://research.checkpoint.com/2026/silver-dragon-targets-organizations-in-southeast-asia-and-europe/; https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html; https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx; https://www.microsoft.com/en-us/security/blog/2026/03/12/storm-2561-uses-seo-poisoning-to-distribute-fake-vpn-clients-for-credential-theft/; https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/; https://blog.sekoia.io/silver-fox-the-only-tax-audit-where-the-fine-print-installs-malware/; https://cyble.com/blog/professional-networks-under-attack-by-infostealer/; https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch-clickfix/
+              - '.msi' #https://asec.ahnlab.com/en/92183/; https://www.microsoft.com/en-us/security/blog/2026/03/12/storm-2561-uses-seo-poisoning-to-distribute-fake-vpn-clients-for-credential-theft/
+              - '.csproj' #https://lab52.io/blog/plugx-meeting-invitation-via-msbuild-and-gdata/; https://www.proofpoint.com/us/blog/threat-insight/id-come-running-back-eu-again-ta416-resumes-european-government-espionage; https://asec.ahnlab.com/ko/93289/
+              - '.tmp' #Rar.exe a –{REDACTED} c:\Windows\temp\DMBC2C61.tmp;
+      filters:
+          - TargetFilename|contains|all:
+              - 'NVIDIA'
+              - 'Downloader' #C:\ProgramData\NVIDIA Corporation\Downloader\latest\NvBack...
+          - TargetFilename|contains:
+              - '\NVIDIA Corporation\'
+              - 'UpdatePack7Live' #old systems update
+      condition: (selection_images and selection_ext) and not filters
+  falsepositives:
+      - legitimate files inside archives.
+  level: low
+level: low
+created: '2022-04-08T11:18:45Z'
+updated: '2026-11-04T11:08:51.469000Z'

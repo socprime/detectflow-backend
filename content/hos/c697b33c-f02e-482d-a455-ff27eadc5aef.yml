@@ -1,0 +1,65 @@
+id: p6ndiutIHfyH
+name: New JanaWare ransomware targets Turkey via Adwind RAT
+body: |-
+  title: New JanaWare ransomware targets Turkey via Adwind RAT
+  description: New JanaWare ransomware targets Turkey via Adwind RAT
+  id: c697b33c-f02e-482d-a455-ff27eadc5aef
+  status: stable
+  author: SOC Prime Team
+  references:
+    - https://tdm.socprime.com/active-threats/8FFmkJ0BFsA9Tj2-S04i
+  tags:
+    - attack.t1204
+    - attack.t1566.002
+    - attack.t1190
+    - attack.t1036
+    - attack.t1562.001
+    - attack.t1564.012
+    - attack.t1518.001
+    - attack.t1003.003
+    - attack.t1489
+    - attack.t1490
+    - attack.t1105
+    - attack.t1071.001
+  logsource:
+    category: detectflow
+  detection:
+    seq1:
+      ruleid|contains:
+        - '64ec1ab8-162c-4281-b824-db3f69501cc8' #t1566.002 #Possible Google Drive Phishing (via proxy) (8feG2nJXBASE)
+    seq2:
+      ruleid|contains: #t1204, t1190, t1036
+        - 'e4b61ca2-c614-4b89-8530-c5e543e8ee42' #Suspicious Java Child Process [Windows] (via cmdline) (vShRbQJTLSqC)
+        - '299bad2b-1646-42b3-bf01-5d2f7a111041' #Java Binary Executed From Unusual Location (via process_creation) (QaMYsjXNHiBF)
+    seq3:
+      ruleid|contains: #t1562.001, t1564.012, t1518.001
+        - '017ffc83-da26-4abc-b419-df6f9801cc2c' #Disable Windows Defender Realtime Monitoring and Other Preferences Changes (via cmdline) (LftWzjPiN2Hx)
+        - 'f9e8820a-f863-4766-9b2b-761cf3702424' #Risky Microsoft Defender Exclusions Added (via cmdline) (tNvBSMYAQCnM)
+        - 'b6712d1a-1630-4626-9965-5ce22b73986d' #Possible Microsoft Defender Suspending Attempt (via cmdline) (uCzsjiNxw3va)
+        - '13d72640-1c8c-432d-bcc0-6e21bfb74edb' #Possible Windows Downgrade Attack Behaviour (via registry_event) (zrb6jXw9VPdA)
+        - '1dad2a56-fa1f-499c-8abe-4a3caf2a05a4' #Possible Antivirus or Firewall Software Enumeration (via process_creation) (S3nmYBgPIMbV)
+        - '91885111-cfdd-424c-9b0e-771f2dc52d03' #Possible AV Process Enumeration / Manipulation (via cmdline) (wPCmfCHT1r6u)
+        - '51efd764-d7e7-4c55-ada7-8da7daffe52c' #Possible Microsoft Defender Discovery Attempt (via cmdline) (JDBwUl6IlpeT)
+        - '0c128c4f-9323-4e7a-9e46-cff7c51f6b92' #Possible Microsoft Defender Discovery Attempt (via powershell) (ZhzqUEsgsBoR)
+    seq4:
+      ruleid|contains: #t1489, t1490
+        - '860db3e7-1068-4b26-b9b5-6153486d326b' #Suspicious VSSADMIN Activity (via cmdline) (5o6umGVYMFiw)
+        - '928c324e-933e-4e87-9538-362e91137e6d' #Possible VSS Service Autostart Disabled (via cmdline) (LhOtWepFs3VF)
+        - '991bc36f-3348-4aeb-868a-380294c7fd36' #Possible PowerShell Pre-Encryption Prep (RunAs + Recovery Inhibition) (via powershell) (LzvrnXJ8JJtd)
+        - '7fd732d8-5c80-43b4-845b-0b10c4f5a095' #Possible Stomping Shadow Copies (via cmdline) (r9H5KNdiuwhl)
+        - 'e2d4f42e-83a4-4008-ba26-38cf59b7dfeb' #Suspicious VSS Registry Modifications Attempt (via registry_event) (Ckm1NnfZPo0J)
+    seq5:
+      ruleid|contains: #t1105, #t1071.001
+        - '42e2973c-cf5e-47fa-b0e6-e73792578684' #Possible TOR Domain in Powershell Script (via powershell) (6NFglraMPljD)
+        - '7534171a-de69-43e4-b85b-e2f77b3ce0a7' #Possible TOR Domain in Command Line (via cmdline) (xfNtQb0bJDae)
+        - 'a8d99db6-5f54-4b53-a600-0bca8bec3884' #Possible Data Infiltration / Exfiltration / C2 via Third Party Services / Tools (via dns) (kaS95z4AKog6)
+        - '2e025289-ae4b-4eab-a00a-58bc4a5623d7' #Possible Data Infiltration / Exfiltration / C2 via Third Party Services / Tools (via dns_query) (oOjog0OJ4QzD)
+        - '6917c744-03bc-4abe-92c9-7f87a175c8e6' #Possible Data Infiltration / Exfiltration / C2 via Third Party Services / Tools (via cmdline)(dYOZK3mwAoqj)
+    timeframe: 5m
+    condition: chain by hostname
+  falsepositives:
+      - Unknown
+  level: high
+level: high
+created: '2026-10-08T12:29:24Z'
+updated: '2026-11-06T08:06:33.763000Z'

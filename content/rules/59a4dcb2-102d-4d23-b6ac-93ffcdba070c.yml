@@ -1,0 +1,32 @@
+id: RoYUM7zalkSx
+name: Windows Security Audit Log Cleared (via audit)
+body: |-
+  title: Windows Security Audit Log Cleared (via audit)
+  id: 59a4dcb2-102d-4d23-b6ac-93ffcdba070c
+  status: stable
+  description: Detects clearing of the Windows Security event log via Event 1102. Log clearing destroys forensic evidence and is a well-known anti-forensics step executed after initial access or lateral movement. Unscheduled clearing by non-approved accounts warrants immediate investigation. Pair with EventID 104 on the System channel for full coverage.
+  references:
+      - https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/event-1102
+      - https://www.welivesecurity.com/en/eset-research/operation-akairyu-mirrorface-invites-europe-expo-2025-revives-anel-backdoor
+      - https://socprime.com/detectflow/ # FOR DF DEMO
+  author: SOC Prime Team
+  tags:
+      - attack.defense_evasion
+      - attack.t1070
+      - attack.t1070.001
+      - attack.defense_impairment
+      - attack.t1685.005
+  logsource:
+      product: windows
+      service: security
+  detection:
+      selection:
+          EventID: 1102
+      condition: selection
+  falsepositives:
+      - Authorized administrators clearing logs during approved maintenance windows
+      - SIEM or log management platforms performing scheduled log rotation
+  level: high
+level: high
+created: '2019-08-10T19:51:32Z'
+updated: '2026-08-12T11:04:39.430000Z'

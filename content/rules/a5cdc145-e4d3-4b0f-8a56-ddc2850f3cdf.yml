@@ -1,0 +1,42 @@
+id: 6qXVCVRzfYi9
+name: UserAccount Hidden via Registry (via registry_event)
+body: |-
+  title: UserAccount Hidden via Registry (via registry_event)
+  id: a5cdc145-e4d3-4b0f-8a56-ddc2850f3cdf
+  status: stable
+  description: By adding users to the "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Specialaccounts" registry entry, advesaries can hide accounts created for persistence.
+  references:
+      - https://socradar.io/blog/n0n-ransomware-ai-assisted-extortion/
+      - https://asec.ahnlab.com/en/94552/
+      - https://michaelkoczwara.medium.com/adversaries-infrastructure-ransomware-groups-apts-and-red-teams-7a6dd761c50e
+      - https://gist.github.com/MichaelKoczwara/07a877f3df094cafa876834249817c95#file-anydesk-txt-L19
+      - https://thedfirreport.com/2022/07/11/select-xmrig-from-sqlserver/
+      - https://www.itprotoday.com/windows-78/how-can-i-display-local-administrator-account-windows-xp-welcome-screen
+      - https://asec.ahnlab.com/en/57873/
+      - https://thedfirreport.com/2024/01/29/buzzing-on-christmas-eve-trigona-ransomware-in-3-hours/
+      - https://www.bitdefender.com/blog/businessinsights/deep-dive-into-unfading-sea-haze-a-new-threat-actor-in-the-south-china-sea/
+      - https://www.huntress.com/blog/akira-ransomware-indicators
+      - https://www.security.com/threat-intelligence/china-southeast-asia-espionage
+  author: SOC Prime Team
+  tags:
+      - attack.defense_evasion
+      - attack.t1112
+      - attack.t1564.002
+  logsource:
+      category: registry_event
+      product: windows
+  detection:
+      selection:
+          TargetObject|contains|all:
+              - 'Software' #REG ADD "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\Userlist" /v Adminv$ /t REG_DWORD /d 0\
+              - 'Microsoft'
+              - 'CurrentVersion'
+              - 'Winlogon'
+              - 'SpecialAccounts'
+      condition: selection
+  falsepositives:
+      - legitimate local accounts created and added to SpecialAccounts.
+  level: medium
+level: medium
+created: '2023-09-12T09:19:55Z'
+updated: '2026-10-28T12:28:38.943000Z'

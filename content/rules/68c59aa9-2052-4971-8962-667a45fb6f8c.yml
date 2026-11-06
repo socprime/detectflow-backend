@@ -1,0 +1,235 @@
+id: l29W5ayOJv2Y
+name: Alternative Remote Access / Management Software (via process_creation)
+body: |-
+  title: Alternative Remote Access / Management Software (via process_creation)
+  id: 68c59aa9-2052-4971-8962-667a45fb6f8c
+  status: stable
+  description: This rule identifies alternative remote access / management tools (e.g. TeamViewer) other than Windows Remote Desktop. It is highly recommended to baseline your activity and tune out common business use cases.
+  references:
+    - https://www.catonetworks.com/blog/cato-ctrl-research-suspected-iranian-muddywater-activity-using-israel-tax-authority-lures-simplehelp/
+    - https://www.security.com/threat-intelligence/lindnor-new-backdoor-anubis-ransomware
+    - https://www.microsoft.com/en-us/security/blog/2026/10/30/help-desk-impersonation-ad-cs-abuse-investigating-esc1-esc8-intrusion-paths/
+    - https://arcticwolf.com/resources/blog/threat-actors-abuse-microsoft-teams-external-chat-for-initial-access/
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a
+    - https://socradar.io/blog/inc-gentlemen-ransomware-ai-infrastructure/
+    - https://cloud.google.com/blog/topics/threat-intelligence/investigating-ephemeral-supply-chain-tampering/
+    - https://cofense.com/blog/rsvp-to-disaster-how-one-click-installs-a-rat
+    - https://isc.sans.edu/diary/rss/33400
+    - https://isc.sans.edu/diary/rss/33388
+    - https://www.microsoft.com/en-us/security/blog/2026/09/29/phishing-abuses-rmm-tools-persistent-access/
+    - https://labs.k7computing.com/index.php/from-kms-auto-to-scareware-tracking-a-multi-stage-intrusion-linked-to-apt36/
+    - https://www.huntress.com/blog/threat-actor-compiles-cryptominer
+    - https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection
+    - https://www.microsoft.com/en-us/security/blog/2026/09/24/beyond-ransomware-tracking-storm-2570-consistent-tradecraft-across-deployments/
+    - https://www.huntress.com/blog/two-inc-ransom-notes
+    - https://www.malware-traffic-analysis.net/2026/09/14/index.html
+    - https://www.huntress.com/blog/phishing-bitb-rmm-attacks
+    - https://andreafortuna.org/2026/09/07/panzer-ransomware-italian-victims/
+    - https://asec.ahnlab.com/en/95230/
+    - https://www.acronis.com/en/tru/posts/remote-access-hardening-playbook-reducing-rmm-tool-risk-for-smbs/
+    - https://www.huntress.com/blog/rogue-screenconnect-installations
+    - https://asec.ahnlab.com/en/95001/
+    - https://www.huntress.com/blog/akira-hits-safe-mode-ransomware-rebooting-around-edr
+    - https://www.intel471.com/blog/threat-hunting-case-study-the-gentlemen
+    - https://www.levelblue.com/blogs/spiderlabs-blog/beyond-fake-updates-from-application-store-themed-phishing-to-large-scale-distribution-of-screenconnect
+    - https://www.team-cymru.com/post/beast-ransomware-server-toolkit-analysis
+    - https://arcticwolf.com/resources/blog/exploitation-of-cve-2026-0257-leads-to-qilin-ransomware/
+    - https://www.forescout.com/blog/seasonalinvite-new-phishing-campaign-abuses-ecards-and-rmm/
+    - https://www.intel471.com/blog/threat-hunting-case-study-scattered-spider
+    - https://thedfirreport.com/2026/06/29/from-bing-search-to-ransomware-bumblebee-and-adaptixc2-deliver-akira-3/
+    - https://www.catonetworks.com/blog/cato-ctrl-previously-undocumented-ninjaone-rmm-abuse-chain/
+    - https://blog.deception.pro/blog/xworm-sc-hok-may-2026
+    - https://cloud.google.com/blog/topics/threat-intelligence/targeted-campaign-us-law-firms/
+    - https://andreafortuna.org/2026/05/28/silent-ransom-group-usb-physical-attack-dfir/
+    - https://www.microsoft.com/en-us/security/blog/2026/05/26/poisoned-search-results-gpu-mining-cryptojacking-campaign-abusing-screenconnect-microsoft-net-utilities/
+    - https://www.picussecurity.com/resource/blog/nightspire-ransomware-attack-chain-tools-and-tactics
+    - https://cofense.com/blog/click-install-compromised-the-new-wave-of-zoom-themed-attacks
+    - https://www.bitdefender.com/en-us/blog/businessinsights/famoussparrow-apt-targets-azerbaijani-oil-gas-industry
+    - https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/
+    - https://www.huntress.com/blog/tiflux-rmm-install
+    - https://www.seqrite.com/blog/operation-grieflure-dissecting-an-apt-campaign-targeting-vietnams-military-telecom-philippine-healthcare/
+    - https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery
+    - https://www.rapid7.com/blog/post/tr-muddying-tracks-state-sponsored-shadow-behind-chaos-ransomware/
+    - https://www.securonix.com/blog/venomous-helper-phishing-campaign/
+    - https://www.huntress.com/blog/komari-c2-agent-abuse
+    - https://www.malwarebytes.com/blog/news/2026/04/your-shipment-has-arrived-email-hides-remote-access-software
+    - https://www.huntress.com/blog/uptick-bomgar-exploitation
+    - https://blog.talosintelligence.com/the-n8n-n8mare/
+    - https://www.huntress.com/blog/nightspire-ransomware
+    - https://www.sophos.com/en-us/blog/incident-responders-s-il-vous-plait
+    - https://www.microsoft.com/en-us/security/blog/2026/03/03/signed-malware-impersonating-workplace-apps-deploys-rmm-backdoors
+    - https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/
+    - https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a
+    - https://cert.gov.ua/article/6282069
+    - https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/stopransomware-bianlian-ransomware-group
+    - https://cert.gov.ua/article/6281009
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-242a
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-241a
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-061a
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-131a
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-109a
+    - https://redcanary.com/blog/cve-2023-48788/
+    - https://news.sophos.com/en-us/2024/02/23/connectwise-screenconnect-attacks-deliver-malware/
+    - https://cert.gov.ua/article/6277285
+    - https://cert.gov.ua/article/6277063
+    - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/iran-apt-seedworm-africa-telecoms
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-325a
+    - https://cert.gov.ua/article/5160737
+    - https://jsac.jpcert.or.jp/archive/2023/pdf/JSAC2023_1_1_yamashige-nakatani-tanaka_en.pdf
+    - https://cert.gov.ua/article/3863542
+    - https://blog.talosintelligence.com/2022/08/recent-cyber-attack.html
+    - https://www.lifewire.com/free-remote-access-software-tools-2625161
+    - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1072/T1072.md
+    - https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1219/T1219.md
+    - https://gist.github.com/brokensound77/6d8a1e480e65ff20e151099c98267b14
+    - https://twitter.com/malmoeb/status/1668504337910468612
+    - https://www.esentire.com/blog/operation-phantomcontrol
+    - https://thedfirreport.com/2023/09/25/from-screenconnect-to-hive-ransomware-in-61-hours
+    - https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/
+    - https://www.microsoft.com/en-us/security/blog/2023/10/25/octo-tempest-crosses-boundaries-to-facilitate-extortion-encryption-and-destruction/
+    - https://fleetdeck.io/faq/
+    - https://blog.sekoia.io/darkgate-internals/
+    - https://www.intrinsec.com/akira_ransomware/
+    - https://arcticwolf.com/resources/blog/cherryloader-a-new-go-based-loader-discovered-in-recent-intrusions/
+    - https://www.s-rminform.com/cyber-intelligence-briefing/uncovering-akira-privilege-escalation-techniques
+    - https://blogs.blackberry.com/en/2024/07/akira-ransomware-targets-the-latam-airline-industry
+    - https://thedfirreport.com/2024/08/12/threat-actors-toolkit-leveraging-sliver-poshc2-batch-scripts/
+    - https://www.trendmicro.com/en_us/research/24/i/how-ransomhub-ransomware-uses-edrkillshifter-to-disable-edr-and-.html
+    - https://www.trendmicro.com/en_us/research/24/l/darkgate-malware.html
+    - https://asec.ahnlab.com/en/85580/
+    - https://www.trendmicro.com/en_us/research/25/a/how-cracks-and-installers-bring-malware-to-your-device.html
+    - https://www.trendmicro.com/en_us/research/25/a/investigating-a-web-shell-intrusion-with-trend-micro--managed-xd.html
+    - https://asec.ahnlab.com/en/86310/
+    - https://thedfirreport.com/2025/02/24/confluence-exploit-leads-to-lockbit-ransomware/
+    - https://www.security.com/threat-intelligence/medusa-ransomware-attacks
+    - https://thedfirreport.com/2025/04/28/navigating-through-the-fog/
+    - https://www.huntress.com/blog/how-proactive-account-review-uncovered-unauthorized-surveillance-tools
+    - https://businessinsights.bitdefender.com/curly-comrades-new-threat-actor-targeting-geopolitical-hotbeds
+    - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/malicious-screen-connect-campaign-abuses-ai-themed-lures-for-xworm-delivery/
+    - https://zensec.co.uk/blog/unmasking-akira-the-ransomware-tactics-you-cant-afford-to-ignore/
+    - https://arcticwolf.com/resources/blog/smash-and-grab-aggressive-akira-campaign-targets-sonicwall-vpns/
+    - https://www.proofpoint.com/us/blog/threat-insight/remote-access-real-cargo-cybercriminals-targeting-trucking-and-logistics
+    - https://www.proofpoint.com/us/blog/threat-insight/crossed-wires-case-study-iranian-espionage-and-attribution
+    - https://lolrmm.io/tools/isl_online
+    - https://thedfirreport.com/2025/11/17/cats-got-your-files-lynx-ransomware/
+    - https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+    - https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/
+    - https://redcanary.com/blog/threat-intelligence/email-bombing-virtual-machine/
+    - https://www.huntress.com/blog/rogue-screenconnect-social-engineering-tactics-2025
+    - https://asec.ahnlab.com/ko/91933/
+    - https://www.malwarebytes.com/blog/threat-intel/2026/01/how-real-software-downloads-can-hide-remote-backdoors
+    - https://asec.ahnlab.com/en/92319/
+    - https://www.aikido.dev/blog/fake-clawdbot-vscode-extension-malware
+    - https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+    - https://www.microsoft.com/en-us/security/blog/2026/02/06/active-exploitation-solarwinds-web-help-desk/
+    - https://www.forcepoint.com/blog/x-labs/screenconnect-attack
+    - https://www.virustotal.com/gui/file/ffbe988fd797cbb9a1eedb705cf00ebc8277cdbd9a21b6efb40a8bc22c7a43f0/behavior
+    - https://www.huntress.com/blog/fake-tech-support-havoc-command-control
+    - https://www.intel471.com/blog/cve-2026-1731-finding-a-critical-rce-in-an-age-of-ai-driven-vulnerability-research
+    - https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools
+    - https://www.huntress.com/blog/w2-malvertising-to-kernel-mode-edr-kill
+    - https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+  author: SOC Prime Team
+  tags:
+    - attack.t1219
+    - attack.command_and_control
+    - attack.t1072 #radmin
+    - attack.execution
+    - attack.lateral_movement
+  logsource:
+    product: windows
+    category: process_creation
+  detection:
+    selection:
+      - Image|endswith:
+        - '\LMIGuardianSvc.exe' # LogMeIn
+        - '\TIAgent.exe' # Tiflux, https://www.huntress.com/blog/tiflux-rmm-install
+        - '\komari-agent.exe' # https://www.huntress.com/blog/komari-c2-agent-abuse
+        - '\Splashtop_Streamer.exe' #https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/
+        - '\SupremoService.exe'
+        - '\RustDesk.exe' #https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+        - '\rutserv.exe' #%ProgramFiles(x86)%/Remote Utilities - Host/rutserv.exe
+        - '\ngrok.exe' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+        - '\AteraAgent.exe' #https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
+        - '\Atera.exe' #https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
+        - '\pdq-connect-agent.exe' #https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
+        - '\NinjaRMMAgentPatcher.exe'
+        - '\NinjaRMMAgent.exe'
+        - '\GoToAssistUI.exe'
+        - '\GoToAssistService.exe'
+        - '\GoToAssistTools64.exe'
+        - '\GoToAssistUnattended.exe'
+        - '\g2mlauncher.exe'
+        - '\dcagentregister.exe'
+        - '\dcagentservice.exe'
+        - '\dcnotificationserver.exe'
+        - '\action1_remote.exe'
+        - '\action1_agent.exe' #https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools; https://isc.sans.edu/diary/rss/33400
+        - '\AA_v3.exe'
+        - '\AeroAdmin.exe'
+        - '\AnyDesk.exe' # anydesk.exe https://www.security.com/threat-intelligence/lindnor-new-backdoor-anubis-ransomware; https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a; https://thedfirreport.com/2025/11/17/cats-got-your-files-lynx-ransomware/; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.huntress.com/blog/fake-tech-support-havoc-command-control; https://www.huntress.com/blog/nightspire-ransomware; https://www.intel471.com/blog/threat-hunting-case-study-scattered-spider; https://arcticwolf.com/resources/blog/exploitation-of-cve-2026-0257-leads-to-qilin-ransomware/; https://www.team-cymru.com/post/beast-ransomware-server-toolkit-analysis; https://www.huntress.com/blog/akira-hits-safe-mode-ransomware-rebooting-around-edr; https://www.huntress.com/blog/two-inc-ransom-notes; https://www.huntress.com/blog/threat-actor-compiles-cryptominer; https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a
+        - '\ehorus_display.exe'
+        - '\ehorus_launcher.exe'
+        - '\dd.exe' #Distant Desktop
+        - '\desktopnow.exe'
+        - '\dwagent_x86.exe'
+        - '\g2ax_start.exe'
+        - '\getscreen.exe'
+        - '\IperiusRemote.exe'
+        - '\logmein.exe'
+        - '\quickassist.exe' # Quick Assist https://www.microsoft.com/en-us/security/blog/2026/10/30/help-desk-impersonation-ad-cs-abuse-investigating-esc1-esc8-intrusion-paths/; https://redcanary.com/blog/threat-intelligence/email-bombing-virtual-machine/; https://www.huntress.com/blog/fake-tech-support-havoc-command-control
+        - '\Radmin.exe'
+        - '\remoting_host.exe' # https://www.picussecurity.com/resource/blog/nightspire-ransomware-attack-chain-tools-and-tactics
+        - '\rfusclient.exe'
+        - '\ROMViewer.exe'
+        - '\ScreenConnect.WindowsClient.exe'
+        - '\ScreenConnect.ClientService.exe' #https://www.huntress.com/blog/w2-malvertising-to-kernel-mode-edr-kill; https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery; https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/; https://www.microsoft.com/en-us/security/blog/2026/05/26/poisoned-search-results-gpu-mining-cryptojacking-campaign-abusing-screenconnect-microsoft-net-utilities/; https://www.forescout.com/blog/seasonalinvite-new-phishing-campaign-abuses-ecards-and-rmm/; https://www.levelblue.com/blogs/spiderlabs-blog/beyond-fake-updates-from-application-store-themed-phishing-to-large-scale-distribution-of-screenconnect; https://asec.ahnlab.com/en/95001/; https://www.huntress.com/blog/rogue-screenconnect-installations; https://labs.k7computing.com/index.php/from-kms-auto-to-scareware-tracking-a-multi-stage-intrusion-linked-to-apt36/; https://cofense.com/blog/rsvp-to-disaster-how-one-click-installs-a-rat
+        - '\smpcview.exe'
+        - '\TeamViewer_Desktop.exe'
+        - '\tvnserver.exe' # https://www.seqrite.com/blog/operation-grieflure-dissecting-an-apt-campaign-targeting-vietnams-military-telecom-philippine-healthcare/
+        - '\winvnc.exe'
+        - '\ZohoURS.exe'
+        - '\fleetdeck-agent.exe'
+        - '\rserver3.exe' # https://asec.ahnlab.com/en/95230/
+        - '\PDQDeployService.exe'
+        - '\BGStart.exe'
+        - '\ISLLight.exe'
+        - '\ISLLightClient.exe'
+        - '\isllightservice.exe'
+        - '\islalwaysonmonitor.exe'
+        - '\level.exe' #Level; https://www.huntress.com/blog/fake-tech-support-havoc-command-control
+        - '\level-windows-amd64.exe' #Level
+        - '\level-remote-control-ffmpeg.exe' #Level
+        - '\simplehelpcustomer.exe' #SimpleHelp
+        - '\simpleservice.exe' #  https://www.catonetworks.com/blog/cato-ctrl-research-suspected-iranian-muddywater-activity-using-israel-tax-authority-lures-simplehelp/; SimpleHelp; https://www.sophos.com/en-us/blog/incident-responders-s-il-vous-plait; https://www.securonix.com/blog/venomous-helper-phishing-campaign/
+        - '\simplegatewayservice.exe' #SimpleHelp
+        - '\windowslauncher.exe' #  https://www.catonetworks.com/blog/cato-ctrl-research-suspected-iranian-muddywater-activity-using-israel-tax-authority-lures-simplehelp/; SimpleHelp
+        - '\Syncro.Installer.exe'
+        - '\Syncro.Service.Runner.exe'
+        - '\Syncro.App.Runner.exe'
+        - '\SRService.exe' # https://www.huntress.com/blog/tiflux-rmm-install
+        - '\ToolsIQ.exe' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://www.microsoft.com/en-us/security/blog/2026/02/06/active-exploitation-solarwinds-web-help-desk/
+        - '\xeox-agent_x64.exe' #XEOX; https://www.huntress.com/blog/fake-tech-support-havoc-command-control
+        - '\strwinclt.exe' #Splashtop; https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools
+        - '\CagService.exe' # Datto (Centrastage); https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools
+        - '\AEMAgent.exe' # Datto (Centrastage); https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools; https://blog.talosintelligence.com/the-n8n-n8mare/
+        - '\tailscale.exe' # https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection
+        - '\tailscaled.exe' # https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection
+        - '\RMM.Agent.exe' # https://www.microsoft.com/en-us/security/blog/2026/09/29/phishing-abuses-rmm-tools-persistent-access/
+        - '\FamItrfc.exe' # Radmin, https://cloud.google.com/blog/topics/threat-intelligence/investigating-ephemeral-supply-chain-tampering/
+      - Image|contains:
+        - '\JWrapper-Remote Access' #  https://www.catonetworks.com/blog/cato-ctrl-research-suspected-iranian-muddywater-activity-using-israel-tax-authority-lures-simplehelp/; SimpleHelp
+        - 'PDQDeployRunner'
+        - 'UltraViewer' #https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/
+        - 'CloneDesk' #https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/
+        - 'TightVNC' #https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/
+    condition: selection
+  falsepositives:
+    - Legitimate Administrative Activity.
+    - It is highly recommended to baseline your activity and tune out common business use cases.
+    - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: medium
+level: medium
+created: '2022-04-04T19:32:44Z'
+updated: '2026-11-05T14:36:46.680000Z'

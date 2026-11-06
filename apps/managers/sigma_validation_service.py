@@ -4,6 +4,7 @@ This service validates Sigma rules against the current rule loader module versio
 Rules that cannot be processed by the Flink job are marked as unsupported.
 """
 
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
@@ -37,6 +38,39 @@ class ValidationResult:
 
     is_supported: bool
     reason: str | None = None
+
+
+def _validate_bodies_sync(bodies: list[str]) -> list[ValidationResult]:
+    """Validate rule bodies — pure CPU (YAML parse + Sigma checks), NO event loop.
+
+    Validating a large batch inline in an async handler blocks the event loop
+    for the whole run, stalling every concurrent request and SSE stream. Always
+    call this via ``asyncio.to_thread`` from async code.
+
+    One ``SigmaValidator`` instance is reused for the whole batch instead of
+    constructing a new one per rule.
+    """
+    if not SIGMA_VALIDATOR_AVAILABLE:
+        return [ValidationResult(is_supported=True) for _ in bodies]
+
+    validator = SigmaValidator()
+    results: list[ValidationResult] = []
+    for body in bodies:
+        try:
+            result = validator.validate(body)
+            if result.is_supported:
+                results.append(ValidationResult(is_supported=True))
+            else:
+                results.append(ValidationResult(is_supported=False, reason=result.unsupported_reason))
+        except (ValueError, TypeError) as e:
+            # Invalid input types
+            logger.warning(f"Invalid rule body type: {e}")
+            results.append(ValidationResult(is_supported=False, reason=f"Invalid rule format: {e}"))
+        except Exception as e:
+            # Unexpected errors - log with traceback for debugging (ISSUE #6 fix)
+            logger.exception(f"Unexpected error validating rule: {e}")
+            results.append(ValidationResult(is_supported=False, reason=f"Validation error: {type(e).__name__}: {e}"))
+    return results
 
 
 class SigmaValidationService:
@@ -80,8 +114,8 @@ class SigmaValidationService:
         if not force and current_version and rule.validated_with_version == current_version:
             return rule.is_supported
 
-        # Perform validation using schema-parser
-        validation_result = self._perform_validation(rule.body)
+        # Perform validation using schema-parser (in the threadpool — CPU-heavy)
+        validation_result = (await asyncio.to_thread(_validate_bodies_sync, [rule.body]))[0]
 
         # Update rule with validation results
         rule.is_supported = validation_result.is_supported
@@ -89,7 +123,7 @@ class SigmaValidationService:
         rule.validated_at = datetime.now(tz=UTC)
         rule.validated_with_version = current_version
 
-        await self.db.commit()
+        await self.db.flush()
 
         return validation_result.is_supported
 
@@ -110,27 +144,29 @@ class SigmaValidationService:
         current_version = await self.get_current_module_version()
         results: dict[str, bool] = {}
 
+        # Split: already-validated rules are answered from the DB state; the rest
+        # go through the CPU-heavy validator in ONE threadpool call, so the event
+        # loop keeps serving requests while thousands of rules are validated.
+        to_validate: list[Rule] = []
         for rule in rules:
-            # Skip if already validated with current version (unless forced)
             if not force and current_version and rule.validated_with_version == current_version:
                 results[str(rule.id)] = rule.is_supported
-                continue
+            else:
+                to_validate.append(rule)
 
-            # Perform validation
-            validation_result = self._perform_validation(rule.body)
+        if to_validate:
+            bodies = [rule.body for rule in to_validate]  # ORM access on the loop, not in the thread
+            validation_results = await asyncio.to_thread(_validate_bodies_sync, bodies)
 
-            # Update rule with validation results
-            rule.is_supported = validation_result.is_supported
-            rule.unsupported_reason = validation_result.reason
-            rule.validated_at = datetime.now(tz=UTC)
-            rule.validated_with_version = current_version
+            validated_at = datetime.now(tz=UTC)
+            for rule, validation_result in zip(to_validate, validation_results, strict=True):
+                rule.is_supported = validation_result.is_supported
+                rule.unsupported_reason = validation_result.reason
+                rule.validated_at = validated_at
+                rule.validated_with_version = current_version
+                results[str(rule.id)] = validation_result.is_supported
 
-            results[str(rule.id)] = validation_result.is_supported
-
-        # TODO: commit here breaks atomicity if caller's subsequent steps (e.g. Kafka sync,
-        # pipeline linkage) fail — the validated rules are already persisted. Refactor to
-        # let the caller own the commit boundary (unit-of-work pattern).
-        await self.db.commit()
+            await self.db.flush()
 
         logger.info(
             f"Validated {len(rules)} rules: "
@@ -241,7 +277,10 @@ class SigmaValidationService:
         return supported_count, total
 
     def _perform_validation(self, rule_body: str) -> ValidationResult:
-        """Perform actual validation of a rule body using schema-parser.
+        """Validate one rule body synchronously.
+
+        Kept for compatibility; prefer ``asyncio.to_thread(_validate_bodies_sync, ...)``
+        from async code — this call is CPU-heavy and must not run on the event loop.
 
         Args:
             rule_body: Sigma rule YAML body.
@@ -249,23 +288,4 @@ class SigmaValidationService:
         Returns:
             ValidationResult with is_supported and optional reason.
         """
-        if not SIGMA_VALIDATOR_AVAILABLE:
-            return ValidationResult(is_supported=True)
-
-        try:
-            validator = SigmaValidator()
-            result = validator.validate(rule_body)
-
-            if result.is_supported:
-                return ValidationResult(is_supported=True)
-            else:
-                return ValidationResult(is_supported=False, reason=result.unsupported_reason)
-
-        except (ValueError, TypeError) as e:
-            # Invalid input types
-            logger.warning(f"Invalid rule body type: {e}")
-            return ValidationResult(is_supported=False, reason=f"Invalid rule format: {e}")
-        except Exception as e:
-            # Unexpected errors - log with traceback for debugging (ISSUE #6 fix)
-            logger.exception(f"Unexpected error validating rule: {e}")
-            return ValidationResult(is_supported=False, reason=f"Validation error: {type(e).__name__}: {e}")
+        return _validate_bodies_sync([rule_body])[0]

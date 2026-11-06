@@ -1,0 +1,37 @@
+id: 1LTbbWsvJdAf
+name: Possible Self-Extracting Archive was Created (via file_event)
+body: |-
+  title: Possible Self-Extracting Archive was Created (via file_event)
+  status: stable
+  description: Self-extracting archives are executable files that are designed to extract
+    their contents automatically when run. Adversaries may attempt to use self-extracting
+    archives as a way to deliver malicious payloads onto a victim's system.
+  author: SOC Prime Team
+  references:
+  - https://www.crowdstrike.com/blog/self-extracting-archives-decoy-files-and-their-hidden-payloads/
+  - https://www.picussecurity.com/resource/blog/prince-of-persia-apt-analysis-infy-foudre-and-tonnerre-malware
+  tags:
+  - attack.execution
+  - attack.t1204.002
+  - attack.defense_evasion
+  - attack.t1027
+  logsource:
+    product: windows
+    category: file_event
+  detection:
+    selection:
+      TargetFilename|endswith:
+      - .sfx
+      - .sea
+    filters:
+    - TargetFilename|contains|all:
+      - \Program
+      - Files
+    condition: selection and not filters
+  falsepositives:
+  - Legitimate self-extracting archives execution, requires further investigation.
+  level: medium
+  id: 43665ad1-ac11-4069-ad47-7fc26f54acca
+level: medium
+created: '2023-04-05T07:42:05Z'
+updated: '2026-01-15T12:07:56.430000Z'

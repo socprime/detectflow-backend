@@ -1,13 +1,14 @@
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import and_, delete, func, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from apps.core.enums import PipelineRuleSortField
 from apps.core.models import PipelineRule, PipelineRuleMetric, Repository, Rule
 from apps.modules.postgre.base import BaseDAO
+from apps.modules.postgre.rule import sigma_uuid_search_condition
 
 
 class PipelineRulesDAO(BaseDAO[PipelineRule]):
@@ -45,9 +46,19 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         tagged_filter: Literal["all", "tagged", "untagged"] = "all",
         supported_filter: Literal["all", "supported", "unsupported"] = "all",
     ) -> tuple[list[PipelineRule], int]:
+        """Get pipeline rules with filtering, sorting and pagination.
+
+        ``search`` matches the rule name (substring) or a whole Sigma UUID (see
+        :func:`apps.modules.postgre.rule.sigma_uuid_search_condition`).
+
+        Loads Rule with repository and current_content — rule.body is available.
+        """
         query = (
             select(PipelineRule)
-            .options(selectinload(PipelineRule.rule).selectinload(Rule.repository))
+            .options(
+                selectinload(PipelineRule.rule).selectinload(Rule.repository),
+                selectinload(PipelineRule.rule).selectinload(Rule.current_content),
+            )
             .where(PipelineRule.pipeline_id == pipeline_id)
         )
 
@@ -56,8 +67,16 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         has_metrics_join = False
 
         if search:
-            query = query.join(Rule, PipelineRule.rule_id == Rule.id).where(Rule.name.ilike(f"%{search}%"))
+            # One search box on the pipeline details page covers both the rule name and its Sigma
+            # UUID. Only a whole UUID adds the uuid leg: a fragment like "4" sits in nearly every
+            # UUID, which would stop an ordinary name search from narrowing as the user types.
+            query = query.join(Rule, PipelineRule.rule_id == Rule.id)
             has_rule_join = True
+            search_conditions = [Rule.name.ilike(f"%{search}%")]
+            sigma_uuid_condition = sigma_uuid_search_condition(search, allow_fragment=False)
+            if sigma_uuid_condition is not None:
+                search_conditions.append(sigma_uuid_condition)
+            query = query.where(or_(*search_conditions))
 
         # Apply supported/unsupported filter
         if supported_filter != "all":
@@ -130,6 +149,7 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         return list(items), total
 
     async def update_rule_status(self, pipeline_id: UUID, rule_id: UUID, enabled: bool) -> int:
+        """Update enabled status for a single pipeline rule. No Rule objects returned."""
         result = await self.session.execute(
             update(PipelineRule)
             .where(
@@ -146,6 +166,7 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
     async def update_rule_status_by_pipeline_and_repo(
         self, pipeline_id: UUID, repository_ids: list[UUID], enabled: bool
     ) -> None:
+        """Bulk update enabled status by repository. No Rule objects returned."""
         rule_subquery = select(Rule.id).where(Rule.repository_id.in_(repository_ids))
         await self.session.execute(
             update(PipelineRule)
@@ -155,12 +176,14 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         await self.session.flush()
 
     async def get_pipelines_by_rule_id(self, rule_id: UUID) -> list[UUID]:
+        """Get distinct pipeline IDs that contain a given rule. Returns UUIDs only."""
         result = await self.session.execute(
             select(PipelineRule.pipeline_id).where(PipelineRule.rule_id == rule_id).distinct()
         )
         return [row[0] for row in result.all()]
 
     async def get_pipelines_by_repository_id(self, repository_id: UUID) -> list[UUID]:
+        """Get distinct pipeline IDs that contain rules from a given repository. Returns UUIDs only."""
         result = await self.session.execute(
             select(PipelineRule.pipeline_id)
             .join(Rule, PipelineRule.rule_id == Rule.id)
@@ -170,6 +193,7 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         return [row[0] for row in result.all()]
 
     async def create_many(self, data: list[dict]) -> list[PipelineRule]:
+        """Bulk-create pipeline rule entries. Does NOT load Rule relationship — rule.body is unavailable."""
         instances = [self.model(**item) for item in data]
         self.session.add_all(instances)
         await self.session.flush()
@@ -184,14 +208,23 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         return instances
 
     async def get_by_rule_id(self, rule_id: UUID) -> list[PipelineRule]:
-        """Get all pipeline rule entries for a specific rule."""
+        """Get all pipeline rule entries for a specific rule.
+
+        Note: does NOT load Rule relationship — rule.body is unavailable.
+        """
         result = await self.session.execute(select(PipelineRule).where(PipelineRule.rule_id == rule_id))
         return list(result.scalars().all())
 
     async def get_enabled_rules_ids(self, pipeline_id: UUID) -> list[UUID]:
+        """Get IDs of enabled rules for a pipeline. Returns UUIDs only."""
         result = await self.session.execute(
             select(PipelineRule.rule_id).where(PipelineRule.pipeline_id == pipeline_id, PipelineRule.enabled)
         )
+        return list(result.scalars().all())
+
+    async def get_rule_ids(self, pipeline_id: UUID) -> list[UUID]:
+        """Get all rule ids for a pipeline, including disabled rules."""
+        result = await self.session.execute(select(PipelineRule.rule_id).where(PipelineRule.pipeline_id == pipeline_id))
         return list(result.scalars().all())
 
     async def delete_by_pipeline_and_repo(self, pipeline_id: UUID, repository_ids: list[UUID]) -> int:
@@ -212,23 +245,42 @@ class PipelineRulesDAO(BaseDAO[PipelineRule]):
         await self.session.flush()
         return result.rowcount
 
+    async def delete_by_pipeline_and_rule_ids(self, pipeline_id: UUID, rule_ids: list[UUID]) -> int:
+        """Delete selected pipeline rules for a specific pipeline."""
+        if not rule_ids:
+            return 0
+        result = await self.session.execute(
+            delete(PipelineRule).where(PipelineRule.pipeline_id == pipeline_id, PipelineRule.rule_id.in_(rule_ids))
+        )
+        await self.session.flush()
+        return result.rowcount
+
     async def get_rules_by_pipeline(self, pipeline_id: UUID) -> list[Rule]:
-        """Get all rules (enabled or not) for a pipeline."""
+        """Get all rules (enabled or not) for a pipeline. Loads current_content — rule.body is available."""
         query = (
-            select(PipelineRule).options(selectinload(PipelineRule.rule)).where(PipelineRule.pipeline_id == pipeline_id)
+            select(PipelineRule)
+            .options(
+                selectinload(PipelineRule.rule).selectinload(Rule.current_content),
+            )
+            .where(PipelineRule.pipeline_id == pipeline_id)
         )
         result = await self.session.execute(query)
         pipeline_rules = result.unique().scalars().all()
         return [pr.rule for pr in pipeline_rules if pr.rule is not None]
 
     async def get_by_pipeline_and_repo(self, pipeline_id: UUID, repository_ids: list[UUID]) -> list[PipelineRule]:
-        """Get all pipeline rules for a specific pipeline and list of repositories."""
+        """Get all pipeline rules for a specific pipeline and list of repositories.
+
+        Loads Rule with current_content — rule.body is available.
+        """
         rule_subquery = select(Rule.id).where(Rule.repository_id.in_(repository_ids))
         if not repository_ids:
             return []
         query = (
             select(PipelineRule)
-            .options(selectinload(PipelineRule.rule))
+            .options(
+                selectinload(PipelineRule.rule).selectinload(Rule.current_content),
+            )
             .where(PipelineRule.pipeline_id == pipeline_id, PipelineRule.rule_id.in_(rule_subquery))
         )
         result = await self.session.execute(query)

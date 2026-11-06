@@ -1,0 +1,115 @@
+id: 8QGXt6neIpOe
+name: Possible Manual Service or Driver Install for Persistence (via cmdline)
+body: |-
+  title: Possible Manual Service or Driver Install for Persistence (via cmdline)
+  id: 39fd7f61-89d5-4fe2-8c00-534506d06b10
+  description: Adversaries may install a new service that can be configured to execute at startup by using utilities to interact with services.
+  status: stable
+  author: SOC Prime Team
+  references:
+      - https://blog-en.itochuci.co.jp/entry/2026/09/25/090000
+      - https://asec.ahnlab.com/en/95211/
+      - https://www.acronis.com/en/tru/posts/cambodia-focused-cluster-uses-multi-stage-infection-chain-with-localized-lures/
+      - https://ipurple.team/2026/07/06/windows-service/
+      - https://security.googlecloudcommunity.com/community-blog-42/finding-malware-dirtybulk-and-friends-usb-infections-to-fuel-cybercriminal-coinmining-operations-5552
+      - https://github.com/moiz-2x/CVE-2025-24990_POC
+      - https://blog.sekoia.io/apt28-operation-phantom-net-voxel/
+      - https://cert.gov.ua/article/6284080
+      - https://hadess.io/the-art-of-windows-persistence/
+      - https://arcticwolf.com/resources/blog/tellmethetruth-exploitation-of-cve-2023-46604-leading-to-ransomware/
+      - https://www.cisa.gov/news-events/alerts/2023/09/20/fbi-and-cisa-release-advisory-snatch-ransomware
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-263a
+      - https://www.cisa.gov/sites/default/files/2023-09/joint-cybersecurity-advisory-stopransomware-snatch-ransomware_0.pdf
+      - https://www.microsoft.com/en-us/security/blog/2023/08/24/flax-typhoon-using-legitimate-software-to-quietly-access-taiwanese-organizations/
+      - https://blogs.blackberry.com/en/2023/08/cuba-ransomware-deploys-new-tools-targets-critical-infrastructure-sector-in-the-usa-and-it-integrator-in-latin-america
+      - https://digital.nhs.uk/cyber-alerts/2022/cc-4002
+      - https://attack.mitre.org/techniques/T1050/
+      - https://unit42.paloaltonetworks.com/alloy-taurus-targets-se-asian-government/
+      - https://blog.talosintelligence.com/lazarus_new_rats_dlang_and_telegram/
+      - https://thedfirreport.com/2023/12/18/lets-opendir-some-presents-an-analysis-of-a-persistent-actors-activity/
+      - https://www.attackiq.com/2024/04/16/emulating-oceanlotus/
+      - https://blog.talosintelligence.com/lilacsquid/
+      - https://news.sophos.com/en-us/2024/06/05/operation-crimson-palace-a-technical-deep-dive/
+      - https://www.securonix.com/blog/from-cobalt-strike-to-mimikatz-slowtempest/
+      - https://www.welivesecurity.com/en/eset-research/embargo-ransomware-rocknrust/
+      - https://www.trendmicro.com/en_us/research/24/k/breaking-down-earth-estries-persistent-ttps-in-prolonged-cyber-o.html
+      - https://medium.com/@S3N4T0R/venomous-bear-apt-adversary-simulation-43a22ef9640f
+      - https://www.microsoft.com/en-us/security/blog/2025/02/12/the-badpilot-campaign-seashell-blizzard-subgroup-conducts-multiyear-global-access-operation/
+      - https://www.sentinelone.com/labs/follow-the-smoke-china-nexus-threat-actors-hammer-at-the-doors-of-top-tier-targets/
+      - https://unit42.paloaltonetworks.com/windows-backdoor-for-novel-c2-communication/
+      - https://lab52.io/blog/deedrat-backdoor-enhanced-by-chinese-apts-with-advanced-capabilities/
+      - https://businessinsights.bitdefender.com/curly-comrades-new-threat-actor-targeting-geopolitical-hotbeds
+      - https://www.trendmicro.com/en_no/research/25/h/crypto24-ransomware-stealth-attacks.html
+      - https://www.picussecurity.com/resource/blog/breaking-down-mustang-panda-windows-endpoint-campaign
+      - https://www.picussecurity.com/resource/blog/crypto24-ransomware-uncovered-stealth-persistence-and-enterprise-scale-impact
+      - https://arcticwolf.com/resources/blog/smash-and-grab-aggressive-akira-campaign-targets-sonicwall-vpns/
+      - https://blog.xlab.qianxin.com/apt-stealthserver-en/
+      - https://blog.talosintelligence.com/uncovering-qilin-attack-methods-exposed-through-multiple-cases/
+      - https://www.cybereason.com/blog/tangerine-turkey
+      - https://www.picussecurity.com/resource/blog/prophet-spider-threat-actor-explained
+      - https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+      - https://www.reversinglabs.com/blog/malicious-vs-code-fake-image
+      - https://www.welivesecurity.com/en/eset-research/sednit-reloaded-back-trenches/
+      - https://unit42.paloaltonetworks.com/espionage-campaign-against-military-targets/
+      - https://www.trendmicro.com/en_us/research/26/c/dissecting-a-warlock-attack.html
+      - https://www.cyfirma.com/research/crysome-rat-an-advanced-persistent-net-remote-access-trojan/
+  tags:
+      - attack.execution
+      - attack.t1569.002
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_bins:
+          Image|endswith:
+              - '.exe'
+              - '.com'
+              - '.tmp'
+              - '.scr'
+      selection_1:
+          Image|endswith: 'sc.exe'
+          CommandLine|contains:
+              - 'create'
+              - 'binpath=' #https://cert.gov.ua/article/6284080; https://www.trendmicro.com/en_us/research/26/c/dissecting-a-warlock-attack.html; https://www.acronis.com/en/tru/posts/cambodia-focused-cluster-uses-multi-stage-infection-chain-with-localized-lures/; https://asec.ahnlab.com/en/95211/; https://blog-en.itochuci.co.jp/entry/2026/09/25/090000
+      selection_3:
+          - CommandLine|contains|all:
+              - 'config' # sc.exe config Targetservice binPath= “C:\Windows\revshell.exe” start= auto obj= “LocalSystem”
+              - 'binpath=' #sc create ltmdm64_srv binPath="C:\Windows\System32\DriverStore...\ltmdm64.sys" type=kernel && sc start ltmdm64_srv
+              - 'start='
+              - 'auto'
+              - 'obj='
+          - CommandLine|contains|all:
+              - 'New-Service'
+              - 'binarypathname'
+          - CommandLine|contains|all:
+              - 'Get-WmiObject'
+              - 'win32_service'
+          - CommandLine|contains|all:
+              - 'gwmi'
+              - 'win32_service'
+      filters:
+          - CommandLine|contains|all:
+              - 'ExplorerPatcher' # Program Files\ExplorerPatcher
+              - 'ep_dwm_'
+          - ParentImage|endswith:
+              - 'InstallHypervisor.exe'
+              - 'microsoft.azure.activedirectory.synchronization.upgrader.exe'
+          - ParentImage|contains|all:
+              - ':\Program Files'
+              - '\Dropbox\Client'
+              - 'Dropbox.exe'
+          - CommandLine|contains:
+              - 'HpTouchpointAnalytics'
+              - '\Program Files' #sc  create "RzActionSvc" displayname="Razer Central Service" start=auto binpath="C:\\Program Files (x86)\\Razer\\Razer Services\\Razer Central\\RazerCentralService.exe"
+              - 'netprotection_network_filter.sys'
+              - '\avelam.sys'
+          - Image|endswith:
+              - 'csc.exe'
+              - 'ksomisc.exe' # WPS office
+      condition: selection_bins and (selection_1 or selection_3) and not filters
+  falsepositives:
+      - Manual service creation by host administrator.
+  level: medium
+level: medium
+created: '2020-01-17T10:01:14Z'
+updated: '2026-10-29T09:07:11.826000Z'

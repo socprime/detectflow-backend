@@ -1,0 +1,94 @@
+id: AVGHkJ0BFsA9Tj2-c0-W
+name: 'When PUPs Grow Fangs: Dragon Boss Solutions Left an Open Door on 25,000+ Endpoints'
+created: '2026-04-15T09:40:19Z'
+updated: '2026-10-08T12:25:18Z'
+summary: A potentially unwanted program (PUP) signed by Dragon Boss Solutions uses a legitimate update mechanism to silently download and execute MSI and PowerShell payloads that disable antivirus products and establish persistence via WMI event subscriptions and scheduled tasks. The updater contacts unregistered domains that anyone could register, turning the PUP into a supply‑chain vector for arbitrary code. Over 25,000 endpoints were observed contacting these domains, many in high‑value sectors.
+severity: Critical
+investigation: Huntress identified WMI persistence artifacts and a burst of scheduled task creation, traced them to a signed executable RaceCarTwo.exe that launches an MSI installer. The MSI extracts a PowerShell script (ClockRemoval.ps1) that kills AV processes, blocks AV update domains, creates Defender exclusions, and repeatedly re‑installs itself. Unregistered domains such as chromsterabrowser.com were used as the primary update source, allowing any registrant to push payloads.
+response: Detect the creation of scheduled tasks named ClockSetupWmiAtBoot, DisableClockServicesFirst, DisableClockAtStartup, RemoveClockAtLogon, and RemoveClockPeriodic. Alert on WMI event subscriptions containing "MbRemoval" or "MbSetup". Monitor processes signed by Dragon Boss Solutions and the presence of the ClockRemoval.ps1 script in WMILoad directories. Review hosts files for blocks against AV vendor domains and check for unexpected Windows Defender exclusions.
+mitigation: The research team registered the unregistered domains and sinkholed them, cutting off the update channel. They also documented the WMI event subscriptions, scheduled tasks, and registry modifications to enable detection and removal. Blocking the identified domains and monitoring for the specific scheduled task names and WMI consumers can prevent further infection.
+industries:
+- All
+geographies:
+- Global
+threat_types:
+- Malware
+threat_actors: []
+techniques:
+- T1059.001
+- T1546.016
+- T1547.004
+attack_flow: |-
+  ```mermaid
+  graph TB
+  %% Class definitions
+  classDef action fill:#99ccff
+  classDef tool fill:#ffcc99
+  classDef process fill:#ffeb99
+  classDef file fill:#c0ffc0
+  classDef technique fill:#dddddd
+
+  %% Technique nodes
+  tech_t1210["<b>Technique</b> - T1210 Exploitation of Remote Services<br/><b>Description</b>: A custom update mechanism contacts remote URLs to download and install malicious MSI payloads."]:::technique
+  tech_t1218_007["<b>Technique</b> - T1218.007 System Binary Proxy Execution: Msiexec<br/><b>Description</b>: Msiexec.exe is leveraged to silently install a malicious MSI package."]:::technique
+  tech_t1059_001["<b>Technique</b> - T1059.001 Command and Scripting Interpreter: PowerShell<br/><b>Description</b>: PowerShell is used to run the ClockRemoval script that disables security products and modifies system settings."]:::technique
+  tech_t1546_003["<b>Technique</b> - T1546.003 Event Triggered Execution: Windows Management Instrumentation Event Subscription<br/><b>Description</b>: Persistent WMI event subscriptions trigger malicious PowerShell scripts when new processes start."]:::technique
+  tech_t1053["<b>Technique</b> - T1053 Scheduled Task/Job<br/><b>Description</b>: Scheduled tasks are created for boot, startup, logon and periodic execution to maintain persistence."]:::technique
+  tech_t1489["<b>Technique</b> - T1489 Service Stop<br/><b>Description</b>: Security product services are stopped and disabled to prevent protection."]:::technique
+  tech_t1562["<b>Technique</b> - T1562 Impair Defenses<br/><b>Description</b>: The payload actively kills security processes, blocks update domains and removes registry entries."]:::technique
+  tech_t1564_012["<b>Technique</b> - T1564.012 Hide Artifacts: File/Path Exclusions<br/><b>Description</b>: Hosts file is edited and Windows Defender exclusions are added to hide malicious activity."]:::technique
+  tech_t1070_004["<b>Technique</b> - T1070.004 Indicator Removal: File Deletion<br/><b>Description</b>: Leftover AV files and registry keys are deleted to erase evidence."]:::technique
+
+  %% Action and artifact nodes
+  action_contact_domain["<b>Action</b> - Contact unregistered domain<br/><b>Domain</b>: worldwidewebframework3.com"]:::action
+  file_malicious_msi["<b>File</b> - Malicious MSI payload"]:::file
+  tool_msiexec["<b>Tool</b> - Msiexec.exe"]:::tool
+  script_clockremoval["<b>Process</b> - ClockRemoval.ps1 (PowerShell)"]:::process
+  persistence_wmi["<b>Action</b> - Create WMI event subscription"]:::action
+  persistence_schtask["<b>Action</b> - Register scheduled tasks"]:::action
+  action_service_stop["<b>Action</b> - Stop and disable security services"]:::action
+  action_impair_defenses["<b>Action</b> - Impair defenses broadly"]:::action
+  action_host_modification["<b>Action</b> - Modify hosts file and add Defender exclusions"]:::action
+  action_file_deletion["<b>Action</b> - Delete AV files and registry keys"]:::action
+
+  %% Connections showing flow
+  action_contact_domain -->|downloads| file_malicious_msi
+  file_malicious_msi -->|installed via| tool_msiexec
+  tool_msiexec -->|executes| script_clockremoval
+  script_clockremoval -->|creates| persistence_wmi
+  script_clockremoval -->|creates| persistence_schtask
+  script_clockremoval -->|stops| action_service_stop
+  script_clockremoval -->|impairs| action_impair_defenses
+  script_clockremoval -->|modifies| action_host_modification
+  script_clockremoval -->|deletes| action_file_deletion
+
+  %% Linking actions to techniques
+  action_contact_domain -->|uses| tech_t1210
+  tool_msiexec -->|uses| tech_t1218_007
+  script_clockremoval -->|uses| tech_t1059_001
+  persistence_wmi -->|uses| tech_t1546_003
+  persistence_schtask -->|uses| tech_t1053
+  action_service_stop -->|uses| tech_t1489
+  action_impair_defenses -->|uses| tech_t1562
+  action_host_modification -->|uses| tech_t1564_012
+  action_file_deletion -->|uses| tech_t1070_004
+
+  %% Class assignments
+  class action_contact_domain action
+  class file_malicious_msi file
+  class tool_msiexec tool
+  class script_clockremoval process
+  class persistence_wmi action
+  class persistence_schtask action
+  class action_service_stop action
+  class action_impair_defenses action
+  class action_host_modification action
+  class action_file_deletion action
+  ```
+related_high_order_sigma_rules:
+- JVLEu7LOwbcg
+related_behavioral_rules:
+- gSnIhv6oRpic
+- qXeOKnpNPMac
+- BPeIA73gfTBP
+- cTq1lM2Ggc27

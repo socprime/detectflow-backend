@@ -40,5 +40,10 @@ tests
 .env.local
 *.sqlite
 
+# MITRE ATT&CK bundle: downloaded fresh at build time (see Dockerfile), never
+# copied from the build context (would bloat context / clobber the baked file).
+enterprise-attack.json
+data/
+
 # Claude
 .claude

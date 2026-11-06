@@ -1,0 +1,79 @@
+id: 4AhFHBWvFNB5
+name: Possible Base64 Encoded Strings Manipulation (via cmdline)
+body: |-
+  title: Possible Base64 Encoded Strings Manipulation (via cmdline)
+  id: 12c98d5b-1e6f-457f-a82e-b1240373d14b
+  status: stable
+  description: Base64 is commonly used in malware to disguise text strings, scripts, and binaries. It matches only if the Base64 string contains padding with double "==".
+  author: SOC Prime Team
+  references:
+      - https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      - https://unit42.paloaltonetworks.com/ai-campaign-targets-linux-infrastructure/
+      - https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-renewed-mass-exploitation-campaign-targeting-oracle-peoplesoft/
+      - https://isc.sans.edu/diary/rss/33326
+      - https://medium.com/@quirso_de/global-exploitation-of-cve-2026-59310-by-suspected-chinese-nexus-apt-related-cve-2026-59309-443a79e1466d
+      - https://www.microsoft.com/en-us/security/blog/2026/05/22/from-edge-appliance-to-enterprise-compromise-multi-stage-linux-intrusion-via-f5-and-confluence/
+      - https://www.sentinelone.com/blog/shub-reaper-macos-stealer-spoofs-apple-google-and-microsoft-in-a-single-attack-chain/
+      - https://moonlock.com/notorious-hacker-returns-notnullosx-stealer
+      - https://gbhackers.com/crowdstrike-npm-packages-supply-chain-attack/
+      - https://socket.dev/blog/ongoing-supply-chain-attack-targets-crowdstrike-npm-packages
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-022a
+      - https://www.cadosecurity.com/spinning-yarn-a-new-linux-malware-campaign-targets-docker-apache-hadoop-redis-and-confluence/
+      - https://yoroi.company/research/outlaw-is-back-a-new-crypto-botnet-targets-european-organizations/
+      - https://www.cyfirma.com/research/apt36-python-based-elf-malware-targeting-indian-government-entities/
+      - https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks
+      - https://www.fortinet.com/blog/threat-research/unveiling-the-weaponized-web-shell-encystphp
+      - https://www.intego.com/mac-security-blog/matryoshka-clickfix-macos-stealer/
+      - https://the-sequence.com/macos-malware-loader-music-plugin-dmg
+      - https://www.picussecurity.com/resource/blog/t1059-004-unix-shell
+      - https://isc.sans.edu/diary/rss/32816
+      - https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/
+  tags:
+      - attack.defense_evasion
+      - attack.t1140
+  logsource:
+      category: process_creation
+      product: linux
+  detection:
+      selection_base:
+          ParentImage|contains: '/'
+          Image|endswith: 'sh'
+      selection_vars:
+          - CommandLine|contains|all:
+              - 'echo' # ...>/dev/null &sleep 5echo " ENCODED-BASE64-PAYLOAD" | base64 --decode ...
+              - '==' # padding character ex: ZXhpdCxhbHdheXMgLUYgYXJjaD1iNjQgLVMgZXhlY3ZlIiBpbiBhdWRpdF9ydWxlcw==
+          - CommandLine|contains|all:
+              - 'base64' #https://www.cyfirma.com/research/apt36-python-based-elf-malware-targeting-indian-government-entities/
+              - ' -d' #sh -c echo <base64>|base64 -d|bash; https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks; https://www.microsoft.com/en-us/security/blog/2026/05/22/from-edge-appliance-to-enterprise-compromise-multi-stage-linux-intrusion-via-f5-and-confluence/; https://medium.com/@quirso_de/global-exploitation-of-cve-2026-59310-by-suspected-chinese-nexus-apt-related-cve-2026-59309-443a79e1466d; https://isc.sans.edu/diary/rss/33326; https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-renewed-mass-exploitation-campaign-targeting-oracle-peoplesoft/; https://unit42.paloaltonetworks.com/ai-campaign-targets-linux-infrastructure/; https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
+          - CommandLine|contains|all:
+              - 'base64' # https://isc.sans.edu/diary/rss/32816https://isc.sans.edu/diary/rss/32816; https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/
+              - '--decode'
+      filters:
+          - ParentImage|endswith:
+              - 'authtrampoline'
+              - '/usr/bin/make' #/bin/sh -c 'echo   "  |   =========================    ...
+          - CommandLine|contains:
+              - ' == '
+              - 'xchangeme'
+              - 'crashlog' #zoom
+              - 'HOMEBREW'
+              - 'LS1lcnJmaWxl' #docker stuff, "--errfile"
+              - 'MISP' #initialization scripts
+              - 'ELASTIC_PASSWORD' #elk initialization scripts
+              - '==============' #like visual delimiter in scripts
+              - 'libtool'
+              - '$srcdirstrip'
+              - './install-sh'
+              - '/opt/qradar/lib/' #qradar
+          - CommandLine|contains|all:
+              - 'unset' #bash --norc -ec 'IFS=:; paths=($PATH); for i in ${!paths[@]}; do if [[ ${paths[i]} == "/Users/xx.xx/.pyenv/shims" ]]; then unset 'paths[i]'; fi; done; echo "${paths[*]}"'
+              - 'paths'
+              - 'shims'
+      condition: (selection_base and selection_vars) and not filters
+  falsepositives:
+      - Scripts, commandline
+  level: low
+level: low
+created: '2020-04-30T15:34:44Z'
+updated: '2026-10-22T11:31:08.095000Z'

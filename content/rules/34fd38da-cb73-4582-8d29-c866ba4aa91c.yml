@@ -1,0 +1,35 @@
+id: gSnIhv6oRpic
+name: LOLBAS MsiExec Spawn Shell (via cmdline)
+body: |-
+  title: LOLBAS MsiExec Spawn Shell (via cmdline)
+  id: 34fd38da-cb73-4582-8d29-c866ba4aa91c
+  status: stable
+  description: Detects the use of MsiExec as a living-off-the-land technique.
+  references:
+      - https://www.huntress.com/blog/pups-grow-fangs
+      - https://lolbas-project.github.io/lolbas/Binaries/Msiexec/
+  author: SOC Prime Team
+  tags:
+      - attack.defense_evasion
+      - attack.execution
+      - attack.t1218.007
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_parent:
+          ParentImage|endswith: 'MsiExec.exe'
+          Image|endswith:
+              - 'cmd.exe'
+              - 'powershell.exe' # https://www.huntress.com/blog/pups-grow-fangs
+      filters:
+          CommandLine|contains:
+              - 'ZSAMSInstaller'
+      condition: selection_parent and not filters
+  falsepositives:
+      - Software updates.
+      - Software installers.
+  level: low
+level: low
+created: '2024-02-27T15:13:52Z'
+updated: '2026-04-15T09:40:16.643000Z'

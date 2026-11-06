@@ -1,0 +1,34 @@
+id: vmkVlgLlkPH8
+name: Possible php Application Command and Control by Reverse Shell Inline Execution (via cmdline)
+body: |-
+  title: Possible php Application Command and Control by Reverse Shell Inline Execution (via cmdline)
+  id: 8715c8a4-9bcb-47e2-ab10-98e6e8eb140c
+  status: stable
+  description: This rule identifies a reverse shell that uses the php shell utility to handle streams of commands and output over a network device file
+  author: SOC Prime Team
+  references:
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      - https://highon.coffee/blog/reverse-shell-cheat-sheet/
+      - https://www.php.net/manual/en/function.fsockopen.php
+  tags:
+    - attack.execution
+    - attack.t1059.004
+  logsource:
+    category: process_creation
+    product: linux
+  detection:
+    selection_php_command:
+      Image|endswith: 'php'
+      CommandLine|contains|all:
+        - '-r'
+        - 'fsockopen('
+        - 'exec('
+    selection_shell_and_file_descriptor:
+      CommandLine|re: '.{0,5}sh.*[3-9][0-9]*' # any of the shells in combination with FD 3-6 (most likely descriptors to be handed to the socket from the OS since 0-2 will be occupied in standard configurations)
+    condition: selection_php_command and selection_shell_and_file_descriptor
+  falsepositives:
+    - unknown
+  level: medium
+level: medium
+created: '2022-04-20T00:17:26Z'
+updated: '2026-10-25T18:12:02.161000Z'

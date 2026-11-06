@@ -1,0 +1,365 @@
+id: wXnIjRNfXGQJ
+name: The Possibility of Execution Through Hidden PowerShell Command Lines (via cmdline)
+body: |-
+  title: The Possibility of Execution Through Hidden PowerShell Command Lines (via cmdline)
+  id: 7c01d1e4-89de-476f-a996-eb768978994a
+  status: stable
+  description: A generic hunting rule to identify commonly used combinations by adversaries in offensive PowerShell execution.
+  references:
+      - https://www.trellix.com/blogs/research/sirius-backdoor-fileless-campaign-fedex-invoices/
+      - https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection
+      - https://malbearlabs.com/posts/novel-malware-built-to-survive-the-analyst
+      - https://blackpointcyber.com/blog/chainscript-tracing-a-nodejs-rat-across-the-blockchain/
+      - https://blog.talosintelligence.com/ransomware-incidents-in-japan-in-the-first-half-of-2026/
+      - https://isc.sans.edu/diary/rss/33348
+      - https://www.zscaler.com/blogs/security-research/operation-rapidrust-apt36-deploys-rustyshade-rustymove-psnatch-and
+      - https://www.security.com/threat-intelligence/node-js-returns-ransomware
+      - https://d01a.github.io/xloader/
+      - https://asec.ahnlab.com/en/95230/
+      - https://www.attackiq.com/2026/08/20/updated-response-to-aa25-071a/
+      - https://northwave-cybersecurity.com/ransomhouse-am-see
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kimsuky_ai_llm
+      - https://www.levelblue.com/blogs/spiderlabs-blog/cncmachinerms-the-undocumented-rat-at-the-end-of-a-babadeda-chain
+      - https://cert.gov.ua/article/6318863
+      - https://www.levelblue.com/blogs/spiderlabs-blog/beyond-fake-updates-from-application-store-themed-phishing-to-large-scale-distribution-of-screenconnect
+      - https://www.huntress.com/blog/bank-spam-rmm
+      - https://www.bitdefender.com/en-us/blog/labs/fake-xeno-roblox-discord-executor
+      - https://blackpointcyber.com/blog/hollowframes-layered-loader-and-matryoshka-backdoors/
+      - https://slowmist.medium.com/threat-intelligence-job-scam-alert-interview-software-used-to-deliver-an-info-stealing-malware-37f018877e4c
+      - https://www.microsoft.com/en-us/security/blog/2026/07/23/email-threat-landscape-q2-2026-trends-and-insights/
+      - https://asec.ahnlab.com/en/94552/
+      - https://www.huntress.com/blog/sql-injection-attacker-persistence
+      - https://www.seqrite.com/blog/operation-shadowrecruit-a-recruitment-themed-malware-campaign-leveraging-controlr-and-google-sheets-to-target-indian-job-seekers/
+      - https://any.run/cybersecurity-blog/banana-rat-evolution-analysis/
+      - https://www.elastic.co/security-labs/mexican-banking-fraud-scmbanker-ref6045
+      - https://blog.synapticsystems.de/from-winrar-ads-to-reflective-loading-reversing-a-new-uac-0226-giftedcrook-chain/
+      - https://sect.iij.ad.jp/blog/2026/06/continuous-evolution-of-kimjongrat-2026/
+      - https://vrls.ws/posts/abusing-gitlab-ci-runners-as-c2/
+      - https://www.levelblue.com/blogs/spiderlabs-blog/lokibot-after-a-decade-an-analysis-of-a-recent-lokibot-campaign
+      - https://www.huntress.com/blog/potemkin-loader-rmmproject-clickfix-attack
+      - https://labs.k7computing.com/index.php/a-multi-stage-steganographic-loader-campaign-deploying-diverse-payloads-globally/
+      - https://www.threatdown.com/blog/prinz-eugen-ransomware-a-deep-dive-into-a-new-go-based-encryptor/
+      - https://www.fortra.com/blog/phishing-campaign-targets-banks-fileless-phantom-stealer-malware
+      - https://www.fortinet.com/blog/threat-research/threat-actors-weaponize-ai-hype-to-deliver-asyncrat
+      - https://blog.itochuci.co.jp/entry/2026/06/11/111500
+      - https://blog.itochuci.co.jp/entry/2026/06/11/110000
+      - https://www.lac.co.jp/lacwatch/report/20260604_004759.html
+      - https://cofense.com/blog/from-fake-amazon-security-alert-to-harborwatch-agent-clickfix-delivery-of-a-custom-monitoring-rat
+      - https://blog.sekoia.io/fsbs-matryoshka-2-3-gamaredons-gifts-that-keeps-unpacking-gammaload/
+      - https://blog.sekoia.io/fsbs-matryoshka-3-3-gamaredons-gifts-that-keeps-unpacking-gammasteel/
+      - https://isc.sans.edu/diary/rss/33054
+      - https://x.com/msftsecintel/status/2062013269687054695
+      - https://any.run/cybersecurity-blog/monoglyphrat-attacks-us-enterprise/
+      - https://www.huntress.com/blog/malspam-to-deskcvb-rat-delivery-chain-analysis
+      - https://safedep.io/microsoftsystem64-binary-payload-analysis/
+      - https://www.seqrite.com/blog/operation-dragon-weave-uncovering-a-china-linked-campaign-targeting-czech-republic-and-taiwan-using-azure-cloud-c2/
+      - https://labs.k7computing.com/index.php/rvtools-masquerade-how-a-signed-fake-installer-deploys-a-modular-python-rat/
+      - https://www.fortinet.com/blog/threat-research/phishing-campaign-deploys-javascript-driven-purelogs-variant-to-steal-sensitive-data
+      - https://www.bitdefender.com/en-us/blog/labs/microsofts-mshta-legacy-malware-windows
+      - https://www.trendmicro.com/en_us/research/26/e/banana-rat.html
+      - https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/
+      - https://www.splunk.com/en_us/blog/security/behind-the-code-layered-defense-evasion-vip-keylogger.html
+      - https://www.fortinet.com/blog/threat-research/purelogs-delivery-via-pawsrunner-steganography
+      - https://hunt.io/blog/iranian-nexus-oman-government-intrusion
+      - https://blog.synapticsystems.de/obfuscation-without-effort-breaking-a-uac-0226-giftedcrook-stealer/
+      - https://blog.talosintelligence.com/new-lua-based-malware-lucidrook/
+      - https://www.esentire.com/blog/stx-rat-a-new-rat-in-2026-with-infostealer-capabilities
+      - https://www.fortinet.com/blog/threat-research/dprk-related-campaigns-with-lnk-and-github-c2
+      - https://0x3obad.github.io/posts/plugx-writeup/
+      - https://socket.dev/blog/axios-npm-package-compromised
+      - https://cert.gov.ua/article/6286219
+      - https://www.anthropic.com/news/disrupting-AI-espionage
+      - https://assets.anthropic.com/m/ec212e6566a0d47/original/Disrupting-the-first-reported-AI-orchestrated-cyber-espionage-campaign.pdf
+      - https://www.security.com/threat-intelligence/ukraine-russia-attacks
+      - https://www.sentinelone.com/labs/phantomcaptcha-multi-stage-websocket-rat-targets-ukraine-in-single-day-spearphishing-operation/
+      - https://cert.gov.ua/article/6285731
+      - https://news.sophos.com/en-us/2025/10/10/whatsapp-worm-targets-brazilian-banking-customers/
+      - https://www.seqrite.com/blog/xworm-remcos-bat-svg-malware-analysis/
+      - https://www.trendmicro.com/en_us/research/25/i/unmasking-the-gentlemen-ransomware.html
+      - https://www.zscaler.com/blogs/security-research/apt37-targets-windows-rust-backdoor-and-python-loader
+      - https://cert.gov.ua/article/6284949
+      - https://www.cloudsek.com/blog/fileless-asyncrat-distributed-via-clickfix-technique-targeting-german-speaking-users
+      - https://asec.ahnlab.com/en/87398/
+      - https://www.attackiq.com/2025/04/09/emulating-catb-ransomware/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-071a
+      - https://cert.gov.ua/article/6282536
+      - https://cert.gov.ua/article/6282517
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-050a
+      - https://www.trendmicro.com/en_us/research/25/a/cve-2025-0411-ukrainian-organizations-targeted.html
+      - https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html
+      - https://cert.gov.ua/article/6281701
+      - https://cert.gov.ua/article/6281681
+      - https://any.run/cybersecurity-blog/psloramyra-malware-technical-analysis/
+      - https://www.welivesecurity.com/en/eset-research/romcom-exploits-firefox-and-windows-zero-days-in-the-wild/
+      - https://www.logpoint.com/en/blog/strela-a-newcomer-in-stealer-family/
+      - https://unit42.paloaltonetworks.com/threat-assessment-blacksuit-ransomware-ignoble-scorpius/
+      - https://news.sophos.com/en-us/2024/11/20/sophos-mdr-blocks-and-tracks-activity-from-probable-iranian-state-actor-muddywater/
+      - https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/stopransomware-bianlian-ransomware-group
+      - https://cert.gov.ua/article/6281123
+      - https://www.attackiq.com/2024/10/17/response-to-cisa-advisory-aa24-290a/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-290a
+      - https://cert.gov.ua/article/6281009
+      - https://www.welivesecurity.com/en/eset-research/cyberespionage-gamaredon-way-analysis-toolset-used-spy-ukraine-2022-2023/
+      - https://intezer.com/blog/research/cryptbot-yet-another-silly-stealer-yass/
+      - https://redcanary.com/blog/threat-intelligence/intelligence-insights-august-2024/
+      - https://cert.gov.ua/article/6280422
+      - https://cyberarmor.tech/white-snake-latest-campaign-with-multi-stage-malware-dropper/
+      - https://cert.gov.ua/article/6278620
+      - https://cert.gov.ua/article/6278521
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-new-deepgosu-attack-campaign/
+      - https://cert.gov.ua/article/6277849
+      - https://jsac.jpcert.or.jp/archive/2024/pdf/JSAC2024_1_9_takeda_furukawa_en.pdf
+      - https://cert.gov.ua/article/6276988
+      - https://cert.gov.ua/article/6276894
+      - https://blog.talosintelligence.com/lazarus_new_rats_dlang_and_telegram/
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://blog.phylum.io/phylum-discovers-seroxen-rat-in-typosquatted-nuget-package/
+      - https://www.securonix.com/blog/threat-labs-security-advisory-new-starkvortex-attack-campaign-threat-actors-use-drone-manual-lures-to-deliver-merlinagent-payloads/
+      - https://www.mcafee.com/blogs/security-news/agent-teslas-unique-approach-vbs-and-steganography-for-delivery-and-intrusion/
+      - https://cert.gov.ua/article/5628441
+      - https://unit42.paloaltonetworks.com/nodestealer-2-targets-facebook-business/
+      - https://cert.gov.ua/article/5391805
+      - https://unit42.paloaltonetworks.com/mallox-ransomware/
+      - https://news.sophos.com/en-us/2023/07/20/bad-ad-fad-leads-to-icedid-gozi-infections/
+      - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/Syssphinx-FIN8-backdoor
+      - https://cert.gov.ua/article/5158006
+      - https://asec.ahnlab.com/en/55145/
+      - https://www.securonix.com/securonix-threat-labs-security-advisory-multistorm-leverages-python-based-loader-as-onedrive-utilities-to-drop-rat-payloads/
+      - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/shuckworm-russia-ukraine-military
+      - https://cert.gov.ua/article/4818341
+      - https://cert.gov.ua/article/4755642
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-144a
+      - https://cert.gov.ua/article/4555802
+      - https://cert.gov.ua/article/4492467
+      - https://cert.gov.ua/article/3761023
+      - https://github.com/alt3kx/CVE-2023-24055_PoC
+      - https://www.rapid7.com/blog/post/2023/01/19/etr-cve-2022-47966-rapid7-observed-exploitation-of-critical-manageengine-vulnerability/
+      - https://www.splunk.com/en_us/blog/security/from-macros-to-no-macros-continuous-malware-improvements-by-qakbot.html
+      - https://cert.gov.ua/article/1563322
+      - https://cert.gov.ua/article/619229
+      - https://cert.gov.ua/article/341128
+      - https://cert.gov.ua/article/40559
+      - https://redcanary.com/blog/chromeloader/
+      - https://www.pwc.co.uk/cyber-security/pdf/cloud-hopper-annex-b-final.pdf
+      - https://www.esentire.com/blog/operation-phantomcontrol
+      - https://thedfirreport.com/2023/08/28/html-smuggling-leads-to-domain-wide-ransomware/
+      - https://asec.ahnlab.com/ko/56654/
+      - https://cyble.com/blog/unveiling-the-stealthy-exploitation-of-microsoft-cmstp-using-malicious-lnk-files/
+      - https://thedfirreport.com/2023/10/30/netsupport-intrusion-results-in-domain-compromise/
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/unmasking-asyncrat-new-infection-chain/
+      - https://asec.ahnlab.com/en/59042/
+      - https://montysecurity.medium.com/hunting-sandworm-teams-ttps-57a6fb31dd4b
+      - https://thedfirreport.com/2024/02/26/seo-poisoning-to-domain-control-the-gootloader-saga-continues/
+      - https://www.trellix.com/blogs/research/the-evolution-of-the-kuiper-ransomware/
+      - https://www.genians.co.kr/blog/threat_intelligence/dropbox
+      - https://thedfirreport.com/2024/04/29/from-icedid-to-dagon-locker-ransomware-in-29-days/
+      - https://www.splunk.com/en_us/blog/security/lnk-phishing-analysis-simulation.html
+      - https://www.sentinelone.com/labs/fin7-reboot-cybercrime-gang-enhances-ops-with-new-edr-bypasses-and-automated-attacks/
+      - https://blog.talosintelligence.com/chinese-hacking-group-apt41-compromised-taiwanese-government-affiliated-research-institute-with-shadowpad-and-cobaltstrike-2/
+      - https://thedfirreport.com/2024/08/12/threat-actors-toolkit-leveraging-sliver-poshc2-batch-scripts/
+      - https://thedfirreport.com/2024/08/26/blacksuit-ransomware/
+      - https://cyble.com/blog/threat-actor-targets-manufacturing-industry-with-malware/
+      - https://www.trendmicro.com/en_us/research/24/l/python-based-nodestealer.html
+      - https://www.sonicwall.com/blog/strela-stealer-targeting-ukraine-alongside-other-european-countries
+      - https://thedfirreport.com/2025/01/27/cobalt-strike-and-a-pair-of-socks-lead-to-lockbit-ransomware/
+      - https://www.securonix.com/blog/analyzing-deepdrive-north-korean-threat-actors-observed-exploiting-trusted-platforms-for-targeted-attacks/
+      - https://news.sophos.com/en-us/2025/05/09/lumma-stealer-coming-and-going/
+      - https://labs.k7computing.com/index.php/in-depth-analysis-of-a-2025-vipersoftx-variant/
+      - https://unit42.paloaltonetworks.com/kimjongrat-stealer-variant-powershell/
+      - https://blog.talosintelligence.com/maas-operation-using-emmenhtal-and-amadey-linked-to-threats-against-ukrainian-entities/
+      - https://research.checkpoint.com/2025/under-the-pure-curtain-from-rat-to-builder-to-coder/
+      - https://unit42.paloaltonetworks.com/adaptixc2-post-exploitation-framework/
+      - https://www.zscaler.com/blogs/security-research/coldriver-updates-arsenal-baitswitch-and-simplefix
+      - https://any.run/malware-trends/upcrypter/
+      - https://www.sentinelone.com/labs/phantomcaptcha-multi-stage-websocket-rat-targets-ukraine-in-single-day-spearphishing-operation/
+      - https://blog.talosintelligence.com/uncovering-qilin-attack-methods-exposed-through-multiple-cases/
+      - https://cloud.google.com/blog/topics/threat-intelligence/triofox-vulnerability-cve-2025-12480/
+      - https://www.esentire.com/blog/evalusion-campaign-delivers-amatera-stealer-and-netsupport-rat
+      - https://www.cyberproof.com/blog/maverick-and-coyote-analyzing-the-link-between-two-evolving-brazilian-banking-trojans/
+      - https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+      - https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+      - https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+      - https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/
+      - https://www.bitdefender.com/en-us/blog/labs/fake-leonardo-dicaprio-movie-torrent-agent-tesla-powershell
+      - https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/
+      - https://asec.ahnlab.com/en/92183/
+      - https://blog.sekoia.io/meet-iclickfix-a-widespread-wordpress-targeting-framework-using-the-clickfix-tactic/
+      - https://www.fortinet.com/blog/threat-research/interlock-ransomware-new-techniques-same-old-tricks
+      - https://www.sophos.com/en-us/blog/avos-locker-remotely-accesses-boxes-even-running-in-safe-mode
+      - https://www.pointwild.com/threat-intelligence/when-malware-talks-back/
+      - https://www.veracode.com/blog/malicious-npm-package-hiding-in-plain-pixels/
+      - https://thedfirreport.com/2026/02/23/apache-activemq-exploit-leads-to-lockbit-ransomware/
+      - https://isc.sans.edu/diary/rss/32754
+      - https://www.picussecurity.com/resource/blog/t1059-001-powershell
+      - https://www.trellix.com/blogs/research/malware-as-a-service-redefined-xworm-rat/
+      - https://www.malwarebytes.com/blog/threat-intel/2026/03/fake-temu-coin-airdrop-uses-clickfix-trick-to-install-stealthy-malware
+      - https://www.seqrite.com/blog/operation-camelclone-multi-region-espionage-campaign-targets-government-and-defense-entities-amidst-regional-tensions/
+      - https://www.derp.ca/research/plog-rat-analysis/
+      - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/
+      - https://www.malwarebytes.com/blog/threat-intel/2026/03/that-job-brief-on-google-forms-could-infect-your-device
+      - https://www.picussecurity.com/resource/blog/t1547-004-winlogon-helper
+  author: SOC Prime Team
+  tags:
+      - attack.execution
+      - attack.t1059.001
+      - attack.defense_evasion
+      - attack.t1564.003
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_pe:
+          ParentImage|endswith:
+              - '.exe'
+              - '.com'
+              - '.scr'
+              - '.tmp'
+          Image|endswith:
+              - '.exe'
+              - '.com'
+              - '.scr'
+              - '.tmp'
+      selection:
+          - CommandLine|contains|all:
+              - 'bypass' # powershell -ExecutionPolicy Bypass -NoProfile -Command; powershell.exe -WindowStyle Hidden -executionpolicy bypass -noprofile -c Invoke-Expression (Get-Content "%TMP%\temporarydoc.txt" -Raw); https://www.bitdefender.com/en-us/blog/labs/fake-xeno-roblox-discord-executor; https://asec.ahnlab.com/en/95230/
+              - 'NoProfile' #https://cert.gov.ua/article/6282902; https://cert.gov.ua/article/6284949; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.pointwild.com/threat-intelligence/when-malware-talks-back/; https://www.picussecurity.com/resource/blog/t1059-001-powershell; https://slowmist.medium.com/threat-intelligence-job-scam-alert-interview-software-used-to-deliver-an-info-stealing-malware-37f018877e4c; https://www.huntress.com/blog/bank-spam-rmm
+          - CommandLine|contains|all:
+              - 'bypass' # -ep; -ExecutionPolicy; https://www.acronis.com/en/tru/posts/; https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/; https://blog.sekoia.io/meet-iclickfix-a-widespread-wordpress-targeting-framework-using-the-clickfix-tactic/; https://isc.sans.edu/diary/rss/32754; https://www.microsoft.com/en-us/security/blog/2026/07/23/email-threat-landscape-q2-2026-trends-and-insights/; https://www.levelblue.com/blogs/spiderlabs-blog/cncmachinerms-the-undocumented-rat-at-the-end-of-a-babadeda-chain; https://www.genians.co.kr/en/blog/threat_intelligence/kimsuky_ai_llm
+              - 'hidden' # -w;-WindowStyle; https://cert.gov.ua/article/6286219; powershell -ep bypass -windowstyle hidden -c $env:TEMP\updater.ps1; https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis; https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/; https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/; https://www.esentire.com/blog/stx-rat-a-new-rat-in-2026-with-infostealer-capabilities; https://www.seqrite.com/blog/operation-dragon-weave-uncovering-a-china-linked-campaign-targeting-czech-republic-and-taiwan-using-azure-cloud-c2/; https://www.fortra.com/blog/phishing-campaign-targets-banks-fileless-phantom-stealer-malware; https://www.levelblue.com/blogs/spiderlabs-blog/beyond-fake-updates-from-application-store-themed-phishing-to-large-scale-distribution-of-screenconnect; https://blog.talosintelligence.com/ransomware-incidents-in-japan-in-the-first-half-of-2026/
+              #- 'UnRestricted' #"powershell.exe" "-ExecutionPolicy" "Unrestricted" "-Noninteractive"; https://socket.dev/blog/axios-npm-package-compromised
+          - CommandLine|contains|all:
+              - 'iex' #https://asec.ahnlab.com/en/94552/
+              - 'hidden'
+          - CommandLine|contains: ' -w H' #https://0x3obad.github.io/posts/plugx-writeup/; "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -w H
+          - CommandLine|contains|all:
+              - 'hid ' # -w;-WindowStyle hidden; https://news.sophos.com/en-us/2025/10/10/whatsapp-worm-targets-brazilian-banking-customers/
+              - 'enc '
+          - CommandLine|contains|all:
+              - '-NoL' #powershell.exe -NoP -NoL -NonI -Exec Bypass -Enc ...; https://malbearlabs.com/posts/novel-malware-built-to-survive-the-analyst
+              - '-noP'
+          - CommandLine|contains|all:
+              - '-NonI' #powershell.exe -NoP -NoL -NonI -Exec Bypass -Enc ...; https://thedfirreport.com/2026/02/23/apache-activemq-exploit-leads-to-lockbit-ransomware/; https://www.malwarebytes.com/blog/threat-intel/2026/03/fake-temu-coin-airdrop-uses-clickfix-trick-to-install-stealthy-malware; https://www.fortinet.com/blog/threat-research/dprk-related-campaigns-with-lnk-and-github-c2; https://safedep.io/microsoftsystem64-binary-payload-analysis/; https://www.seqrite.com/blog/operation-shadowrecruit-a-recruitment-themed-malware-campaign-leveraging-controlr-and-google-sheets-to-target-indian-job-seekers/; https://www.huntress.com/blog/sql-injection-attacker-persistence
+              - '-noP'
+          - CommandLine|contains|all:
+              - '-noI'
+              - '-noP'
+          - CommandLine|contains|all:
+              - '-noni'
+              - '-noe'
+          - CommandLine|contains|all:
+              - '-w '
+              - '-nop'
+          - CommandLine|contains|all:
+              - '-w'
+              - 'MINiM' #CSIDL_SYSTEM\windowspowershell\v1.0\powershell.exe" -wInDOwS MINiMiz; https://www.security.com/threat-intelligence/node-js-returns-ransomware
+          - CommandLine|contains|all:
+              - '-c ' #https://northwave-cybersecurity.com/ransomhouse-am-see
+              - '-nop'
+      selection_encoded:
+          CommandLine|contains:
+              - '-e '
+              - '-en '
+              - '-enc' # https://www.derp.ca/research/plog-rat-analysis/; https://any.run/cybersecurity-blog/monoglyphrat-attacks-us-enterprise/; https://isc.sans.edu/diary/rss/33348
+      selection_combo:
+          CommandLine|contains:
+              - '-noni' #-NonInteractive; https://cert.gov.ua/article/6285731
+              - '-noe'
+              - '-noI' #-NonInteractive
+              - '-noP' # https://www.malwarebytes.com/blog/threat-intel/2026/03/that-job-brief-on-google-forms-could-infect-your-device
+              - '-NoL'
+              - '-version ' # -version 2 "powershell downgrade"
+              - '-w ' #-w hidden; https://news.sophos.com/en-us/2025/10/10/whatsapp-worm-targets-brazilian-banking-customers/;
+              #- 'hidden'
+      filters:
+          - ParentImage|contains:
+              - '\Program Files'
+          - ParentImage|endswith:
+              - 'AgentExecutor.exe'
+              - 'zabbix_agentd.exe'
+              - 'Miro.exe' #30f74b851aecb9648a639e64086bde89ac0336157afb888b54fa44d5354df616; "C:\Users\xxx\AppData\Local\Programs\RealtimeBoard\Miro.exe"
+              - 'Un_A.exe'
+              - 'Notion.exe'
+              - 'glpi-agent.exe'
+              - 'Canva.exe'
+              - 'UDClientService.exe' #Lenovo
+              - 'LenovoVantage-(LenovoSystemUpdateAddin).exe'
+              - 'CcmExec.exe' #System Center Configuration Manager
+              - 'smsexec.exe' #System Center Configuration Manager
+              - 'gc_worker.exe' #C:\Program Files\AzureConnectedMachineAgent\GCArcService\GC\gc_worker.exe
+              - 'senseir.exe'
+              - 'microsoftdependencyagent.exe'
+              - 'ISServerExec.exe'
+              - 'Lenovo.Modern.ImController.exe'
+              - 'Lenovo.Vantage.AddinInstaller.exe'
+              - 'VMware.Hub.SfdAgent.DeployCmd.exe'
+              - 'node.exe'
+              - 'PBIDesktop.exe'
+              - 'Microsoft.Management.Services.IntuneWindowsAgent.exe'
+              - 'mgts-sw-install.exe'
+              - 'discord.exe' #"powershell.exe -NoProfile -NoLogo -InputFormat Text -NoExit -ExecutionPolicy Unrestricted -Command -"
+              - 'warp-svc.exe' #"PowerShell.exe" -NoProfile -NonInteractive -Command -
+          - CommandLine|contains:
+              - 'Microsoft Intune Management Extension'
+              - 'Zabbix\scripts'
+              - '::InstallWdBoot'
+              - ':\Windows\CCM\SignedScripts\' #..."& 'C:\Windows\CCM\SignedScripts\DetectWindows8AppBundle.ps1'"  -AppName:'Microsoft....
+              - 'AppXProvisionedPackage'
+              - 'LenovoBatteryGaugeAddin' #C:\WINDOWS\system32\WindowsPowerShell\v1.0\PowerShell.exe -ExecutionPolicy bypass -NoProfile -NonInteractive -WindowStyle Hidden -File C:\ProgramData\Lenovo\Vantage\Addins\LenovoBatteryGaugeAddin\1.0.100.20\Install.ps1
+              - '\Program Files\HP\Sure Click\' #"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:\Program Files\HP\Sure Click\4.4.21.937\servers\SetupBrHostExtension\Deploy-SBXEdge.ps1" -Uninstall
+              - 'Get-AuthenticodeSignature'
+              - 'CMakeFiles' #ninja.exe
+              - '\Modules\SmbShare\DisableUnusedSmb1.ps1'
+              - 'AzureDefenderForServers' #Powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\Packages\Plugins\Microsoft.Azure.AzureDefenderForServers.MDE.Windows\1.0.3.1\\MdeExtensionHandler.ps1 -Action enable
+              - 'AutorunsToWinEventLog'
+              - 'PROD_SSIS_WORKING_DIR' #directory with scripts
+              - 'Scripts\SFTP' #directory with scripts
+              - 'git.exe' #git.exe -c core.quotepath=false -c log.showSignature=false status --ignored --porcelain -z no...
+              - 'ReplaceOMCert' #"powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "New-CertificateNotificationTask -Type Replace -PSScript 'C:\Program Files\Microsoft Monitoring Agent\Agent\Tools\UpdateOMCert.ps1' -Name ReplaceOMCert -Channel System"
+          - CommandLine|contains|all:
+              - 'renderer'
+              - 'sandbox' #Notion process
+          - CommandLine|contains|all:
+              - 'JetBrains'
+              - 'PyCharm'
+          - CommandLine|contains|all:
+              - 'AppxPackage'
+              - '.scratch' #...$isOfficeInstalled = Get-AppxPackage Microsoft.Office.Desktop -allusers;...
+          - CommandLine|contains|all:
+              - 'G4AdABdADoAOgBPAFM' #by c:\program files\azureconnectedmachineagent\gcarcservice\gc\gc_worker.exe
+              - 'AVgBlAHIAcwBpAG8AbgAuAFYAZQBy'
+              - 'outputFormat'
+              - 'noninteractive'
+              - 'encodedCommand'
+          - CommandLine|contains|all:
+              - 'Lenovo'
+              - 'iMController'
+              - 'ThinkAPSPackage'
+          - CommandLine|contains|all:
+              - 'Lenovo'
+              - '\LenovoNow\'
+          - CommandLine|endswith:
+              - 'NoProfile' #"powershell.exe" -Version 5.1 -s -NoLogo -NoProfile
+          - CommandLine|endswith:
+              - 'UwBlAHQALQBMAG8AYwBhAHQAaQBvAG4AIAAnAEMAOgBcACcA' # Set-Location 'C:\'
+              - 'XABTAHkAbQBhAG4AdABlAGMAIABFAG4AZABwAG8AaQBuAHQAIABQAHIAbwB0AGUAYwB0AGkAbwBuACcA' #\Symantec Endpoint Protection'
+          - CommandLine|contains|all:
+              - 'Defender'
+              - 'Advanced' #C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File "C:\ProgramData\Microsoft\Windows Defender Advanced Threat Protection\Downloads\PSScript_{B6A71383-285E-4039-B480-DABF6BA33ADE}.ps1" -ParamsAsBase64 ew0KICAgICJTY2FubmVy...
+              - 'PSScript_{'
+              - 'ParamsAsBase64'
+          - CommandLine|contains|all:
+              - 'CheckHookProcess'
+              - 'Trend'
+              - 'Micro' #"C:\Windows\sysnative\windowspowershell\v1.0\powershell.exe" -NonInteractive -NoProfile -file c:\temp\7597ed8d2925998a62a3281e938eaf02\CheckHookProcess.ps1 "C:\Program Files (x86)\Trend Micro\Security Agent\DatFHS.dll"
+              - 'Agent'
+          - CommandLine|contains|all:
+              - 'WriteOnboardingMessage'
+              - '5ECB0BAC-B930-47F5-A8A4-E8253529EDB7' #Microsoft Defender for Endpoint onboarding stuff
+      condition: selection_pe and (selection or (selection_encoded and selection_combo)) and not filters
+  falsepositives:
+      - Administrative powershell scripts.
+      - Administrative activity.
+  level: medium
+level: medium
+created: '2022-05-25T19:15:33Z'
+updated: '2026-10-26T14:59:43.115000Z'

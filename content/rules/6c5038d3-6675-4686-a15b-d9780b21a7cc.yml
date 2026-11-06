@@ -1,0 +1,154 @@
+id: lwTxvspCLlJF
+name: Possible Malicious LNK File with Double Extension (via cmdline)
+body: |-
+  title: Possible Malicious LNK File with Double Extension (via cmdline)
+  id: 6c5038d3-6675-4686-a15b-d9780b21a7cc
+  status: stable
+  description: Detects suspicious use of an .lnk extension.
+  author: SOC Prime Team
+  references:
+      - https://www.darktrace.com/blog/cikabika-bot-inside-a-discord-rat#cq=i1
+      - https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
+      - https://cofense.com/blog/from-payment-plan-to-ransomware-inside-a-global-group-attack
+      - https://socradar.io/blog/operation-conflict-compass-konni-ukraine-lnk-lure/
+      - https://ctrlaltintel.com/bulletins/rustgate-v2/
+      - https://www.enki.co.kr/en/media-center/blog/inside-kimsuky-s-abuse-of-legitimate-remote-control-tools-across-northeast-asia
+      - https://www.seqrite.com/blog/operation-quicsilver-china-nexus-actor-targets-myanmar-diplomats-via-vhd-delivered-go-backdoor/
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kimsuky_ai_llm
+      - https://asec.ahnlab.com/en/94552/
+      - https://www.microsoft.com/en-us/security/blog/2026/06/25/photo-zip-campaign-targeting-hospitality-industry-delivers-node-js-implant-persistent-access/
+      - https://blog.itochuci.co.jp/entry/2026/06/11/110000
+      - https://www.lac.co.jp/lacwatch/report/20260604_004759.html
+      - https://www.seqrite.com/blog/operation-xenofiscal-sidecopy-deploying-persistent-xenorat-targeting-the-mof-afghanistan/
+      - https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/
+      - https://www.seqrite.com/blog/operation-dragon-whistle-ung002-targets-chinese-academia-via-weaponized-institutional-lure/
+      - https://www.seqrite.com/blog/operation-grieflure-dissecting-an-apt-campaign-targeting-vietnams-military-telecom-philippine-healthcare/
+      - https://infosecwriteups.com/north-korea-linked-hackers-use-github-as-c2-infrastructure-to-attack-south-korea-1bdcbaf9a9d8
+      - https://blog.talosintelligence.com/powmix-botnet-targets-czech-workforce/
+      - https://cert.gov.ua/article/6288271
+      - https://www.fortinet.com/blog/threat-research/dprk-related-campaigns-with-lnk-and-github-c2
+      - https://www.cyfirma.com/research/apt36-multi-vector-execution-malware-campaign-targeting-indian-government-entities
+      - https://cert.gov.ua/article/6286942
+      - https://cert.gov.ua/article/6285731
+      - https://cloud.google.com/blog/topics/threat-intelligence/apt41-innovative-tactics/
+      - https://cert.gov.ua/article/6282517
+      - https://cert.gov.ua/article/6281681
+      - https://cert.gov.ua/article/6281009
+      - https://medium.com/@knownsec404team/the-patchwork-group-has-updated-its-arsenal-launching-attacks-for-the-first-time-using-brute-ratel-175741987d87
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-new-deepgosu-attack-campaign/
+      - https://labs.withsecure.com/publications/darkgate-malware-campaign
+      - https://cert.gov.ua/article/6276894
+      - https://www.bleepingcomputer.com/news/security/gamaredons-littledrifter-usb-malware-spreads-beyond-ukraine/
+      - https://research.checkpoint.com/2023/malware-spotlight-into-the-trash-analyzing-litterdrifter/
+      - https://x.com/abuse_ch/status/1712458006833594589
+      - https://cert.gov.ua/article/4818341
+      - https://cert.gov.ua/article/37815
+      - https://www.bitdefender.com/blog/businessinsights/unpacking-rdstealer-an-exfiltration-malware-targeting-rdp-workloads/
+      - https://thehackernews.com/2023/06/experts-uncover-year-long-cyber-attack.html
+      - https://heimdalsecurity.com/blog/redclouds-apt-deploys-rdstealer-against-remote-desktop/
+      - https://www.bleepingcomputer.com/news/security/new-rdstealer-malware-steals-from-drives-shared-over-remote-desktop/
+      - https://www.securonix.com/blog/detecting-ongoing-starkmule-attack-campaign-targeting-victims-using-us-military-document-lures/
+      - https://gi7w0rm.medium.com/cloudeye-from-lnk-to-shellcode-4b5f1d6d877
+      - https://cyble.com/blog/unveiling-the-stealthy-exploitation-of-microsoft-cmstp-using-malicious-lnk-files/
+      - https://www.deepinstinct.com/blog/operation-rusty-flag-a-malicious-campaign-against-azerbaijanian-targets
+      - https://blog.talosintelligence.com/qakbot-affiliated-actors-distribute-ransom/
+      - https://www.trendmicro.com/en_us/research/23/j/darkgate-opens-organizations-for-attack-via-skype-teams.html
+      - https://www.seqrite.com/blog/sidecopys-multi-platform-onslaught-leveraging-winrar-zero-day-and-linux-variant-of-ares-rat/
+      - https://asec.ahnlab.com/en/58919/
+      - https://asec.ahnlab.com/en/59042/
+      - https://asec.ahnlab.com/en/59057/
+      - https://www.seqrite.com/blog/operation-rusticweb-targets-indian-govt-from-rust-based-malware-to-web-service-exfiltration/
+      - https://www.trendmicro.com/en_us/research/24/a/a-look-into-pikabot-spam-wave-campaign.html
+      - https://www.microsoft.com/en-us/security/blog/2024/01/17/new-ttps-observed-in-mint-sandstorm-campaign-targeting-high-profile-individuals-at-universities-and-research-orgs/
+      - https://cyble.com/blog/threat-actors-target-us-asylum-seekers-with-metastealer-malware/
+      - https://asec.ahnlab.com/en/60805/
+      - https://www.trendmicro.com/en_us/research/24/a/pawn-storm-uses-brute-force-and-stealth.html
+      - https://www.trustwave.com/hubfs/Web/Library/Documents_pdf/FaceBook_Ad_Spreads_Novel_Malware.pdf
+      - https://www.volexity.com/blog/2024/02/13/charmingcypress-innovating-persistence/
+      - https://www.trendmicro.com/en_us/research/24/b/earth-lusca-uses-geopolitical-lure-to-target-taiwan.html
+      - https://blog.talosintelligence.com/coralraider-targets-socialmedia-accounts/
+      - https://www.genians.co.kr/blog/threat_intelligence/dropbox
+      - https://harfanglab.io/en/insidethelab/allasenha-allakore-variant-azure-c2-steal-banking-latin-america/
+      - https://blog.talosintelligence.com/new-spicerat-sneakychef/
+      - https://www.gdatasoftware.com/blog/2024/07/37977-turla-evasion-lnk-files
+      - https://www.seqrite.com/blog/operation-oxidovy-sophisticated-malware-campaign-targets-czech-officials-using-nato-themed-decoys/
+      - https://www.securonix.com/blog/shroudedsleep-a-deep-dive-into-north-koreas-ongoing-campaign-against-southeast-asia/
+      - https://www.seqrite.com/blog/operation-cobalt-whisper-targets-industries-hong-kong-pakistan/
+      - https://threatbook.io/blog/APT-Group---Konni-Launches-New-Attacks-on-South-Korea
+      - https://www.proofpoint.com/us/blog/threat-insight/hidden-plain-sight-ta397s-new-attack-chain-delivers-espionage-rats
+      - https://medium.com/trac-labs/peaklight-illuminating-the-shadows-02a1bb44885c
+      - https://cyble.com/blog/sliver-implant-targets-german-entities-with-dll-sideloading-and-proxying-techniques/
+      - https://www.fortinet.com/blog/threat-research/coyote-banking-trojan-a-stealthy-attack-via-lnk-files
+      - https://www.securonix.com/blog/analyzing-deepdrive-north-korean-threat-actors-observed-exploiting-trusted-platforms-for-targeted-attacks/
+      - https://www.cloudsek.com/blog/lumma-stealer-chronicles-pdf-themed-campaign-using-compromised-educational-institutions-infrastructure
+      - https://www.welivesecurity.com/en/eset-research/operation-akairyu-mirrorface-invites-europe-expo-2025-revives-anel-backdoor/
+      - https://www.enki.co.kr/media-center/blog/konni-s-asyncrat-attack-lnk-based-infection
+      - https://threatbook.io/blog/id/1094
+      - https://blog.talosintelligence.com/gamaredon-campaign-distribute-remcos/
+      - https://www.seqrite.com/blog/kimsuky-apt-south-korea-pdf-lures/
+      - https://www.seqrite.com/blog/threat-actors-are-targeting-us-tax-session-with-new-tactics-of-stealerium-infostealer/
+      - https://www.proofpoint.com/us/blog/threat-insight/call-it-what-you-want-threat-actor-delivers-highly-targeted-multistage-polyglot
+      - https://www.proofpoint.com/us/blog/threat-insight/phish-china-aligned-espionage-actors-ramp-up-taiwan-semiconductor-targeting
+      - https://news.sophos.com/en-us/2025/07/29/gold-blade-remote-dll-sideloading-attack-deploys-redloader/
+      - https://www.seqrite.com/blog/operation-hankook-phantom-north-korean-apt37-targeting-south-korea/
+      - https://www.fortinet.com/blog/threat-research/confucius-espionage-from-stealer-to-backdoor
+      - https://www.enki.co.kr/en/media-center/blog/kimsuky-s-ongoing-evolution-of-kimjongrat-and-expanding-threats
+      - https://www.cyfirma.com/research/apt36-multi-stage-lnk-malware-campaign-targeting-indian-government-entities/
+      - https://thehackernews.com/2026/01/russia-aligned-hackers-abuse-viber-to.html
+      - https://www.genians.co.kr/en/blog/threat_intelligence/spear-phishing
+      - https://www.seqrite.com/blog/operation-nomad-leopard-targeted-spear-phishing-campaign-against-government-entities-in-afghanistan/
+      - https://research.checkpoint.com/2026/konni-targets-developers-with-ai-malware/
+      - https://research.checkpoint.com/2026/amaranth-dragon-weaponizes-cve-2025-8088-for-targeted-espionage/
+      - https://www.acronis.com/en/tru/posts/new-year-new-sector-transparent-tribe-targets-indias-startup-ecosystem/
+      - https://www.zscaler.com/blogs/security-research/middle-east-conflict-fuels-opportunistic-cyber-attacks
+      - https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk
+      - https://www.pointwild.com/threat-intelligence/covert-rat-phishing-campaign/
+  tags:
+      - attack.Execution
+      - attack.t1204.001
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith:
+              - '.exe'
+              - '.com'
+              - '.scr'
+              - '.tmp'
+          CommandLine|contains:
+              - ' .lnk'
+              - '...lnk' #https://asec.ahnlab.com/en/94552/
+              - '.doc.lnk'
+              - '.docx.lnk' # Proposition_Projet_Personnalisable.docx.lnk https://www.darktrace.com/blog/cikabika-bot-inside-a-discord-rat; https://cert.gov.ua/article/6286942; https://blog.talosintelligence.com/powmix-botnet-targets-czech-workforce/
+              - '.xls.lnk'
+              - '.xlsx.lnk'
+              - '.ppt.lnk'
+              - '.pptx.lnk'
+              - '.rtf.lnk'
+              - '.pdf.lnk' #; https://cert.gov.ua/article/6282517; https://cloud.google.com/blog/topics/threat-intelligence/apt41-innovative-tactics/; https://cert.gov.ua/article/6285731; https://www.zscaler.com/blogs/security-research/middle-east-conflict-fuels-opportunistic-cyber-attacks; https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx; https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk; https://www.pointwild.com/threat-intelligence/covert-rat-phishing-campaign/; https://www.fortinet.com/blog/threat-research/dprk-related-campaigns-with-lnk-and-github-c2; https://infosecwriteups.com/north-korea-linked-hackers-use-github-as-c2-infrastructure-to-attack-south-korea-1bdcbaf9a9d8; https://www.seqrite.com/blog/operation-dragon-whistle-ung002-targets-chinese-academia-via-weaponized-institutional-lure/; https://www.lac.co.jp/lacwatch/report/20260604_004759.html; https://www.genians.co.kr/en/blog/threat_intelligence/kimsuky_ai_llm;  https://www.seqrite.com/blog/operation-quicsilver-china-nexus-actor-targets-myanmar-diplomats-via-vhd-delivered-go-backdoor/; https://www.enki.co.kr/en/media-center/blog/inside-kimsuky-s-abuse-of-legitimate-remote-control-tools-across-northeast-asia; https://ctrlaltintel.com/bulletins/rustgate-v2/; https://socradar.io/blog/operation-conflict-compass-konni-ukraine-lnk-lure/; https://cofense.com/blog/from-payment-plan-to-ransomware-inside-a-global-group-attack; https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
+              - '.txt.lnk' # https://cert.gov.ua/article/6288271; https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/
+              - '.jpg.lnk'
+              - '.gif.lnk'
+              - '.png.lnk' # https://blog.itochuci.co.jp/entry/2026/06/11/110000
+              - '.jpeg.lnk'
+              - '.zip.lnk'
+              - '.7z.lnk'
+              - '.dat.lnk'
+              - '.img.lnk'
+              - '.hwp.lnk'
+      filters:
+          CommandLine|contains|all:
+              - 'AppData'
+              - 'Roaming'
+              - 'Microsoft'
+              - 'Office'
+              - 'Recent'
+      condition: selection and not filters
+  falsepositives:
+      - none
+  level: high
+level: high
+created: '2020-04-27T17:39:45Z'
+updated: '2026-11-02T13:18:24.712000Z'

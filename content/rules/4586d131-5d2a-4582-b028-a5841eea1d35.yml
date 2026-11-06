@@ -1,0 +1,85 @@
+id: 1pFa98gwHsm3
+name: Possible Dynamic DNS Service Was Contacted (via dns)
+body: |-
+  title: Possible Dynamic DNS Service Was Contacted (via dns)
+  id: 4586d131-5d2a-4582-b028-a5841eea1d35
+  status: stable
+  description: Identifies requests to the dynamic DNS services, which may be potentially be abused by adversaries in order to, for example, deliver malware. It is highly recommended to baseline your activity and tune out common business use cases.
+  references:
+    - https://www.welivesecurity.com/en/eset-research/mythicratatoskr-yggdrasil-enabled-backdoor-deployed-uac0099-sandworm-collaboration/
+    - https://www.levelblue.com/blogs/spiderlabs-blog/still-circling-inside-the-operator-behind-blind-eagles-github-loader
+    - https://www.acronis.com/en/tru/posts/patchcord-new-malware-cluster-targets-afghan-telecom-and-south-asian-critical-infrastructure/
+    - https://www.proofpoint.com/us/blog/threat-insight/unpacking-cruciferra-analysis-sophisticated-crypter-service?utm_source=twitter&utm_medium=social_organic
+    - https://www.fortinet.com/blog/threat-research/the-ttf-trap-a-global-campaign-of-a-low-detection-lua-loader
+    - https://www.picussecurity.com/resource/blog/turla-secret-blizzard-apt-stockstay-and-kazuar-backdoors-explained
+    - https://asec.ahnlab.com/en/94432/
+    - https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown
+    - https://www.catonetworks.com/blog/cato-ctrl-operation-poisson-analyzing-a-cybercriminals-entire-operation/
+    - https://isc.sans.edu/diary/rss/33080
+    - https://blog.deception.pro/blog/xworm-sc-hok-may-2026
+    - https://www.jumpsec.com/guides/blacktoad-network-manipulation-in-an-autoit-payload/
+    - https://www.huntress.com/blog/nightmare-eclipse-intrusion
+    - https://www.hornetsecurity.com/en/blog/remcos-rat-attack-chain/
+    - https://www.acronis.com/en/tru/posts/new-janaware-ransomware-targets-turkey-via-adwind-rat/
+    - https://www.rapid7.com/blog/post/tr-new-whitepaper-stealthy-bpfdoor-variants/
+    - https://www.huntress.com/blog/rogue-screenconnect-social-engineering-tactics-2025
+    - https://www.trellix.com/en-au/blogs/research/hiding-in-plain-sight-multi-actor-ahost-exe-attacks/
+    - https://www.seqrite.com/blog/operation-nomad-leopard-targeted-spear-phishing-campaign-against-government-entities-in-afghanistan/
+    - https://www.safebreach.com/blog/prince-of-persia-part-ii/
+    - https://cloud.google.com/blog/topics/threat-intelligence/disrupting-gridtide-global-espionage-campaign/
+    - https://www.trellix.com/blogs/research/fileless-multi-stage-remcos-rat-phishing-to-memory/
+    - https://www.derp.ca/research/plog-rat-analysis/
+    - https://www.seqrite.com/blog/operation-dualscript-powershell-malware-retrorat-analysis/
+  author: SOC Prime Team
+  tags:
+    - attack.t1102
+    - attack.command_and_control
+  logsource:
+    category: dns
+  detection:
+    selection:
+      QueryName|endswith:
+        - 'ddns.net' # https://www.noip.com/support/faq/frequently-asked-questions?utm_source=chatgpt.com
+        - 'ddnsking.com' # https://www.rapid7.com/blog/post/tr-new-whitepaper-stealthy-bpfdoor-variants/
+        - '3utilities.com'
+        - 'bounceme.net'
+        - 'freedynamicdns.net'
+        - 'freedynamicdns.org'
+        - 'gotdns.ch'
+        - 'hopto.org'
+        - 'myddns.me'
+        - 'myftp.biz'
+        - 'myftp.org'
+        - 'myvnc.com'
+        - 'onthewifi.com'
+        - 'redirectme.net'
+        - 'servebeer.com'
+        - 'serveblog.net'
+        - 'servecounterstrike.com'
+        - 'serveftp.com'
+        - 'servegame.com'
+        - 'servehalflife.com'
+        - 'servehttp.com'
+        - 'serveirc.com'
+        - 'serveminecraft.net'
+        - 'servemp3.com'
+        - 'servepics.com'
+        - 'servequake.com'
+        - 'sytes.net'
+        - 'viewdns.net'
+        - 'webhop.me'
+        - 'zapto.org'
+        - 'duckdns.org' # https://www.derp.ca/research/plog-rat-analysis/; https://www.acronis.com/en/tru/posts/new-janaware-ransomware-targets-turkey-via-adwind-rat/; https://www.catonetworks.com/blog/cato-ctrl-operation-poisson-analyzing-a-cybercriminals-entire-operation/; https://asec.ahnlab.com/en/94432/; https://www.proofpoint.com/us/blog/threat-insight/unpacking-cruciferra-analysis-sophisticated-crypter-service?utm_source=twitter&utm_medium=social_organic; https://www.acronis.com/en/tru/posts/patchcord-new-malware-cluster-targets-afghan-telecom-and-south-asian-critical-infrastructure/; https://www.levelblue.com/blogs/spiderlabs-blog/still-circling-inside-the-operator-behind-blind-eagles-github-loader; https://www.welivesecurity.com/en/eset-research/mythicratatoskr-yggdrasil-enabled-backdoor-deployed-uac0099-sandworm-collaboration/
+        - 'ddnsfree.com'
+        - 'ddnsgeek.com'
+        - '1cooldns.com' # https://www.seqrite.com/blog/operation-dualscript-powershell-malware-retrorat-analysis/
+        - 'ydns.eu' # https://www.hornetsecurity.com/en/blog/remcos-rat-attack-chain/; https://www.picussecurity.com/resource/blog/turla-secret-blizzard-apt-stockstay-and-kazuar-backdoors-explained
+        - '.dpdns.org' # https://www.huntress.com/blog/nightmare-eclipse-intrusion
+    condition: selection
+  falsepositives:
+    - Legitimate Dynamic DNS usage.
+    - It is highly recommended to baseline your activity and tune out common business use cases.
+  level: low
+level: low
+created: '2026-01-08T10:12:03Z'
+updated: '2026-10-22T15:09:57.951000Z'

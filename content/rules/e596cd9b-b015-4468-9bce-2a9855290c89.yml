@@ -1,0 +1,152 @@
+id: eri0Ie3zVuoB
+name: Possible Persistence Points [ASEPs - Software/NTUSER Hive] (via cmdline)
+body: |-
+  title: Possible Persistence Points [ASEPs - Software/NTUSER Hive] (via cmdline)
+  id: e596cd9b-b015-4468-9bce-2a9855290c89
+  status: stable
+  description: Utility REG.EXE can be used to add registry keys for persistences.
+  author: SOC Prime Team
+  references:
+      - https://www.security.com/threat-intelligence/node-js-returns-ransomware
+      - https://www.microsoft.com/en-us/security/blog/2026/06/17/postinstall-payload-inside-mastra-npm-supply-chain-compromise/
+      - https://isc.sans.edu/diary/rss/33080
+      - https://labs.infoguard.ch/posts/anatomy_deno_rat/
+      - https://www.ox.security/blog/new-actors-deploy-shai-hulud-clones-teampcp-copycats-are-here/
+      - https://any.run/cybersecurity-blog/brazilian-banking-phishing-campaign/
+      - https://blog.gdatasoftware.com/2026/04/38409-fake-foxit-vnc
+      - https://blog.talosintelligence.com/uat-9244
+      - https://www.microsoft.com/en-us/security/blog/2026/03/03/signed-malware-impersonating-workplace-apps-deploys-rmm-backdoors
+      - https://cert.gov.ua/article/6287707
+      - https://security.googlecloudcommunity.com/community-blog-42/finding-malware-dirtybulk-and-friends-usb-infections-to-fuel-cybercriminal-coinmining-operations-5552
+      - https://blog.sekoia.io/apt28-operation-phantom-net-voxel/
+      - https://www.zscaler.com/blogs/security-research/apt37-targets-windows-rust-backdoor-and-python-loader
+      - https://www.recordedfuture.com/research/drat-v2-updated-drat-emerges-tag-140s-arsenal
+      - https://cert.gov.ua/article/6284080
+      - https://redcanary.com/blog/threat-intelligence/mocha-manakin-nodejs-backdoor/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-141a
+      - https://www.attackiq.com/2025/05/21/response-to-cisa-advisory-aa25-141a
+      - https://dmpdump.github.io/posts/Lazarus-Backdoor-ITLure/
+      - https://cert.gov.ua/article/6279366
+      - https://cert.gov.ua/article/6278706
+      - https://detect.fyi/uac-0133-sandworm-plans-for-cyber-sabotage-at-almost-20-critical-infrastructure-facilities-in-d923a6cbcef4
+      - https://asec.ahnlab.com/en/58919/
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://unit42.paloaltonetworks.com/nodestealer-2-targets-facebook-business/
+      - https://cert.gov.ua/article/38097
+      - https://www.zscaler.com/blogs/security-research/janelarat-repurposed-bx-rat-variant-targeting-latam-fintech
+      - https://medium.com/@knownsec404team/analysis-of-the-recent-offensive-operations-conducted-by-north-korean-apt-groups-b5add762859b
+      - https://asec.ahnlab.com/en/58919/
+      - https://asec.ahnlab.com/en/59057/
+      - https://asec.ahnlab.com/en/61631/
+      - https://blog.talosintelligence.com/timbrestealer-campaign-targets-mexican-users/
+      - https://rexorvc0.com/2024/03/25/NanoCore_Update/
+      - https://www.seqrite.com/blog/pakistani-apts-escalate-attacks-on-indian-gov-seqrite-labs-unveils-threats-and-connections/
+      - https://www.logpoint.com/en/blog/emerging-threats/kapeka-backdoor/
+      - https://www.picussecurity.com/resource/blog/mitre-attck-t1547-boot-or-logon-autostart-execution
+      - https://www.microsoft.com/en-us/security/blog/2024/08/28/peach-sandstorm-deploys-new-custom-tickler-malware-in-long-running-intelligence-gathering-operations/
+      - https://www.attackiq.com/2024/10/15/emulating-lumma-stealer/
+      - https://medium.com/@S3N4T0R/venomous-bear-apt-adversary-simulation-43a22ef9640f
+      - https://www.seqrite.com/blog/silent-lynx-apt-targeting-central-asian-entities/
+      - https://www.bridewell.com/insights/blogs/detail/who-are-hellcat-ransomware-group
+      - https://www.morphisec.com/blog/new-noodlophile-stealer-fake-ai-video-generation-platforms/
+      - https://www.cybereason.com/blog/rhadamanthys-stealer-europe
+      - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/malicious-screen-connect-campaign-abuses-ai-themed-lures-for-xworm-delivery/
+      - https://cyble.com/blog/inside-maranhao-stealer-node-js-powered-infostealer/
+      - https://www.malwarebytes.com/blog/news/2026/01/can-you-use-too-many-lolbins-to-drop-some-rats
+      - https://labs.k7computing.com/index.php/the-pyrat-code-python-based-rat-and-its-internals/
+      - https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+      - https://www.elastic.co/security-labs/badiis-to-the-bone-new-insights-to-global-seo-poisoning-campaign
+      - https://isc.sans.edu/diary/rss/32754
+      - https://research.checkpoint.com/2026/silver-dragon-targets-organizations-in-southeast-asia-and-europe/
+      - https://securityaffairs.com/188895/apt/from-phishing-to-google-drive-c2-silver-dragon-expands-apt41-playbook.html
+      - https://www.picussecurity.com/resource/blog/t1059-001-powershell
+      - https://www.darkrelay.com/post/apt29-midnight-blizzard-operations-iocs-detection-strategies
+      - https://www.zscaler.com/blogs/security-research/middle-east-conflict-fuels-opportunistic-cyber-attacks
+      - https://www.welivesecurity.com/en/eset-research/sednit-reloaded-back-trenches/
+      - https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx
+      - https://www.picussecurity.com/resource/blog/t1547-001-registry-run-keys-startup-folder
+      - https://www.picussecurity.com/resource/blog/t1547-004-winlogon-helper
+      - https://www.picussecurity.com/resource/blog/t1547-003-time-providers
+      - https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+      - https://www.cyfirma.com/research/crysome-rat-an-advanced-persistent-net-remote-access-trojan/
+      - https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons
+  tags:
+      - attack.persistence
+      - attack.t1547.001
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_reg:
+          CommandLine|contains|all:
+              - 'reg' #reg add hkcu\software\classes\.Admin\shell\runas\command /f /ve /d "cmd /x /d /r set; https://www.picussecurity.com/resource/blog/t1547-001-registry-run-keys-startup-folder
+              - 'add'
+      selection_aseps_base_chain1:
+          CommandLine|contains:
+              - 'SOFTWARE' #Software\Microsoft\Windows\CurrentVersion\Run
+              - 'Environment' #for coverage Environment\UserInitMprLogonScript in a detection chain.
+              - 'System' #SYSTEM\CurrentControlSet\Control\SafeBoot\AlternateShell'
+      selection_aseps_base_chain2:
+          CommandLine|contains:
+              - 'Microsoft' #SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx
+              - 'Environment' #for coverage Environment\UserInitMprLogonScript in a detection chain.
+              - 'CurrentControlSet' #SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp\InitialProgram
+              - 'Classes'
+      selection_aseps:
+          CommandLine|contains:
+              - '\Run' #Software\Microsoft\Windows NT\CurrentVersion\Windows\Run; https://labs.k7computing.com/index.php/the-pyrat-code-python-based-rat-and-its-internals/; https://cert.gov.ua/article/6287707; https://www.picussecurity.com/resource/blog/t1059-001-powershell; https://www.zscaler.com/blogs/security-research/middle-east-conflict-fuels-opportunistic-cyber-attacks; https://www.zscaler.com/blogs/security-research/china-nexus-threat-actor-targets-persian-gulf-region-plugx; https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons; https://blog.gdatasoftware.com/2026/04/38409-fake-foxit-vnc; https://labs.infoguard.ch/posts/anatomy_deno_rat/; https://www.security.com/threat-intelligence/node-js-returns-ransomware
+              - '\Runonce' #SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce
+              - '\RunOnce' #SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce; https://www.cyfirma.com/research/crysome-rat-an-advanced-persistent-net-remote-access-trojan/
+              - '\RunonceEx' #SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx
+              - '\RunOnceEx' #SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx
+              - '\Load' #Software\Microsoft\Windows NT\CurrentVersion\Windows\Load
+              - 'UserInitMprLogonScript' #Environment\UserInitMprLogonScript; https://www.malwarebytes.com/blog/news/2026/01/can-you-use-too-many-lolbins-to-drop-some-rats
+              - '\Shell' #SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell; https://www.picussecurity.com/resource/blog/t1547-004-winlogon-helper
+              - '\Logoff' #Software\Policies\Microsoft\Windows\System\Scripts\Logoff
+              - '\Logon' #Software\Policies\Microsoft\Windows\System\Scripts\Logon
+              - '\Shutdown' #Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts\Shutdown
+              - '\Startup' #Software\Policies\Microsoft\Windows\System\Scripts\Startup
+              - 'AutoStartOnConnect' #SOFTWARE\Microsoft\Windows CE Services\AutoStartOnConnect
+              - 'AutoStartOnDisconnect' #SOFTWARE\Microsoft\Windows CE Services\AutoStartOnDisconnect
+              - 'IconServiceLib' #Software\Microsoft\Windows NT\CurrentVersion\Windows\IconServiceLib
+              - 'AvailableShells' #Software\Microsoft\Windows NT\CurrentVersion\Winlogon\AlternateShells\AvailableShells
+              #- '\Installed Components' #SOFTWARE\Microsoft\Active Setup\Installed Components
+              - 'AlternateShell' #SYSTEM\CurrentControlSet\Control\SafeBoot\AlternateShell
+              - 'StartupPrograms' #System\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\StartupPrograms
+              - 'InitialProgram' #SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp\InitialProgram
+              - '\NetSh' #SOFTWARE\Microsoft\NetSh'
+              - 'Autorun' #SOFTWARE\Microsoft\Command Processor\Autorun
+              - '\Services' #\SYSTEM\CurrentControlSet\Services\; https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://www.elastic.co/security-labs/badiis-to-the-bone-new-insights-to-global-seo-poisoning-campaign; https://research.checkpoint.com/2026/silver-dragon-targets-organizations-in-southeast-asia-and-europe/; https://www.picussecurity.com/resource/blog/t1547-003-time-providers; https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+              - '\RunServicesOnce'
+              - '\RunServices'
+              - '\Monitors'
+              - 'LegalNoticeText' #CurrentVersion\Winlogon /v LegalNoticeText; https://www.picussecurity.com/resource/blog/t1547-004-winlogon-helper
+              - 'DefaultUserName' #CurrentVersion\Winlogon /v DefaultUserName; https://www.picussecurity.com/resource/blog/t1547-004-winlogon-helper
+              - 'AutoLogonCount' #CurrentVersion\Winlogon /v AutoLogonCount; https://www.picussecurity.com/resource/blog/t1547-004-winlogon-helper
+      selection_service:
+          CommandLine|contains: 'ServiceDll' #https://cert.gov.ua/article/6284080; https://security.googlecloudcommunity.com/community-blog-42/finding-malware-dirtybulk-and-friends-usb-infections-to-fuel-cybercriminal-coinmining-operations-5552
+      filters:
+          - CommandLine|contains:
+              - '/d ""' #empty value
+              - ':\Program Files'
+              - 'UserChoice' #reg  add "HKEY_USERS\.DEFAULT\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice" /v ProgId /t REG_SZ /d ChromeHTML /f
+              - 'Discord.exe'
+              - 'Discord\Update.exe'
+          - CommandLine|contains|all:
+              - 'HKEY_CLASSES_ROOT'
+              - '\Command' #hardeding stuff
+              - 'notepad.exe' #C:\Windows\system32\cmd.exe /c "reg add HKEY_CLASSES_ROOT\VBSFile\Shell\Open2\Command /d "'%SystemRoot%\notepad.exe' '%1' %*" /t REG_SZ /f"
+          - ParentImage|endswith:
+              - 'Yammer.exe'
+              - 'Zalo.exe'
+              - '_1st.exe' #PICUS BAS
+              - 'Suuntolink.exe'
+              - 'Skype.exe'
+              - 'Discord.exe'
+      condition: ((selection_reg and selection_aseps_base_chain1 and selection_aseps_base_chain2 and selection_aseps) and not filters) or (selection_reg and selection_service)
+  falsepositives:
+      - Legitimate software activity.
+  level: medium
+level: medium
+created: '2020-04-28T16:51:47Z'
+updated: '2026-10-29T09:06:40.366000Z'

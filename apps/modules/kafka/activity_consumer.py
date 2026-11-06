@@ -1,11 +1,11 @@
 """Kafka consumer for activity events.
 
 This module provides an async Kafka consumer that reads activity events
-from the etl-activity topic and stores them in PostgreSQL for audit logs
+from the detectflow.activity topic and stores them in PostgreSQL for audit logs
 and dashboard display.
 
 Architecture:
-- Consumes from etl-activity topic
+- Consumes from detectflow.activity topic
 - Validates events with Pydantic (ActivityEvent schema)
 - Stores in PostgreSQL audit_logs table via AuditLogDAO
 - Triggers SSE callbacks for real-time dashboard updates
@@ -34,7 +34,7 @@ logger = get_logger(__name__)
 class ActivityConsumerService(BaseKafkaAsyncClient):
     """Async Kafka consumer for activity events.
 
-    Consumes activity events from the etl-activity Kafka topic and:
+    Consumes activity events from the detectflow.activity Kafka topic and:
     1. Stores them in PostgreSQL (audit_logs table)
     2. Notifies subscribers (SSE manager) for real-time updates
 
@@ -58,6 +58,13 @@ class ActivityConsumerService(BaseKafkaAsyncClient):
         self.last_message_time: datetime | None = None
         self._on_activity_callbacks: list[Callable] = []
         self._consume_task: asyncio.Task | None = None
+        # Multi-worker deployments: every worker consumes (unique Kafka group)
+        # to keep its in-process recent-activity cache warm for its own SSE
+        # clients, but only ONE worker may persist events to audit_logs —
+        # otherwise every event is inserted once per worker. The server
+        # lifespan wires this to the leader-election state; the default
+        # (always persist) keeps single-process runs unchanged.
+        self._persist_predicate: Callable[[], bool] = lambda: True
 
         # Add consumer-specific config
         self._config.update(
@@ -229,6 +236,10 @@ class ActivityConsumerService(BaseKafkaAsyncClient):
             logger.warning(f"Failed to validate activity event schema: {e}")
             return None
 
+    def set_persist_predicate(self, predicate: Callable[[], bool]) -> None:
+        """Gate DB persistence of consumed events (leader-only in multi-worker runs)."""
+        self._persist_predicate = predicate
+
     async def _store_events_batch(self, events: list[ActivityEvent]) -> None:
         """Store multiple activity events in PostgreSQL using single transaction.
 
@@ -236,6 +247,11 @@ class ActivityConsumerService(BaseKafkaAsyncClient):
             events: List of validated ActivityEvents
         """
         if not events:
+            return
+
+        # Non-leader workers consume only for the in-process cache/callbacks;
+        # the leader is the single writer to audit_logs.
+        if not self._persist_predicate():
             return
 
         try:

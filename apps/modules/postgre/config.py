@@ -1,14 +1,13 @@
-import base64
 import json
+from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.models import Config
+from apps.core.models import Config, Integration
 from apps.core.schemas import FlinkDefaultsResponse, FlinkDefaultsUpdateRequest
 from apps.modules.postgre.base import BaseDAO
-
-# TODO: add encryption/decryption of API key or save it in secrets manager
 
 # Key for Flink defaults in config table
 FLINK_DEFAULTS_KEY = "flink_defaults"
@@ -33,24 +32,70 @@ class ConfigDAO(BaseDAO[Config]):
         else:
             return await self.create(key=key, value=value)
 
+    async def get_socprime_tdm_provider_config(self) -> dict[str, Any] | None:
+        """Return a shallow copy of the first ``socprime_tdm`` integration ``config`` JSON.
+
+        Used to construct :class:`~apps.integrations.providers.socprime_tdm.SocPrimeTdmProvider`
+        (``api_key`` from the profile; TDM REST base URL comes from
+        :attr:`apps.core.settings.Settings.tdm_api_base_url`). Returns ``None`` if no row exists,
+        ``config`` is empty, or ``api_key`` is missing/falsy.
+        """
+        result = await self.session.execute(
+            select(Integration)
+            .where(Integration.integration_type == "socprime_tdm")
+            .order_by(Integration.created.asc())
+            .limit(1)
+        )
+        integration = result.scalar_one_or_none()
+        if not integration or not integration.config:
+            return None
+        api_key = integration.config.get("api_key")
+        if not api_key:
+            return None
+        return dict(integration.config)
+
     async def get_api_key(self) -> str | None:
-        """Get API key from config"""
-        existing = await self.get_by_key(key="repository_api_key")
-        return self._decode_api_key(existing.value) if existing else None
-
-    async def set_api_key(self, api_key: str) -> None:
-        """Set API key in config"""
-        await self.upsert_by_key(key="repository_api_key", value=self._encode_api_key(api_key))
+        """Return only the API key from :meth:`get_socprime_tdm_provider_config` (convenience)."""
+        cfg = await self.get_socprime_tdm_provider_config()
+        return str(cfg["api_key"]) if cfg else None
 
     @staticmethod
-    def _encode_api_key(api_key: str) -> str:
-        """Encode API key"""
-        return base64.b64encode(api_key.encode()).decode()
+    def is_push_enabled_config(cfg: dict[str, Any] | None) -> bool:
+        """Push-enabled decision for an already-fetched TDM provider config.
 
-    @staticmethod
-    def _decode_api_key(encoded_api_key: str) -> str:
-        """Decode API key"""
-        return base64.b64decode(encoded_api_key.encode()).decode()
+        Callers that also need the config (e.g. to build ``SocPrimeTdmProvider``) can fetch it once
+        via :meth:`get_socprime_tdm_provider_config` and pass it here instead of re-reading the DB.
+        ``None`` (no profile/key) cannot push; otherwise ``config.push`` (default ``True``).
+        """
+        if not cfg:
+            return False  # cannot push without a configured key
+        return bool(cfg.get("push", True))
+
+    async def is_tdm_push_enabled(self) -> bool:
+        """True when a TDM profile+key exists and its ``config.push`` is enabled (default True)."""
+        return self.is_push_enabled_config(await self.get_socprime_tdm_provider_config())
+
+    async def get_tdm_push_reenable_strategy(self) -> str:
+        """Return the push re-enable reconciliation strategy (always ``next_sync``).
+
+        ``push_reenable_strategy`` is no longer an exposed TDM config field, so this effectively
+        always resolves to ``next_sync``. The plumbing (config read + ``next_save`` handling in the
+        reconciler) is kept intact so the ``next_save`` safety mode can be re-enabled later without
+        re-wiring the flow.
+        """
+        cfg = await self.get_socprime_tdm_provider_config()
+        return str((cfg or {}).get("push_reenable_strategy") or "next_sync")
+
+    async def get_gitlab_provider_config(self, integration_id: UUID) -> dict[str, Any] | None:
+        """Return config for a GitLab integration profile when ``token`` is present."""
+        result = await self.session.execute(select(Integration).where(Integration.id == integration_id))
+        integration = result.scalar_one_or_none()
+        if not integration or integration.integration_type != "gitlab" or not integration.config:
+            return None
+        token = integration.config.get("token")
+        if not token:
+            return None
+        return dict(integration.config)
 
     # =========================================================================
     # Flink Defaults Methods

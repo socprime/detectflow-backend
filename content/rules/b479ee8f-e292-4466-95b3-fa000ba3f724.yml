@@ -1,0 +1,33 @@
+id: WyIuDh11DVSi
+name: Explicit COMSPEC Usage in Service File Path (via audit)
+body: |-
+  title: Explicit COMSPEC Usage in Service File Path (via audit)
+  id: b479ee8f-e292-4466-95b3-fa000ba3f724
+  status: stable
+  description: Adversaries may use COMSPEC environment variable to point to cmd.exe (to avoid cmd.exe string in the logs).
+  author: SOC Prime Team
+  references:
+      - https://thedfirreport.com/2025/01/27/cobalt-strike-and-a-pair-of-socks-lead-to-lockbit-ransomware/
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://thedfirreport.com/2022/02/21/qbot-and-zerologon-lead-to-full-domain-compromise/
+      - https://thedfirreport.com/2026/02/23/apache-activemq-exploit-leads-to-lockbit-ransomware/
+      - https://www.genians.co.kr/en/blog/threat_intelligence/kakaotalk
+      - https://isc.sans.edu/diary/SmartApeSG+campaign+pushes+Remcos+RAT+NetSupport+RAT+StealC+and+Sectop+RAT+ArechClient2/32826
+      - https://socprime.com/detectflow/ # FOR DF DEMO
+  tags:
+      - attack.execution
+      - attack.t1059.003
+  logsource:
+      product: windows
+      service: security
+  detection:
+      selection:
+          EventID: 4697
+          ServiceFileName|contains: 'COMSPEC' # %COMSPEC% /C "tasklist /f /im explorer.exe"; Service File Name: %COMSPEC% /Q /c echo route print > \\127.0.0.1\C$__output 2>^&1 > %TEMP%\ execute.bat & %COMSPEC% /Q /c %TEMP%\execute.bat & del %TEMP%\execute.bat
+      condition: selection
+  falsepositives:
+      - none
+  level: high
+level: high
+created: '2022-02-21T11:36:40Z'
+updated: '2026-08-12T11:05:05.031000Z'

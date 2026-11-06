@@ -1,0 +1,25 @@
+id: TmRldKEBFsA9Tj2-PHMN
+name: Node2Shell / HTTP2Shell is a critical vulnerability (CVE-2026-111497) in the Brotli decoder bundled with Node.js
+created: '2026-10-25T12:00:00Z'
+updated: '2026-10-26T10:42:05Z'
+summary: Node2Shell is a critical vulnerability (CVE-2026-111497) in the Brotli decoder bundled with Node.js, involving an out-of-bounds write. Attackers can exploit this by sending malformed compressed streams to services that decode Brotli data, potentially leading to denial of service, memory disclosure, or remote code execution. The vulnerability is particularly impactful for services using Express 5 or specific middleware that automatically handles Brotli decompression.
+severity: High
+investigation: The Sysdig Threat Research Team analyzed the vulnerability, noting that a public PoC appeared within hours of the patch release. Research from Imperva and Vercel demonstrated that code execution is possible on specific architectures like Linux arm64. The investigation highlighted that reachability depends on whether an application or its libraries (like body-parser) decode attacker-controlled Brotli streams.
+response: Upon detecting a potential exploitation chain, such as a Node.js process crash followed by unexpected program execution, security teams should isolate the affected workload. Monitor for post-exploitation activities including interactive shells, unauthorized malware downloads, cryptomining, or the theft of secrets and cloud tokens. Immediate patching of reachable services should be prioritized.
+mitigation: 'The primary mitigation is updating Node.js to versions 22.23.4, 24.22.1, or 26.12.1, and upgrading Bun to 1.4.4 or newer. Organizations should also disable request decompression where possible, such as setting ''inflate: false'' in body-parser. Implementing WAF rules to reject untrusted ''Content-Encoding: br'' headers and running services as unprivileged users are recommended secondary defenses.'
+industries:
+- All
+geographies:
+- Global
+threat_types:
+- Vulnerability
+threat_actors: []
+techniques: []
+attack_flow: null
+related_high_order_sigma_rules:
+- jhP5r9lpFLqg
+related_behavioral_rules:
+- Z098AIugvQzz
+- 9KVfcbD1pxFF
+- NPTTDPoay6hl
+- e1OU1IQ4Fo0i

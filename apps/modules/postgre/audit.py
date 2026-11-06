@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import and_, delete, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.core.enums import AuditSeverity
 from apps.core.models import AuditLog
 from apps.core.schemas import ActivityEvent
 from apps.modules.postgre.base import BaseDAO
@@ -179,6 +180,84 @@ class AuditLogDAO(BaseDAO[AuditLog]):
         await self.session.flush()
 
         return result.rowcount or 0
+
+    async def recent_health(
+        self,
+        entity_ids: list[str],
+        window_seconds: int,
+        *,
+        source: str = "flink",
+    ) -> dict[str, dict[str, object]]:
+        """Summarise recent warning/error activity per entity (self-healing health signal).
+
+        Scans ``audit_logs`` for the given ``entity_ids`` within the trailing
+        ``window_seconds`` window, keeping only ``warning``/``error`` severities.
+        Because the window slides with ``now()``, the signal auto-clears once
+        the offending events age out — callers can derive a "degraded" state
+        that heals itself when errors stop.
+
+        Args:
+            entity_ids: Audit ``entity_id`` values to summarise (e.g. Flink
+                deployment names ``["correlation-job", "agent-job"]``).
+            window_seconds: Trailing window size; only events with
+                ``timestamp >= now() - window_seconds`` are considered.
+            source: Audit ``source`` to scope to (defaults to ``"flink"``).
+
+        Returns:
+            Mapping of ``entity_id`` to a dict with keys ``worst_severity``
+            (``"error"`` outranks ``"warning"``), ``last_issue_details`` (the
+            most recent entry *at the worst severity*), and ``last_event_at``
+            (that entry's ``timestamp``). ``last_issue_details``/``last_event_at``
+            describe the same event that drives ``worst_severity``: when an
+            older ``error`` outranks a newer ``warning`` inside the window, the
+            summary surfaces the most recent ``error`` (not the warning) so the
+            health tile and its last-issue text stay consistent. Entities with
+            no recent warning/error events are omitted from the mapping.
+        """
+        if not entity_ids:
+            return {}
+
+        cutoff = datetime.now(UTC) - timedelta(seconds=window_seconds)
+        result = await self.session.execute(
+            select(AuditLog)
+            .where(
+                and_(
+                    AuditLog.source == source,
+                    AuditLog.entity_id.in_(entity_ids),
+                    AuditLog.timestamp >= cutoff,
+                    AuditLog.severity.in_([AuditSeverity.WARNING.value, AuditSeverity.ERROR.value]),
+                )
+            )
+            .order_by(desc(AuditLog.timestamp))
+        )
+
+        # Rank error above warning; rows arrive newest-first. We track the
+        # worst severity per entity AND keep last_issue_details/last_event_at
+        # pointing at the most recent row of that worst severity, so the
+        # surfaced issue always describes the event that drives the health.
+        severity_rank = {AuditSeverity.WARNING.value: 1, AuditSeverity.ERROR.value: 2}
+        summary: dict[str, dict[str, object]] = {}
+        for row in result.scalars().all():
+            entity_id = row.entity_id
+            if entity_id is None:
+                continue
+            existing = summary.get(entity_id)
+            if existing is None:
+                summary[entity_id] = {
+                    "worst_severity": row.severity,
+                    "last_issue_details": row.details,
+                    "last_event_at": row.timestamp,
+                }
+                continue
+            if severity_rank.get(row.severity, 0) > severity_rank.get(str(existing["worst_severity"]), 0):
+                # An older row of higher severity wins: re-point the summary to
+                # this row so worst_severity and last_issue describe one event.
+                # Rows are newest-first, so this is the most recent row at the
+                # new worst severity (later higher-severity rows are skipped).
+                existing["worst_severity"] = row.severity
+                existing["last_issue_details"] = row.details
+                existing["last_event_at"] = row.timestamp
+        return summary
 
     async def get_distinct_actions(self) -> list[str]:
         """Get list of distinct action types.

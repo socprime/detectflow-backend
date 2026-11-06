@@ -1,0 +1,100 @@
+id: Vdn0rp0BgPWtkT7JUHCQ
+name: From a Deceptive Purchase Order to Remcos RAT
+created: '2026-04-21T07:28:47Z'
+updated: '2026-10-08T12:35:12Z'
+summary: A purchase‑order themed phishing email delivers a double‑extension archive that extracts a VBS loader. The loader runs a hidden PowerShell process which downloads a fake PNG file containing an encoded payload. The payload is deobfuscated, reconstructed as a .NET PE, and loaded in memory, ultimately installing the Remcos remote access trojan. The campaign demonstrates a fully file‑less execution chain using common email attack techniques.
+severity: Medium
+investigation: The analysis traced the full execution chain from the initial phishing message to the final Remcos RAT payload. Artifacts such as the VBS script name, PowerShell environment variable usage, and the fake PNG download URL were identified. In‑memory loading of the reconstructed .NET assembly and Remcos‑specific registry and mutex artifacts confirmed the final payload. Network indicators including the C2 domain were also captured.
+response: Isolate affected endpoints and terminate suspicious PowerShell or wscript.exe processes. Collect memory dumps and registry artifacts for forensic analysis. Remove the Remcos binary and related registry entries, then reset compromised credentials. Conduct a threat hunt for similar indicators across the network.
+mitigation: Implement strict attachment scanning and block double‑extension archives. Enforce PowerShell execution policies and restrict wscript.exe usage. Monitor for unusual registry keys under HKCU\SOFTWARE and for TLS JA3 fingerprints associated with Remcos. Regularly update email security gateways to detect phishing lures targeting procurement processes.
+industries:
+- All
+geographies:
+- Global
+threat_types:
+- Phishing
+- Malware
+threat_actors: []
+techniques:
+- T1059.001
+- T1059.005
+- T1204.002
+attack_flow: |-
+  ```mermaid
+  graph TB
+  %% Class definitions
+  classDef action fill:#99ccff
+  classDef technique fill:#ffcc99
+  classDef file fill:#e6e6e6
+  classDef process fill:#ffeb99
+  classDef malware fill:#ff9999
+  classDef tool fill:#cccccc
+  classDef config fill:#dddddd
+
+  %% Node definitions
+  action_phishing["<b>Action</b> - <b>T1566.001 Spearphishing Attachment</b><br/>Victim receives email with malicious archive named <i>Sarens PO_SB-0407026-001_PDF.txz</i>"]
+  class action_phishing action
+
+  technique_masquerade["<b>Technique</b> - <b>T1036.007 Masquerading: Double File Extension</b><br/>Archive uses .txz extension but appears as .pdf to deceive the user"]
+  class technique_masquerade technique
+
+  action_user_exec["<b>Action</b> - <b>T1204.002 User Execution</b><br/>Victim opens the archive, causing extraction of a VBS script"]
+  class action_user_exec action
+
+  file_vbs["<b>File</b> - <b>VBS Script</b><br/>Name: Sarens PO_SB-0407026-001_PDF.vbs"]
+  class file_vbs file
+
+  process_wscript["<b>Process</b> - <b>wscript.exe</b><br/>Executes the VBS script"]
+  class process_wscript process
+
+  process_powershell["<b>Process</b> - <b>PowerShell</b><br/>Launches with execution‑policy bypass to download remote payload"]
+  class process_powershell process
+
+  file_payload_image["<b>File</b> - <b>Fake Image</b><br/>Name: optimized_MSI.png<br/>Contains Base64‑encoded .NET PE payload"]
+  class file_payload_image file
+
+  technique_proc_inject_tls["<b>Technique</b> - <b>T1055.005 Process Injection: Thread Local Storage</b><br/>PowerShell injects code via TLS"]
+  class technique_proc_inject_tls technique
+
+  technique_proc_inject_apc["<b>Technique</b> - <b>T1055.004 Process Injection: Asynchronous Procedure Call</b><br/>PowerShell injects code via APC"]
+  class technique_proc_inject_apc technique
+
+  technique_proc_inject_pe["<b>Technique</b> - <b>T1055.002 Process Injection: Portable Executable Injection</b><br/>Reconstructed .NET PE loaded into memory with AppDomain.Load"]
+  class technique_proc_inject_pe technique
+
+  malware_remcos["<b>Malware</b> - <b>Remcos RAT</b><br/>Establishes encrypted TLS channel to C2 domain"]
+  class malware_remcos malware
+
+  comm_c2_web["<b>Technique</b> - <b>T1102.003 Web Service: One‑Way Communication</b><br/>Encrypted TLS connection to <i>dentalux202.ydns.eu</i>"]
+  class comm_c2_web technique
+
+  registry_key["<b>Configuration</b> - <b>Registry Key</b><br/>HKCU\\SOFTWARE\\Rmc‑HQO1B7 created by RAT"]
+  class registry_key config
+
+  mutex["<b>Configuration</b> - <b>Mutex</b><br/>Remcos mutex identifier Rmc‑HQO1B7"]
+  class mutex config
+
+  %% Connections
+  action_phishing -->|delivers| technique_masquerade
+  technique_masquerade -->|leads to| action_user_exec
+  action_user_exec -->|extracts| file_vbs
+  file_vbs -->|executed by| process_wscript
+  process_wscript -->|launches| process_powershell
+  process_powershell -->|downloads| file_payload_image
+  file_payload_image -->|provides| technique_proc_inject_tls
+  file_payload_image -->|provides| technique_proc_inject_apc
+  file_payload_image -->|provides| technique_proc_inject_pe
+  technique_proc_inject_tls -->|enables| malware_remcos
+  technique_proc_inject_apc -->|enables| malware_remcos
+  technique_proc_inject_pe -->|enables| malware_remcos
+  malware_remcos -->|communicates via| comm_c2_web
+  malware_remcos -->|creates| registry_key
+  malware_remcos -->|creates| mutex
+  ```
+related_high_order_sigma_rules:
+- Zk2Qr9RO5Dth
+related_behavioral_rules:
+- uZUl3E6NAA32
+- RvmzKluPtZqZ
+- xdR0sSRuC7Ep
+- 1pFa98gwHsm3

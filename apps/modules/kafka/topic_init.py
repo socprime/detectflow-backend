@@ -1,56 +1,105 @@
 """Kafka topic initialization service.
 
-This module ensures required Kafka topics exist at application startup,
-similar to how Alembic ensures database schema is up to date.
+This module ensures the **static, shared** Kafka topics exist at application startup, similar to
+how Alembic ensures database schema is up to date. The per-entity families that come and go with
+rows in `pipelines` / `correlation_pipelines` are provisioned at runtime instead — see
+`apps/modules/kafka/topic_lifecycle.py`, which owns the `TopicSpec` and `NewTopic` primitives this
+module reuses.
 
 Usage from entrypoint.sh:
     python -m apps.modules.kafka.topic_init
 """
 
 import sys
-from dataclasses import dataclass
 
 from confluent_kafka import KafkaException
-from confluent_kafka.admin import AdminClient, NewTopic
+from confluent_kafka.admin import AdminClient
 
 from apps.core.logger import get_logger
 from apps.core.settings import settings
 from apps.modules.kafka.base import KafkaConfigBuilder
+from apps.modules.kafka.topic_lifecycle import (
+    CHAINS_RETENTION_MS,
+    COMPACTED_RETENTION_MS,
+    TAGGED_EVENTS_RETENTION_MS,
+    TopicSpec,
+    build_new_topic,
+    validate_existing_topic_partitions,
+)
 
 logger = get_logger(__name__)
 
 
-@dataclass
-class TopicConfig:
-    """Configuration for a Kafka topic."""
-
-    name: str
-    partitions: int | None = None  # None = use default
-    replication_factor: int | None = None  # None = use default
-    cleanup_policy: str = "delete"  # "delete" or "compact"
-    retention_ms: int | None = None  # None = broker default, -1 = infinite
-
-
-# Required topics with their configurations
-REQUIRED_TOPICS: list[TopicConfig] = [
-    # sigma-rules: compacted topic for rules, filters, parsers, custom fields
-    # Uses infinite retention to preserve all active rules
-    TopicConfig(
+# Required topics with their configurations.
+#
+# Partition count, cleanup policy and retention for every `detectflow.*`
+# topic are set EXPLICITLY here — they are part of the cross-repo wire
+# contract with detectflow-agent. Do NOT replace any of them with
+# `settings.kafka_default_partitions`: a future change to the default would
+# silently violate the contract.
+#
+# The four `detectflow.{tagged-events,chains-*}` entries are the **legacy
+# singletons**: pre-epic rows still ride them (`pipelines.tagged_events_topic
+# IS NULL` means "still on the shared topic"), so they stay provisioned here
+# and are on `topic_lifecycle.shared_topics()` — the lifecycle service may
+# never touch them.
+REQUIRED_TOPICS: list[TopicSpec] = [
+    # ---- sigma matcher (compacted broadcasts) ----
+    TopicSpec(
         name=settings.kafka_sigma_rules_topic,
+        partitions=1,
         cleanup_policy="compact",
-        retention_ms=-1,  # Infinite retention for compacted topic
+        retention_ms=COMPACTED_RETENTION_MS,  # infinite retention for compacted topic
     ),
-    # etl-activity: activity/audit events
-    TopicConfig(
+    TopicSpec(
+        name=settings.kafka_active_threats_topic,
+        partitions=1,  # compacted shared catalogue broadcast
+        cleanup_policy="compact",
+        retention_ms=COMPACTED_RETENTION_MS,
+    ),
+    TopicSpec(
+        name=settings.kafka_hos_rules_topic,
+        partitions=1,  # compacted shared catalogue broadcast
+        cleanup_policy="compact",
+        retention_ms=COMPACTED_RETENTION_MS,
+    ),
+    # ---- legacy singletons (superseded per-entity by topic_lifecycle) ----
+    TopicSpec(
+        name=settings.kafka_chains_config_topic,
+        partitions=1,  # compacted singleton, key "global"
+        cleanup_policy="compact",
+        retention_ms=COMPACTED_RETENTION_MS,
+    ),
+    TopicSpec(
+        name=settings.kafka_tagged_events_topic,
+        partitions=settings.kafka_tagged_events_partitions,  # sized for tagged-event throughput
+        cleanup_policy="delete",
+        retention_ms=TAGGED_EVENTS_RETENTION_MS,
+    ),
+    TopicSpec(
+        name=settings.kafka_chains_raw_topic,
+        partitions=12,
+        cleanup_policy="delete",  # monotonic revision envelopes, NOT compacted
+        retention_ms=CHAINS_RETENTION_MS,
+    ),
+    TopicSpec(
+        name=settings.kafka_chains_analysed_topic,
+        partitions=12,
+        cleanup_policy="delete",
+        retention_ms=CHAINS_RETENTION_MS,
+    ),
+    # ---- ops topics (not in detectflow.* wire contract) ----
+    TopicSpec(
         name=settings.kafka_activity_topic,
+        partitions=settings.kafka_default_partitions,
         cleanup_policy="delete",
-        retention_ms=604800000,  # 7 days
+        retention_ms=CHAINS_RETENTION_MS,  # 7 days
     ),
-    # rule-statistics: metrics from Flink jobs
-    TopicConfig(
+    TopicSpec(
         name=settings.kafka_metrics_topic,
+        partitions=settings.kafka_default_partitions,
         cleanup_policy="delete",
-        retention_ms=604800000,  # 7 days
+        retention_ms=CHAINS_RETENTION_MS,  # 7 days
     ),
 ]
 
@@ -94,43 +143,28 @@ class KafkaTopicInitializer:
         )
 
         # Find missing topics
-        topics_to_create: list[NewTopic] = []
+        topics_to_create = []
         created_names: list[str] = []
         existing_names: list[str] = []
 
-        for topic_config in REQUIRED_TOPICS:
-            if topic_config.name in existing_topics:
-                existing_names.append(topic_config.name)
-                logger.debug(f"Topic already exists: {topic_config.name}")
+        for spec in REQUIRED_TOPICS:
+            if spec.name in existing_topics:
+                existing_names.append(spec.name)
+                logger.debug(f"Topic already exists: {spec.name}")
+                validate_existing_topic_partitions(admin_client, spec.name, spec.partitions)
                 continue
 
-            # Prepare topic configuration
-            partitions = topic_config.partitions or settings.kafka_default_partitions
-            replication = topic_config.replication_factor or settings.kafka_default_replication_factor
-
-            # Build topic config dict
-            config = {}
-            if topic_config.cleanup_policy:
-                config["cleanup.policy"] = topic_config.cleanup_policy
-            if topic_config.retention_ms is not None:
-                config["retention.ms"] = str(topic_config.retention_ms)
-
-            new_topic = NewTopic(
-                topic=topic_config.name,
-                num_partitions=partitions,
-                replication_factor=replication,
-                config=config,
-            )
+            new_topic = build_new_topic(spec)
             topics_to_create.append(new_topic)
-            created_names.append(topic_config.name)
+            created_names.append(spec.name)
 
             logger.info(
-                f"Will create topic: {topic_config.name}",
+                f"Will create topic: {spec.name}",
                 extra={
-                    "partitions": partitions,
-                    "replication_factor": replication,
-                    "cleanup_policy": topic_config.cleanup_policy,
-                    "retention_ms": topic_config.retention_ms,
+                    "partitions": spec.partitions,
+                    "replication_factor": spec.replication_factor or settings.kafka_default_replication_factor,
+                    "cleanup_policy": spec.cleanup_policy,
+                    "retention_ms": spec.retention_ms,
                 },
             )
 

@@ -1,7 +1,7 @@
 """Kafka producer for activity events.
 
 This module provides a producer service for publishing activity events
-to the etl-activity Kafka topic. Events are consumed by ActivityConsumerService
+to the detectflow.activity Kafka topic. Events are consumed by ActivityConsumerService
 and stored in PostgreSQL for audit logs and dashboard display.
 
 Features:
@@ -58,7 +58,7 @@ class PendingEvent:
 class ActivityProducerService(BaseKafkaSyncClient):
     """Kafka producer for activity events with batching and retry support.
 
-    Publishes activity events to the etl-activity topic. These events
+    Publishes activity events to the detectflow.activity topic. These events
     are consumed by ActivityConsumerService and stored in PostgreSQL.
 
     The producer uses confluent_kafka with ThreadPoolExecutor for

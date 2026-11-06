@@ -1,0 +1,44 @@
+id: zL5zOlNVnTFo
+name: Possible Remcos RAT Patterns (via registry_event)
+body: |-
+  title: Possible Remcos RAT Patterns (via registry_event)
+  id: 49264ff6-a958-4f11-a364-ea0ca02bb68f
+  status: stable
+  description: Rule detects certain registry patterns associated with Remcos, a type of malware that attackers use to remotely control infected machines.
+  references:
+      - https://any.run/cybersecurity-blog/phishing-google-drive-remcos/
+      - https://cert.gov.ua/article/6276824
+      - https://cert.gov.ua/article/6276652
+      - https://cert.gov.ua/article/6276567
+      - https://cert.gov.ua/article/3931296
+      - https://cert.gov.ua/article/6276351
+      - https://www.jaiminton.com/reverse-engineering/remcos#decrypting-the-remcos-rat-configuration-resource
+      - https://any.run/report/51328203fdc519d456202189112621a225491d5acd9af162cf51fa98e898ba00/4d952e56-e562-4d3b-82d2-0842823555d0
+      - https://www.uptycs.com/blog/remcos-rat-uac-0500-pipe-method
+      - https://www.trellix.com/blogs/research/unmasking-the-hidden-threat-inside-a-sophisticated-excel-based-attack-delivering-fileless-remcos-rat/
+      - https://www.ibm.com/think/x-force/hive0156-continues-remcos-campaigns-against-ukraine
+      - https://www.seqrite.com/blog/deceptive-layoff-themed-hr-email-distributes-remcos-rat-malware/
+      - https://asec.ahnlab.com/en/92160/
+  author: SOC Prime Team
+  tags:
+      - attack.persistence
+      - attack.t1547.001
+  logsource:
+      product: windows
+      category: registry_event
+  detection:
+      selection_base:
+          TargetObject|contains:
+              - '\Software' #\HKEY_CURRENT_USER\SOFTWARE\Rmc-4E12ZU; https://www.seqrite.com/blog/deceptive-layoff-themed-hr-email-distributes-remcos-rat-malware/
+              - '\CurrentVersion'
+      selection_vars:
+          TargetObject|contains:
+              - '\Remcos'
+              - '\Rmc-' #Rmc-LQH1JR
+      condition: selection_base and selection_vars
+  falsepositives:
+      - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: high
+level: high
+created: '2020-12-23T16:55:22Z'
+updated: '2026-04-15T09:11:16.474000Z'

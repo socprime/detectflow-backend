@@ -23,7 +23,7 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
     FlinkParameterInfo(
         name="parallelism",
         type="integer",
-        default=2,
+        default=1,
         min=1,
         max=128,
         title="Parallelism",
@@ -40,24 +40,27 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
         name="taskmanager_memory_mb",
         type="integer",
         default=2048,
-        min=1024,
+        min=1536,
         max=131072,
         unit="MB",
         title="TaskManager Memory",
-        description="Memory per worker. More rules and events require more memory.",
+        description=(
+            "Total memory per worker pod, split between the Flink JVM and the separate "
+            "Python/Polars matcher process. More rules and events require more memory."
+        ),
         impact="restart",
         category="resources",
         tips=[
             "2 GB (default) handles most workloads",
-            "Increase if pipeline keeps crashing or restarting",
-            "More rules = more memory needed",
+            "Increase if pipeline keeps crashing or restarting (OOMKilled)",
+            "More rules and longer windows = more memory needed",
         ],
     ),
     FlinkParameterInfo(
         name="taskmanager_cpu",
         type="number",
-        default=1.0,
-        min=0.5,
+        default=1.5,
+        min=1.0,
         max=16.0,
         unit="cores",
         title="TaskManager CPU",
@@ -65,10 +68,39 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
         impact="restart",
         category="resources",
         tips=[
-            "1 core (default) is sufficient for most workloads",
-            "Increase only if CPU is the bottleneck (check metrics first)",
+            "1.5 cores (default) — headroom for matching + Kafka fetch on one slot",
+            "1.0 often CPU-bounds the matcher under load; raise further only if metrics show it",
             "parallelism=N creates N workers, each with this many cores",
         ],
+    ),
+    FlinkParameterInfo(
+        name="jobmanager_memory_mb",
+        type="integer",
+        default=2048,
+        min=512,
+        max=32768,
+        unit="MB",
+        title="Job Manager Memory",
+        description="Memory for the JobManager, which coordinates the workers and checkpoints.",
+        impact="restart",
+        category="resources",
+        tips=[
+            "2 GB (default) is enough for a single-job deployment",
+            "Raise it only if the JobManager itself is OOM-killed, not for throughput",
+        ],
+    ),
+    FlinkParameterInfo(
+        name="jobmanager_cpu",
+        type="number",
+        default=1.0,
+        min=0.5,
+        max=16.0,
+        unit="cores",
+        title="Job Manager CPU",
+        description="CPU cores for the JobManager. Coordination work only — it processes no events.",
+        impact="restart",
+        category="resources",
+        tips=["1 core (default) is sufficient", "Scaling workers does not require scaling this"],
     ),
     # === Processing ===
     FlinkParameterInfo(
@@ -152,6 +184,216 @@ FLINK_PARAMETERS: list[FlinkParameterInfo] = [
             "Higher = handles bigger spikes, but reserves more cluster resources",
         ],
     ),
+    # === Correlation (one correlation pipeline's chain-forming tuning) ===
+    # Every parameter below is `hot_reload` because its only transport is the pipeline's
+    # chains-config topic, which the running matcher reads from broadcast state. That must stay in
+    # step with CHAINS_CONFIG_HOT_FIELDS in apps/managers/correlation_pipelines.py — a test asserts
+    # the two agree, because `impact` is what greys the field out in the UI while a job is up.
+    FlinkParameterInfo(
+        name="threshold_pct",
+        type="integer",
+        default=60,
+        min=50,
+        max=100,
+        unit="%",
+        title="Threshold for chain forming",
+        description="Minimum share of a high-order Sigma rule's steps that must match before a chain forms.",
+        impact="hot_reload",
+        category="correlation",
+        tips=["Multiples of 5 only", "Lower = more chains, more noise", "Applies with no restart"],
+    ),
+    FlinkParameterInfo(
+        name="correlation_window_seconds",
+        type="integer",
+        default=None,
+        nullable=True,
+        min=30,
+        max=10800,
+        unit="seconds",
+        title="Correlation Window",
+        description=(
+            "Explicit correlation window for this pipeline. Null inherits each high-order Sigma "
+            "rule's own detection timeframe."
+        ),
+        impact="hot_reload",
+        category="correlation",
+        tips=[
+            "30 seconds to 3 hours",
+            "Leave empty to inherit the rule's timeframe",
+            "Changing it re-buckets chain ids: in-flight chains close under the old window",
+        ],
+    ),
+    # The create/edit form shows the name pattern only while auto-add is on.
+    # `requires` already models exactly that (it drives the autoscaler sub-fields today), so
+    # the pair below needs no new schema field.
+    FlinkParameterInfo(
+        name="auto_add_new_pipelines",
+        type="boolean",
+        default=False,
+        title="Auto-add new pipelines",
+        description="Automatically add newly created detection pipelines to this correlation pipeline's membership.",
+        impact="hot_reload",
+        category="correlation",
+        tips=["Off by default", "Membership changes restart only the correlation job"],
+    ),
+    FlinkParameterInfo(
+        name="auto_add_pipeline_name_pattern",
+        type="string",
+        default=None,
+        nullable=True,
+        title="Pipeline name pattern",
+        requires="auto_add_new_pipelines",
+        description=(
+            "Shell-style glob matched case-sensitively against a new detection pipeline's "
+            "name. Null or empty matches every new pipeline."
+        ),
+        impact="hot_reload",
+        category="correlation",
+        tips=[
+            "Glob, not regex — e.g. `cust1-*`",
+            "Empty means every new pipeline",
+            "Max 255 characters; spaces are allowed (pipeline names can contain them)",
+        ],
+    ),
+    # === Correlation Flink job ===
+    FlinkParameterInfo(
+        name="correlation_parallelism",
+        type="integer",
+        default=1,
+        min=1,
+        max=64,
+        title="Parallelism",
+        description="Parallel correlation workers. Chains are keyed by hostname, so this is bounded by host spread.",
+        impact="restart",
+        category="correlation_job",
+        tips=[
+            "1 (default) handles a single tenant's tagged-event volume",
+            "Must not exceed the member tagged-events topics' combined partition count",
+        ],
+    ),
+    FlinkParameterInfo(
+        name="correlation_taskmanager_memory_mb",
+        type="integer",
+        default=4096,
+        min=2048,
+        max=131072,
+        unit="MB",
+        title="Task Manager Memory",
+        description=(
+            "Memory per correlation worker. The Python worker's off-heap memory is not counted in "
+            "the JVM process size, so this runs higher than a detection pipeline's."
+        ),
+        impact="restart",
+        category="correlation_job",
+        tips=["4 GB is the validated production value", "Below 3 GB the Python worker can stall checkpoints"],
+    ),
+    FlinkParameterInfo(
+        name="correlation_taskmanager_cpu",
+        type="number",
+        default=3.0,
+        min=0.5,
+        max=32.0,
+        unit="cores",
+        title="Task Manager CPU",
+        description="CPU cores per correlation worker, shared between the JVM and the embedded Python interpreter.",
+        impact="restart",
+        category="correlation_job",
+        tips=["3 cores is the validated production value", "1 core starves the Python worker and stalls checkpoints"],
+    ),
+    FlinkParameterInfo(
+        name="correlation_jobmanager_memory_mb",
+        type="integer",
+        default=2048,
+        min=512,
+        max=32768,
+        unit="MB",
+        title="Job Manager Memory",
+        description="Memory for the correlation job's JobManager (coordination and checkpointing only).",
+        impact="restart",
+        category="correlation_job",
+        tips=["2 GB (default) is enough", "Raise only if the JobManager itself is OOM-killed"],
+    ),
+    FlinkParameterInfo(
+        name="correlation_jobmanager_cpu",
+        type="number",
+        default=1.0,
+        min=0.5,
+        max=16.0,
+        unit="cores",
+        title="Job Manager CPU",
+        description="CPU cores for the correlation job's JobManager. It processes no events.",
+        impact="restart",
+        category="correlation_job",
+        tips=["1 core (default) is sufficient", "Scaling workers does not require scaling this"],
+    ),
+    # === Agentic (LLM enrichment) Flink job ===
+    FlinkParameterInfo(
+        name="agent_parallelism",
+        type="integer",
+        default=1,
+        min=1,
+        max=64,
+        title="Parallelism",
+        description="Parallel LLM-enrichment workers. Bounded by the chains-raw partition count.",
+        impact="restart",
+        category="agent_job",
+        tips=[
+            "1 (default) matches the per-pipeline chains-raw topic",
+            "Raising it multiplies the LLM call rate — the token bucket is per worker",
+        ],
+    ),
+    FlinkParameterInfo(
+        name="agent_taskmanager_memory_mb",
+        type="integer",
+        default=3072,
+        min=1024,
+        max=131072,
+        unit="MB",
+        title="Task Manager Memory",
+        description="Memory per agent worker. The embedded interpreter and prompt buffers dominate it.",
+        impact="restart",
+        category="agent_job",
+        tips=["3 GB (default) is the validated value", "Chains are small; this rarely needs raising"],
+    ),
+    FlinkParameterInfo(
+        name="agent_taskmanager_cpu",
+        type="number",
+        default=1.0,
+        min=0.5,
+        max=32.0,
+        unit="cores",
+        title="Task Manager CPU",
+        description="CPU cores per agent worker. The job spends most of its time waiting on the LLM endpoint.",
+        impact="restart",
+        category="agent_job",
+        tips=["1 core (default) is sufficient", "Latency here is the provider's, not the CPU's"],
+    ),
+    FlinkParameterInfo(
+        name="agent_jobmanager_memory_mb",
+        type="integer",
+        default=2048,
+        min=512,
+        max=32768,
+        unit="MB",
+        title="Job Manager Memory",
+        description="Memory for the agent job's JobManager (coordination and checkpointing only).",
+        impact="restart",
+        category="agent_job",
+        tips=["2 GB (default) is enough", "Raise only if the JobManager itself is OOM-killed"],
+    ),
+    FlinkParameterInfo(
+        name="agent_jobmanager_cpu",
+        type="number",
+        default=1.0,
+        min=0.5,
+        max=16.0,
+        unit="cores",
+        title="Job Manager CPU",
+        description="CPU cores for the agent job's JobManager. It processes no events.",
+        impact="restart",
+        category="agent_job",
+        tips=["1 core (default) is sufficient", "Scaling workers does not require scaling this"],
+    ),
 ]
 
 FLINK_CATEGORIES: dict[str, FlinkCategoryInfo] = {
@@ -169,6 +411,21 @@ FLINK_CATEGORIES: dict[str, FlinkCategoryInfo] = {
         title="Autoscaling",
         description="Automatic parallelism adjustment based on load",
         order=3,
+    ),
+    "correlation": FlinkCategoryInfo(
+        title="Correlation",
+        description="Chain-forming tuning for one correlation pipeline (hot-reloaded via chains-config)",
+        order=4,
+    ),
+    "correlation_job": FlinkCategoryInfo(
+        title="Correlation Flink Job",
+        description="Compute budget for one correlation pipeline's correlation job",
+        order=5,
+    ),
+    "agent_job": FlinkCategoryInfo(
+        title="Agentic Flink Job",
+        description="Compute budget for one correlation pipeline's agentic (LLM enrichment) job",
+        order=6,
     ),
 }
 
@@ -214,6 +471,13 @@ class FlinkConfigManager:
             request_config: Optional config from API request
             pipeline: Optional existing pipeline (for updates)
             defaults: Global defaults from database
+
+        Note:
+            Detection pipelines only. Correlation-pipeline parameters are documented in
+            ``FLINK_PARAMETERS`` for the UI, but they are resolved by
+            ``CorrelationPipelinesManager`` against its own row + ``settings`` fallbacks — the two
+            entities have different columns, so one resolver for both would have to fake half of
+            each.
 
         Returns:
             Resolved configuration with all values filled

@@ -8,33 +8,30 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.clients.tdm_api import TDMAPIClient, TdmApiError, TdmApiUnauthorizedError
 from apps.core.constants import EXTERNAL_REPOSITORIES
 from apps.core.exceptions import (
     BadRequestError,
-    ConfigurationError,
     ConflictError,
-    ExternalServiceError,
     NotFoundError,
-    UnprocessableEntityError,
 )
 from apps.core.logger import get_logger
-from apps.core.models import Repository, User
+from apps.core.models import GITLAB_REPOSITORY_TYPE, Repository, User
 from apps.core.schemas import PipelineInfo
-from apps.core.settings import settings
 from apps.managers.rule import RepositoryNotFoundError, RulesOrchestrator
 from apps.modules.kafka.activity import activity_producer
-from apps.modules.postgre.config import ConfigDAO
+from apps.modules.postgre.gitlab import GitlabRepositoryDAO
+from apps.modules.postgre.integration import IntegrationDAO
 from apps.modules.postgre.pipeline import PipelineDAO
 from apps.modules.postgre.repository import RepositoryDAO
+from apps.modules.postgre.rule import RuleDAO
+from apps.modules.utils import build_rule_folder_tree, coerce_config_bool
 
 logger = get_logger(__name__)
 
 
-def _generate_socprime_source_link(repository_id: str) -> str:
-    """Generate source link for SOCPrime repository."""
-    host = settings.tdm_hostname
-    return f"https://{host}/expert/?repositoryIds%5B%5D={repository_id}&repositoryType=custom"
+def _reject_gitlab_managed(repo: Repository) -> None:
+    if repo.type == GITLAB_REPOSITORY_TYPE:
+        raise BadRequestError("This GitLab repository is managed by its integration profile.")
 
 
 class RepositoriesManager:
@@ -44,8 +41,8 @@ class RepositoriesManager:
         """Initialize manager with database session."""
         self.db = db
         self.repo_storage = RepositoryDAO(db)
-        self.config_repo = ConfigDAO(db)
         self.pipeline_dao = PipelineDAO(db)
+        self.rule_dao = RuleDAO(db)
 
     async def get_all(
         self,
@@ -82,6 +79,11 @@ class RepositoriesManager:
             repo_id: [PipelineInfo(id=str(p.id), name=p.name) for p in pipelines]
             for repo_id, pipelines in pipelines_by_repo.items()
         }
+
+    async def get_folder_trees_for_repositories(self, repo_ids: list[UUID]) -> dict[UUID, list[dict]]:
+        """Get virtual rule folder trees for multiple repositories."""
+        folder_counts_by_repo = await self.rule_dao.get_folder_counts_by_repositories(repo_ids)
+        return {repo_id: build_rule_folder_tree(folder_counts_by_repo.get(repo_id, {})) for repo_id in repo_ids}
 
     # ==========================================
     # LOCAL REPOSITORY OPERATIONS
@@ -122,6 +124,10 @@ class RepositoriesManager:
     ) -> Repository:
         """Update a local repository.
 
+        GitLab integration-owned repositories are renamed indirectly by renaming their
+        integration profile (see :meth:`IntegrationsManager.update`), so this path keeps them
+        read-only to preserve the integration↔repository name link.
+
         Args:
             repository_id: UUID of repository to update
             name: New repository name
@@ -137,6 +143,9 @@ class RepositoriesManager:
         repo = await self.repo_storage.get_by_id(repository_id)
         if not repo:
             raise NotFoundError(f"Repository with id {repository_id} not found")
+        if repo.is_system:
+            raise BadRequestError("This repository is managed by the system and cannot be modified.")
+        _reject_gitlab_managed(repo)
         if repo.type != "local":
             raise BadRequestError("Repository is not local")
 
@@ -171,6 +180,9 @@ class RepositoriesManager:
         repo = await self.repo_storage.get_by_id(repository_id)
         if not repo:
             raise NotFoundError(f"Repository with id {repository_id} not found")
+        if repo.is_system:
+            raise BadRequestError("This repository is managed by the system and cannot be deleted.")
+        _reject_gitlab_managed(repo)
 
         repo_name = repo.name
         repo_type = repo.type
@@ -224,11 +236,15 @@ class RepositoriesManager:
 
         Raises:
             NotFoundError: If repository not found
-            HTTPException: If repository is local
+            BadRequestError: If repository is local (sync unsupported)
         """
         repo = await self.repo_storage.get_by_id(repository_id)
         if not repo:
             raise NotFoundError(f"Repository with id {repository_id} not found")
+        if repo.is_system:
+            raise BadRequestError("This repository is managed by the system and cannot be modified.")
+        if repo.type == GITLAB_REPOSITORY_TYPE:
+            return await self._toggle_gitlab_sync(repo, sync_enabled, user)
         if repo.type == "local":
             raise BadRequestError(
                 "Local repositories do not support sync. Only API and external repositories can be synced."
@@ -250,128 +266,55 @@ class RepositoriesManager:
             entity_id=str(repo.id),
             entity_name=repo.name,
             user=user,
-            details=f"{action_text} sync for {repo.type} repository {repo.name}",
+            details=f"{action_text} sync (pull/push) for {repo.type} repository {repo.name}",
         )
 
         return f"Sync {message_text} successfully", sync_enabled
 
-    # ==========================================
-    # SOCPRIME REPOSITORY OPERATIONS
-    # ==========================================
-
-    async def get_socprime_repositories(self) -> list[dict]:
-        """Get list of repositories from SOCPrime TDM API.
-
-        Returns:
-            List of repository dicts with id, name, is_added, source_link
-
-        Raises:
-            HTTPException: If API key not configured or API error
-        """
-        api_key = await self.config_repo.get_api_key()
-        if not api_key:
-            raise ConfigurationError(
-                "SOCPrime API key is not configured. Please set it first using /socprime-api-key endpoint."
-            )
-
-        tdm_api_client = TDMAPIClient(api_key=api_key)
-        try:
-            repositories = await tdm_api_client.get_repositories()
-
-            # Get all existing API repositories from database
-            existing_repos, _ = await self.repo_storage.get_all(filters={"type": "api"}, limit=1000)
-            existing_repo_ids = {str(repo.id) for repo in existing_repos}
-
-            return [
-                {
-                    "id": repo.id,
-                    "name": repo.name,
-                    "is_added": repo.id in existing_repo_ids,
-                    "source_link": _generate_socprime_source_link(repo.id),
-                }
-                for repo in repositories
-            ]
-        except TdmApiUnauthorizedError:
-            raise  # Let global handler return 401
-        except TdmApiError as e:
-            raise ExternalServiceError("SOCPrime API", f"Error fetching repositories: {e}") from e
-
-    async def add_socprime_repositories(
+    async def _toggle_gitlab_sync(
         self,
-        repository_ids: list[str],
+        repo: Repository,
+        sync_enabled: bool,
         user: User,
-    ) -> tuple[list[str], list[str]]:
-        """Add SOCPrime repositories to the database.
+    ) -> tuple[str, bool]:
+        """Toggle scheduled sync for a GitLab repository by flipping its integration ``auto_pull``.
 
-        Args:
-            repository_ids: List of repository IDs to add
-            user: Current user for activity logging
-
-        Returns:
-            Tuple of (added_ids, skipped_ids)
-
-        Raises:
-            HTTPException: If API key not configured, invalid IDs, or API error
+        The scheduler decides which GitLab profiles to pull from ``config.auto_pull`` (see
+        ``list_gitlab_integrations(auto_pull_only=True)``), so the repository's ``sync_enabled``
+        column is kept in lockstep with that flag purely so the UI shows a consistent state.
         """
-        api_key = await self.config_repo.get_api_key()
-        if not api_key:
-            raise ConfigurationError(
-                "SOCPrime API key is not configured. Please set it first using /socprime-api-key endpoint."
-            )
+        link = await GitlabRepositoryDAO(self.db).get_by_repository(repo.id)
+        if link is None:
+            raise NotFoundError(f"GitLab integration link for repository {repo.id} not found")
 
-        tdm_api_client = TDMAPIClient(api_key=api_key)
-        try:
-            # Fetch all available repositories from SOCPrime API
-            all_repos = await tdm_api_client.get_repositories()
-            available_repo_ids = {repo.id for repo in all_repos}
-            available_repos_dict = {repo.id: repo for repo in all_repos}
+        integration_dao = IntegrationDAO(self.db)
+        integration = await integration_dao.get_by_id(link.integration_id)
+        if integration is None:
+            raise NotFoundError(f"GitLab integration {link.integration_id} not found")
 
-            # Validate requested repository IDs
-            requested_ids = set(repository_ids)
-            invalid_ids = requested_ids - available_repo_ids
+        current = coerce_config_bool((integration.config or {}).get("auto_pull"), default=True)
+        if current is sync_enabled and repo.sync_enabled is sync_enabled:
+            status_text = "enabled" if sync_enabled else "disabled"
+            return f"Sync is already {status_text} for this repository", sync_enabled
 
-            if invalid_ids:
-                raise BadRequestError(f"Invalid repository IDs: {', '.join(sorted(invalid_ids))}")
+        await integration_dao.update(
+            link.integration_id, config={**(integration.config or {}), "auto_pull": sync_enabled}
+        )
+        await self.repo_storage.update(repo.id, sync_enabled=sync_enabled)
 
-            # Get existing repositories from database
-            existing_repos, _ = await self.repo_storage.get_all(filters={"type": "api"}, limit=1000)
-            existing_repo_ids = {str(repo.id) for repo in existing_repos}
+        action_text = "Enabled" if sync_enabled else "Disabled"
+        message_text = "enabled" if sync_enabled else "disabled"
 
-            # Separate repositories into added and skipped
-            added_ids = []
-            skipped_ids = []
+        await activity_producer.log_action(
+            action="toggle",
+            entity_type="repository",
+            entity_id=str(repo.id),
+            entity_name=repo.name,
+            user=user,
+            details=f"{action_text} auto-pull for GitLab repository {repo.name}",
+        )
 
-            for repo_id in requested_ids:
-                if repo_id in existing_repo_ids:
-                    skipped_ids.append(repo_id)
-                else:
-                    # Add repository to database without syncing rules
-                    repo = available_repos_dict[repo_id]
-                    source_link = _generate_socprime_source_link(repo.id)
-                    await self.repo_storage.create(
-                        id=UUID(repo.id),
-                        name=repo.name,
-                        type="api",
-                        sync_enabled=True,
-                        last_synced_rule_date=None,
-                        source_link=source_link,
-                    )
-                    added_ids.append(repo_id)
-
-                    await activity_producer.log_action(
-                        action="create",
-                        entity_type="repository",
-                        entity_id=repo_id,
-                        entity_name=repo.name,
-                        user=user,
-                        details=f"Added SOCPrime repository {repo.name}",
-                    )
-
-            return added_ids, skipped_ids
-        except (BadRequestError, ConfigurationError, TdmApiUnauthorizedError):
-            raise  # Let global handler return 401 for unauthorized
-        except TdmApiError as e:
-            raise UnprocessableEntityError(f"Error fetching repositories from SOCPrime API: {e}") from e
+        return f"Sync {message_text} successfully", sync_enabled
 
     # ==========================================
     # EXTERNAL REPOSITORY OPERATIONS

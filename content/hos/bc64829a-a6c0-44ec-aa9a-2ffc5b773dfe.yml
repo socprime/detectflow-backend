@@ -1,0 +1,40 @@
+id: r0LqNjnpT21W
+name: APT Malware Attack Cases by the Kimsuky Group Impersonating Diplomats
+body: |-
+  title: APT Malware Attack Cases by the Kimsuky Group Impersonating Diplomats
+  description: The Kimsuky group is conducting spear phishing campaigns by impersonating diplomatic personnel to target the education sector. The attacks utilize LNK files and PowerShell scripts to deploy a variety of malware including the PebbleDash backdoor, PrxClient proxy and RDP Wrapper. These tools are used for remote control, privilege escalation and data exfiltration.
+  id: bc64829a-a6c0-44ec-aa9a-2ffc5b773dfe
+  status: stable
+  author: SOC Prime Team
+  references:
+    - https://tdm.socprime.com/active-threats/3ltsjp8BFsA9Tj2-3K8l
+  tags:
+  logsource:
+    category: detectflow
+  detection:
+    seq1:
+      ruleid|contains:
+          - 6c5038d3-6675-4686-a15b-d9780b21a7cc #Possible Malicious LNK File with Double Extension (via cmdline)
+          - 7c01d1e4-89de-476f-a996-eb768978994a #The Possibility of Execution Through Hidden PowerShell Command Lines (via cmdline)
+          - 309111d8-89ad-4c98-a799-10053a40bd0a #Suspicious Powershell Strings (via powershell)
+    seq2:
+      ruleid|contains:
+          - c4d9d7cc-6f1e-45ae-bd7b-0c83e8029fef #Suspicious Files in Public User Profile (via file_event)
+          - 44daab1f-109a-4c20-9f64-5401c1a9ab47 #Suspicious Execution from Public User Profile (via process_creation)
+          - bc139ef2-0c05-4cf7-b7af-3261d2cb2d68 #LOLBAS WScript / CScript (via process_creation)
+          - 63f2ae8a-6912-4ea9-ad2c-369f4555a549 #Suspicious Windows DNS Query by Windows Script Host [wscript.exe] (via dns_query)
+    seq3:
+      ruleid|contains:
+          - 4ab60adc-7117-4f20-80de-77ecf2a1ef99 #Call Suspicious .NET Methods from Powershell (via powershell)
+          - ecedd60a-3de3-420c-adc5-f35bd3871365 #System Processes Execution from Untypical Paths (via process_creation)
+          - 8a701e5f-a0a6-4f58-9a35-1f29a08e4f79 #Possible Account or Group Enumeration / Manipulation (via cmdline)
+          - 0c5583a2-c83a-4c56-9304-f7c394cbbada #Possible Remote Desktop Services Shadowing (via process_creation)
+          - a5cdc145-e4d3-4b0f-8a56-ddc2850f3cdf #UserAccount Hidden via Registry (via registry_event)
+    timeframe: 30m
+    condition: chain by hostname
+  falsepositives:
+    - Unknown
+  level: high
+level: high
+created: '2026-07-23T10:02:06Z'
+updated: '2026-09-25T08:53:08.455000Z'
