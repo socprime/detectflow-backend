@@ -10,9 +10,9 @@ The content in this folder is licensed under the [Detection Rule License (DRL) 1
 
 ```
 VERSION                       # snapshot version; a new value is applied on the next start
-active_threats/<tdm_id>.yml   # Active Threat; lists its HoS by TDM id
-hos/<hos_uuid>.yml            # HoS rule; `body` is the HoS YAML, named by its `id`
-rules/<sigma_uuid>.yml        # Sigma rule referenced by a HoS; `body` is the Sigma YAML
+active_threats/<name>.yml     # Active Threat; lists its HoS by TDM id
+hos/<name>.yml                # HoS rule; `body` is the HoS YAML
+rules/<name>.yml              # Sigma rule referenced by a HoS; `body` is the Sigma YAML
 ```
 
 Each file has the shape of the matching SOC Prime TDM API object (`created` and `updated` are
