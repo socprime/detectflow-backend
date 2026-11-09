@@ -1,0 +1,183 @@
+id: LftWzjPiN2Hx
+name: Disable Windows Defender Realtime Monitoring and Other Preferences Changes (via cmdline)
+body: |-
+  title: Disable Windows Defender Realtime Monitoring and Other Preferences Changes (via cmdline)
+  id: 017ffc83-da26-4abc-b419-df6f9801cc2c
+  description: Adversaries may disable security tools, such like Windows Defender, to avoid possible detection of their tools and activities.
+  status: stable
+  author: SOC Prime Team
+  references:
+      - https://asec.ahnlab.com/en/95516/
+      - https://cloud.google.com/blog/topics/threat-intelligence/financially-motivated-threat-actor-breeze-comet-targets-brazil/
+      - https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/
+      - https://www.huntress.com/blog/mimikatz-credential-dumping-defence-impairment
+      - https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps
+      - https://www.netskope.com/blog/openclaw-hologram-fake-installer-ships-rust-infostealer
+      - https://www.securonix.com/blog/deepdoor-python-backdoor-and-credential-stealer/
+      - https://any.run/cybersecurity-blog/brazilian-banking-phishing-campaign/
+      - https://www.welivesecurity.com/en/eset-research/gopherwhisper-burrow-full-malware/
+      - https://cert.gov.ua/article/6287707
+      - https://www.vmray.com/hydra-saiga-covert-espionage-and-infiltration-of-critical-utilities/
+      - https://security.googlecloudcommunity.com/community-blog-42/finding-malware-dirtybulk-and-friends-usb-infections-to-fuel-cybercriminal-coinmining-operations-5552
+      - https://www.security.com/threat-intelligence/ukraine-russia-attacks
+      - https://www.huntress.com/blog/nezha-china-nexus-threat-actor-tool
+      - https://www.trendmicro.com/en_us/research/25/i/unmasking-the-gentlemen-ransomware.html
+      - https://cert.gov.ua/article/6282536
+      - https://blog.eclecticiq.com/sandworm-apt-targets-ukrainian-users-with-trojanized-microsoft-kms-activation-tools-in-cyber-espionage-campaigns
+      - https://news.sophos.com/en-us/2023/07/20/bad-ad-fad-leads-to-icedid-gozi-infections/
+      - https://www.mandiant.com/resources/seo-poisoning-batloader-atera
+      - https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/stopransomware-bianlian-ransomware-group
+      - https://cert.gov.ua/article/6281018
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://www.microsoft.com/en-us/security/blog/2023/06/14/cadet-blizzard-emerges-as-a-novel-and-distinct-russian-threat-actor/
+      - https://blog.sekoia.io/lucky-mouse-incident-response-to-detection-engineering/
+      - https://research.nccgroup.com/2022/06/06/shining-the-light-on-black-basta/
+      - https://malware.news/t/signed-dll-campaigns-as-a-service/56219
+      - https://www.hybrid-analysis.com/sample/0b3dd23c25217143b997c65d091034fdd9040cdb52f690140da979f621bcd300?environmentId=120
+      - https://thedfirreport.com/2023/10/30/netsupport-intrusion-results-in-domain-compromise/
+      - https://thedfirreport.com/2023/12/18/lets-opendir-some-presents-an-analysis-of-a-persistent-actors-activity/
+      - https://www.esentire.com/blog/workersdevbackdoor-delivered-via-malvertising
+      - https://cyble.com/blog/threat-actors-target-us-asylum-seekers-with-metastealer-malware/
+      - https://arcticwolf.com/resources/blog/cherryloader-a-new-go-based-loader-discovered-in-recent-intrusions/
+      - https://www.welivesecurity.com/en/eset-research/nspx30-sophisticated-aitm-enabled-implant-evolving-since-2005/
+      - https://thedfirreport.com/2024/01/29/buzzing-on-christmas-eve-trigona-ransomware-in-3-hours/
+      - https://www.fortinet.com/blog/threat-research/python-info-stealer-malicious-excel-document
+      - https://asec.ahnlab.com/ko/61288/
+      - https://thedfirreport.com/2024/02/26/seo-poisoning-to-domain-control-the-gootloader-saga-continues/
+      - https://www.trellix.com/blogs/research/the-evolution-of-the-kuiper-ransomware/
+      - https://rexorvc0.com/2024/03/25/NanoCore_Update/
+      - https://thedfirreport.com/2024/04/29/from-icedid-to-dagon-locker-ransomware-in-29-days/
+      - https://www.huntress.com//blog/lolbin-to-inc-ransomware
+      - https://www.elastic.co/security-labs/invisible-miners-unveiling-ghostengine
+      - https://www.trellix.com/blogs/research/how-attackers-repackaged-a-threat-into-something-that-looked-benign/
+      - https://www.fortinet.com/blog/threat-research/fickle-stealer-distributed-via-multiple-attack-chain
+      - https://www.cybereason.com/blog/hardening-of-hardbit
+      - https://cyble.com/blog/new-malware-campaign-abusing-rdpwrapper-and-tailscale-to-target-cryptocurrency-users/
+      - https://blogs.blackberry.com/en/2024/07/akira-ransomware-targets-the-latam-airline-industry
+      - https://www.esentire.com/blog/a-dropper-for-deploying-gh0st-rat
+      - https://www.trendmicro.com/en_us/research/24/i/how-ransomhub-ransomware-uses-edrkillshifter-to-disable-edr-and-.html
+      - https://www.microsoft.com/en-us/security/blog/2024/09/26/storm-0501-ransomware-attacks-expanding-to-hybrid-cloud-environments/
+      - https://notes.netbytesec.com/2024/10/lemonduck-unleashes-cryptomining.html
+      - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/pronsis-loader-a-jphp-driven-malware-diverging-from-d3fck-loader/
+      - https://www.zscaler.com/blogs/security-research/technical-analysis-darkvision-rat
+      - https://blog.talosintelligence.com/gophish-powerrat-dcrat/
+      - https://www.gdatasoftware.com/blog/2024/12/38093-ip2rat-malware
+      - https://www.attackiq.com/2025/02/14/emulating-fin7-part-2/
+      - https://www.malwarebytes.com/blog/news/2025/02/sectoprat-bundled-in-chrome-installer-distributed-via-google-ads
+      - https://www.splunk.com/en_us/blog/security/infostealer-campaign-against-isps.html
+      - https://www.microsoft.com/en-us/security/blog/2025/03/06/malvertising-campaign-leads-to-info-stealers-hosted-on-github/
+      - https://blog.talosintelligence.com/uat-5918-targets-critical-infra-in-taiwan/
+      - https://thedfirreport.com/2025/03/31/fake-zoom-ends-in-blacksuit-ransomware/
+      - https://www.microsoft.com/en-us/security/blog/2025/04/15/threat-actors-misuse-node-js-to-deliver-malware-and-other-malicious-payloads/
+      - https://www.picussecurity.com/resource/blog/dragonforce-ransomware-attacks-retail-giants
+      - https://blog.qualys.com/vulnerabilities-threat-research/2025/05/15/fileless-execution-powershell-based-shellcode-loader-executes-remcos-rat
+      - https://asec.ahnlab.com/en/88025/
+      - https://www.sentinelone.com/blog/how-clickfix-is-weaponizing-verification-fatigue-to-deliver-rats-infostealers/
+      - https://research.checkpoint.com/2025/from-trust-to-threat-hijacked-discord-invites-used-for-multi-stage-malware-delivery/
+      - https://www.picussecurity.com/resource/blog/silver-fox-apt-targets-public-sector-via-trojanized-medical-software
+      - https://www.esentire.com/blog/threat-actors-deploy-sinobi-ransomware-via-compromised-sonicwall-ssl-vpn-credentials
+      - https://www.proofpoint.com/us/blog/threat-insight/not-safe-work-tracking-and-investigating-stealerium-and-phantom-infostealers
+      - https://www.proofpoint.com/us/blog/threat-insight/when-monster-bytes-tracking-ta585-and-its-arsenal
+      - https://www.picussecurity.com/resource/blog/olymp-loader-emerging-malware-as-a-service-threat-in-2025
+      - https://www.attackiq.com/2025/11/14/sandworm/
+      - https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+      - https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/
+      - https://research.checkpoint.com/2025/gachiloader-node-js-malware-with-api-tracing/
+      - https://ipurple.team/2026/01/12/edr-silencing/
+      - https://www.sophos.com/en-us/blog/avos-locker-remotely-accesses-boxes-even-running-in-safe-mode
+      - https://www.fortinet.com/blog/threat-research/inside-a-multi-stage-windows-malware-campaign
+      - https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+      - https://www.attackiq.com/2026/02/25/emulating-blackbyte-ransomware/
+      - https://www.picussecurity.com/resource/blog/t1059-001-powershell
+      - https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html
+      - https://cloud.google.com/blog/topics/threat-intelligence/ransomware-ttps-shifting-threat-landscape/
+      - https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+      - https://www.securonix.com/blog/faux-elevate-threat-actors-crypto-miners-and-infostealers/
+      - https://www.microsoft.com/en-us/security/blog/2026/03/23/case-study-predictive-shielding-defender-stopped-gpo-based-ransomware-before-started/
+      - https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+  tags:
+      - attack.defense_evasion
+      - attack.t1562.001
+      - attack.t1564.012
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      #selection_action:
+      #    ParentImage|endswith: #must exists!
+      #        - '.exe' # example lolbin - SystemSettingsAdminFlows.exe
+      #        - '.tmp'
+      #        - '.src'
+      #    Image|endswith:
+      #        - '.exe' # example lolbin - SystemSettingsAdminFlows.exe
+      #        - '.tmp'
+      #        - '.src'
+      #    CommandLine|contains:
+      #        - '1'
+      #        - 'true'
+      #        - 'Add'
+      #        - 'Defender' # cmdline of  SystemSettingsAdminFlows.exe
+      selection_args:
+          ParentImage|contains: '.' #must exists.; https://cloud.google.com/blog/topics/threat-intelligence/ransomware-ttps-shifting-threat-landscape/
+          Image|contains: '.' # must exist.
+          CommandLine|contains:
+              - 'ExclusionProcess' # https://www.netskope.com/blog/openclaw-hologram-fake-installer-ships-rust-infostealer
+              - 'ExclusionPath' #powershell Add-MpPreference -ExclusionPath C:\Windows\temp; https://www.huntress.com/blog/nezha-china-nexus-threat-actor-tool; https://www.proofpoint.com/us/blog/threat-insight/when-monster-bytes-tracking-ta585-and-its-arsenal; https://www.attackiq.com/2025/11/14/sandworm/; https://cert.gov.ua/article/6287707; https://www.picussecurity.com/resource/blog/t1059-001-powershell; https://www.trendmicro.com/en_us/research/26/c/boryptgrab-stealer-targets-users-via-deceptive-github-pages.html; https://www.securonix.com/blog/faux-elevate-threat-actors-crypto-miners-and-infostealers/
+              - 'ExclusionExtension'
+              - 'ExclusionIpAddress' #https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/
+              - 'DisableAntiSpyware' #https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/; https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'DisableBehaviorMonitoring' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'DisableIOAVProtection' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server; https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+              - 'DisableOAVProtection' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+              - 'DisableOnAccessProtection' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'DisableRealtimeMonitoring' #https://www.trendmicro.com/en_us/research/25/i/unmasking-the-gentlemen-ransomware.html; https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/; https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server; https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html; https://www.huntress.com/blog/the-gentlemen-ransomware-defense-evasion-ttps; https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/; https://cloud.google.com/blog/topics/threat-intelligence/financially-motivated-threat-actor-breeze-comet-targets-brazil/
+              - 'DisableScanOnRealtimeEnable' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'DisableEnhancedNotifications' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'DisableBlockAtFirstSeen' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'DisableScriptScanning' #https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+              - 'DisableIntrusionPreventionSystem' #https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+              - 'DisableArchiveScanning'
+              - 'SignatureDisableUpdateOnStartupWithoutEngine'
+              - 'DisablePrivacyMode'
+              - 'PUAProtection'
+              - 'SubmitSamplesConsent' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'SpynetReporting' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server; https://asec.ahnlab.com/en/95516/
+              - 'AttackSurfaceReductionOnlyExclusions'
+              - 'ControlledFolderAccessAllowedApplications'
+              - 'ControlledFolderAccessProtectedFolders'
+              - 'DisableAntiVirus' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'NotificationSuppress' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+              - 'EnableControlledFolderAccess' #https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+              - 'MAPSReporting' #https://www.splunk.com/en_us/blog/security/blankgrabber-trojan-stealer-analysis-detection.html
+      selection_using_dissm_base:
+          Image|endswith: 'dism.exe'
+          CommandLine|contains: 'Windows-Defender' #dism.exe /online /Disable-Feature /FeatureName:Windows-Defender /Remove /NoRestart
+      selection_using_dissm_vars:
+          CommandLine|contains:
+              - '/Remove'
+              - '/Disable-Feature'
+      filters:
+          - ParentImage|endswith:
+              - 'mfetp.exe' #"C:\Program Files\McAfee\Endpoint Security\Threat Prevention\mfetp.exe" -mms
+              - 'gc_worker.exe' # Azure Connected Machine Agent
+          - CommandLine|contains|all:
+              - 'inputformat'
+              - 'none' #powershell -inputformat none -outputformat text -NonInteractive -Command Get-MpPreference | select -ExpandProperty "ExclusionProcess"
+              - 'outputformat'
+              - 'text'
+              - 'MpPreference'
+              - 'ExpandProperty'
+      filter_chain1: #pycharm operations.
+          ParentImage|endswith: 'pycharm64.exe'
+          CommandLine|contains|all:
+              - 'text'
+              - 'inputformat'
+              - 'MpPreference'
+              - 'ExpandProperty' #powershell -inputformat none -outputformat text -NonInteractive -Command "Get-MpPreference | select -ExpandProperty \"ExclusionProcess\""
+      condition: (selection_args or (selection_using_dissm_base and selection_using_dissm_vars)) and not (filters or filter_chain1)
+  falsepositives:
+      - Administrative activity of foreign staff.
+  level: high
+level: high
+created: '2020-06-24T12:38:31Z'
+updated: '2026-09-22T11:10:48.677000Z'

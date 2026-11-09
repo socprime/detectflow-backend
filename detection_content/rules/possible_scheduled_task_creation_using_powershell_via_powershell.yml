@@ -1,0 +1,39 @@
+id: NlAzyj6JhtYZ
+name: Possible Scheduled Task Creation Using Powershell (via powershell)
+body: |-
+  title: Possible Scheduled Task Creation Using Powershell (via powershell)
+  id: ca5427f8-ede3-48df-b98c-5fa254010b2a
+  status: stable
+  description: Adversaries may try to create scheduled task using powershell in order to maintain persistence on the compromised host.
+  author: SOC Prime Team
+  references:
+    - https://cert.gov.ua/article/6318863
+    - https://vrls.ws/posts/abusing-gitlab-ci-runners-as-c2/
+    - https://www.fortinet.com/blog/threat-research/scrubcrypt-deploys-venomrat-with-arsenal-of-plugins
+    - https://www.genians.co.kr/blog/threat_intelligence/dropbox
+    - https://asec.ahnlab.com/en/66429/
+    - https://www.securonix.com/blog/analyzing-deepdrive-north-korean-threat-actors-observed-exploiting-trusted-platforms-for-targeted-attacks/
+    - https://arcticwolf.com/resources/blog/romcom-utilizing-socgholish-to-deliver-mythic-agent-to-usa-companies-supporting-ukraine/
+    - https://www.derp.ca/research/plog-rat-analysis/
+  tags:
+    - attack.t1053
+    - attack.execution
+    - attack.persistence
+    - attack.privilege_escalation
+  logsource:
+    service: powershell
+    product: windows
+  detection:
+    selection:
+      ScriptBlockText|contains|all:
+        - 'Register-ScheduledTask' # https://www.derp.ca/research/plog-rat-analysis/
+        - 'TaskName'
+        - 'Action'
+       # - 'Hidden'
+    condition: selection
+  falsepositives:
+    - Unknown
+  level: medium
+level: medium
+created: '2024-04-12T13:05:26Z'
+updated: '2026-08-10T12:30:17.032000Z'

@@ -1,7 +1,7 @@
 """Bundled SOC Prime content: Active Threats, HoS and Sigma rules for a fresh install.
 
-``content/`` holds a snapshot of real TDM content (real ids). It is applied once per
-snapshot version (``content/VERSION``), with or without the socprime_tdm integration.
+``detection_content/`` holds a snapshot of real TDM content (real ids). It is applied once per
+snapshot version (``detection_content/VERSION``), with or without the socprime_tdm integration.
 
 Active Threats, their HoS and the Sigma rules those HoS reference go through the regular
 Active Threat sync with :class:`SnapshotProvider` in place of TDM, so they land exactly
@@ -33,7 +33,7 @@ from apps.modules.postgre.active_threats import ActiveThreatDAO
 from apps.modules.postgre.config import ConfigDAO
 from apps.modules.utils import get_sigma_uuid_from_sigma_body
 
-CONTENT_DIR = Path(__file__).resolve().parents[3] / "content"
+CONTENT_DIR = Path(__file__).resolve().parents[3] / "detection_content"
 CONTENT_VERSION_CONFIG_KEY = "content_snapshot_version"
 # pg_advisory_xact_lock key: replicas starting together apply the snapshot one at a time.
 CONTENT_LOCK_KEY = 0x434F4E54454E54  # "CONTENT"

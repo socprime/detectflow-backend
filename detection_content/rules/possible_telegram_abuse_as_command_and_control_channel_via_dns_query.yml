@@ -1,0 +1,143 @@
+id: iDna0JDcyEMu
+name: Possible Telegram Abuse As Command And Control Channel (via dns_query)
+body: |-
+  title: Possible Telegram Abuse As Command And Control Channel (via dns_query)
+  id: 91e49443-653e-481f-b32d-50be218cca34
+  status: stable
+  description: This rule identifies t.me and Telegram API endpoint dns queries made by suspicious processes. This may be an indicator of C2 communications.
+  references:
+    - https://www.welivesecurity.com/en/eset-research/gorbag-orcs-border-harvesting-intelligence-ukraine/
+    - https://research.checkpoint.com/2026/tricks-from-the-past-deployed-via-signed-chatgpt-and-claude-binaries/
+    - https://www.zscaler.com/blogs/security-research/suspected-tradertraitor-group-uses-trojanized-terraform-provider-deliver
+    - https://www.ncsc.gov.uk/news/iranian-cyber-targeting-of-dissidents-activists-and-journalists
+    - https://blog.talosintelligence.com/clearfake-webdav-infection-chain/
+    - https://www.malwarebytes.com/blog/threat-intel/2026/08/tracking-pavinloader-across-clickfix-and-fake-download-campaigns
+    - https://www.rapid7.com/blog/post/tr-operation-asterix-crypto-fraud-vishing-phishing/
+    - https://asec.ahnlab.com/en/94786/
+    - https://www.picussecurity.com/resource/blog/vidar-malware-how-the-multithreaded-windows-stealer-works
+    - https://www.jumpsec.com/guides/inside-a-dprk-bluenoroff-clickfix-kit/
+    - https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/
+    - https://ransom-isac.org/blog/the-fox-tempest-question/
+    - https://www.zscaler.com/blogs/security-research/targeted-attack-government-entities-middle-east-part-1
+    - https://meltedinhex.com/posts/clickfix-errtraffic-blockchain-c2/
+    - https://blog.talosintelligence.com/uat-11795-deploys-novel-starland-rat-and-bespoke-wldr-c2-implant-in-financially-motivated-campaign/
+    - https://www.welivesecurity.com/en/eset-research/gamaredon-2025-leveraging-tunnels-workers-dead-drops-new-alliances/
+    - https://blog.synapticsystems.de/ghostshell-mb-0009-targeting-ukraines-uav-operations-and-defense-supply-chain/
+    - https://www.seqrite.com/blog/threat-actors-weaponizing-rar-archives-to-target-thailands-healthcare-sector/
+    - https://www.fortra.com/blog/phishing-campaign-targets-banks-fileless-phantom-stealer-malware
+    - https://www.ibm.com/think/x-force/interlock-and-rhysida-within-the-ransonware-ecosystem
+    - https://research.jfrog.com/post/solana-fakefix/
+    - https://blog.sekoia.io/fsbs-matryoshka-2-3-gamaredons-gifts-that-keeps-unpacking-gammaload/
+    - https://blog.sekoia.io/fsbs-matryoshka-1-3-gamaredons-gifts-that-keeps-unpacking-gammaphish-and-gammaworm/
+    - https://www.splunk.com/en_us/blog/security/behind-the-code-layered-defense-evasion-vip-keylogger.html
+    - https://www.levelblue.com/blogs/spiderlabs-blog/unmasking-a-multi-stage-loader-autoit-abuse-leading-to-vidar-stealer-command-and-control-communication
+    - https://www.netskope.com/blog/openclaw-hologram-fake-installer-ships-rust-infostealer
+    - https://arcticwolf.com/resources/blog/bluenoroff-uses-clickfix-fileless-powershell-and-ai-generated-zoom-meetings-to-target-web3-sector/
+    - https://dmpdump.github.io/posts/TelegramRat/
+    - https://www.pointwild.com/threat-intelligence/inside-vidar-2026-from-infection-to-memory-execution-via-jpeg-and-txt-payloads
+    - https://flare.io/learn/resources/blog/telegram-session-stealerpastebin-hosted-powershell-script-targets-desktop-web-sessions
+    - https://cert.gov.ua/article/6288271
+    - https://www.seqrite.com/blog/iran-us-israel-cyberwar-2026-analysis/
+    - https://www.vmray.com/hydra-saiga-covert-espionage-and-infiltration-of-critical-utilities/
+    - https://cert.gov.ua/article/6285731
+    - https://cert.gov.ua/article/6282946
+    - https://www.googlecloudcommunity.com/gc/Community-Blog/Consuming-Backscatter-Information-to-Perform-Threat-Hunting/ba-p/863828
+    - https://www.cloudsek.com/blog/no-honour-among-thieves-uncovering-a-trojanized-xworm-rat-builder-propagated-by-threat-actors-and-disrupting-its-operations
+    - https://www.welivesecurity.com/en/eset-research/cyberespionage-gamaredon-way-analysis-toolset-used-spy-ukraine-2022-2023/
+    - https://cyberarmor.tech/white-snake-latest-campaign-with-multi-stage-malware-dropper/
+    - https://securityintelligence.com/x-force/hive0051-all-in-triple-threat/
+    - https://asec.ahnlab.com/en/62177/
+    - https://unit42.paloaltonetworks.com/nodestealer-2-targets-facebook-business/
+    - https://socradar.io/dark-web-profile-big-head-ransomware/
+    - https://cert.gov.ua/article/5160737
+    - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/shuckworm-russia-ukraine-military
+    - https://redcanary.com/blog/credential-access/
+    - https://www.trendmicro.com/en_us/research/23/e/malicious-ai-tool-ads-used-to-deliver-redline-stealer.html
+    - https://blog.cyble.com/2023/06/30/multiple-new-clipper-malware-variants-discovered-in-the-wild/
+    - https://montysecurity.medium.com/hunting-sandworm-teams-ttps-57a6fb31dd4b
+    - https://www.zscaler.com/blogs/security-research/threat-actors-exploit-cve-2017-11882-deliver-agent-tesla
+    - https://www.trendmicro.com/en_us/research/24/a/cve-2023-36025-exploited-for-defense-evasion-in-phemedrone-steal.html
+    - https://medium.com/@knownsec404team/apt-k-47-organization-launches-espionage-attacks-using-a-new-trojan-tool-5e7eccfdce2f
+    - https://www.trustwave.com/hubfs/Web/Library/Documents_pdf/FaceBook_Ad_Spreads_Novel_Malware.pdf
+    - https://www.securonix.com/blog/security-advisory-steadyursa-attack-campaign-targets-ukraine-military/
+    - https://www.forcepoint.com/blog/x-labs/agent-tesla-malware-attacks-travel-industry
+    - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/rise-in-deceptive-pdf-the-gateway-to-malicious-payloads/
+    - https://www.proofpoint.com/us/blog/threat-insight/threat-actors-deliver-malware-youtube-video-game-cracks
+    - https://blog.talosintelligence.com/coralraider-targets-socialmedia-accounts/
+    - https://www.esentire.com/blog/the-return-of-the-bat-fakebats-payk-runpe-arsenal
+    - https://asec.ahnlab.com/ko/65307/
+    - https://www.fortinet.com/blog/threat-research/fickle-stealer-distributed-via-multiple-attack-chain
+    - https://labs.k7computing.com/index.php/echoes-of-braodo-tales-from-the-cyber-underworld/
+    - https://www.googlecloudcommunity.com/gc/Community-Blog/Finding-Malware-Unveiling-NUMOZYLOD-with-Google-Security/ba-p/789551
+    - https://www.trendmicro.com/en_us/research/24/l/python-based-nodestealer.html
+    - https://www.seqrite.com/blog/silent-lynx-apt-targeting-central-asian-entities/
+    - https://www.splunk.com/en_us/blog/security/infostealer-campaign-against-isps.html
+    - https://www.morphisec.com/blog/new-noodlophile-stealer-fake-ai-video-generation-platforms/
+    - https://asec.ahnlab.com/en/88025/
+    - https://www.trendmicro.com/en_us/research/25/e/tiktok-videos-infostealers.html
+    - https://labs.k7computing.com/index.php/a-soraai-clickbait/
+    - https://www.trendmicro.com/en_us/research/25/f/water-curse.html
+    - https://www.cyfirma.com/research/octalyn-stealer-unmasked/
+    - https://www.cyfirma.com/research/raven-stealer-unmasked-telegram-based-data-exfiltration/
+    - https://hybrid-analysis.blogspot.com/2025/07/new-advanced-stealer-shuyal-targets.html
+    - https://www.trellix.com/blogs/research/a-deep-dive-into-obj3ctivitystealers-features/
+    - https://unit42.paloaltonetworks.com/new-darkcloud-stealer-infection-chain/
+    - https://govextra.gov.il/national-digital-agency/cyber/research/spearspecter/
+    - https://www.picussecurity.com/resource/blog/inside-sandworm-decade-of-cyber-sabotage-and-espionage-activity
+    - https://isc.sans.edu/diary/rss/32498
+    - https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/
+    - https://blog.nviso.eu/2025/12/16/the-detection-response-chronicles-exploring-telegram-abuse/
+    - https://www.safebreach.com/blog/prince-of-persia-a-decade-of-an-iranian-nation-state-apt-campaign-activity
+    - https://www.seqrite.com/blog/ung0801-tracking-threat-clusters-obsessed-with-av-icon-spoofing-targeting-israel/
+    - https://www.picussecurity.com/resource/blog/prince-of-persia-apt-analysis-infy-foudre-and-tonnerre-malware
+    - https://the-sequence.com/monetastealer-threat
+    - https://profero.io/blog/dit-me-may-morphisec-when-malware-authors-taunt-security-researchers
+    - https://harfanglab.io/insidethelab/redkitten-ai-accelerated-campaign-targeting-iranian-protests/
+    - https://www.pointwild.com/threat-intelligence/when-malware-talks-back
+    - https://isc.sans.edu/diary/rss/32682
+    - https://research.checkpoint.com/2026/amaranth-dragon-weaponizes-cve-2025-8088-for-targeted-espionage/
+    - https://www.safebreach.com/blog/prince-of-persia-part-ii/
+    - https://www.pointwild.com/threat-intelligence/when-malware-talks-back/
+    - https://www.cyfirma.com/research/charliekirk-grabber-a-python-based-infostealer/
+    - https://www.huntress.com/blog/openclaw-github-ghostsocks-infostealer
+    - https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools
+    - https://labs.k7computing.com/index.php/gibcrypto-the-destructive-ransomware-with-a-snake-keylogger-connection/
+    - https://cofense.com/blog/livechat-abuse-how-phishers-are-exploiting-saas-support-tools-to-steal-sensitive-data
+    - https://www.huntress.com/blog/w2-malvertising-to-kernel-mode-edr-kill
+    - https://labs.k7computing.com/index.php/resoker-a-telegram-based-remote-access-trojan/
+    - https://cyble.com/blog/professional-networks-under-attack-by-infostealer/
+  tags:
+    - attack.t1567
+    - attack.exfiltration
+    - attack.command_and_control
+    - attack.t1071.001
+  author: SOC Prime Team
+  logsource:
+    product: windows
+    category: dns_query
+  detection:
+    selection:
+      Image|endswith: '.exe'
+      QueryName:
+        - 'telegram.me' # https://www.pointwild.com/threat-intelligence/inside-vidar-2026-from-infection-to-memory-execution-via-jpeg-and-txt-payloads/; https://www.levelblue.com/blogs/spiderlabs-blog/unmasking-a-multi-stage-loader-autoit-abuse-leading-to-vidar-stealer-command-and-control-communication; https://meltedinhex.com/posts/clickfix-errtraffic-blockchain-c2/; https://www.picussecurity.com/resource/blog/vidar-malware-how-the-multithreaded-windows-stealer-works
+        - 't.me' #https://cyble.com/blog/professional-networks-under-attack-by-infostealer/; https://www.netskope.com/blog/openclaw-hologram-fake-installer-ships-rust-infostealer; https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/; https://research.checkpoint.com/2026/tricks-from-the-past-deployed-via-signed-chatgpt-and-claude-binaries/
+        - 'api.telegram.org' # api.telegram.org sendDocument https://www.welivesecurity.com/en/eset-research/gorbag-orcs-border-harvesting-intelligence-ukraine/; api.telegram.org https://www.zscaler.com/blogs/security-research/suspected-tradertraitor-group-uses-trojanized-terraform-provider-deliver; Possible telegram abuse as C2 channel.; https://cert.gov.ua/article/6285731;https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/; https://www.huntress.com/blog/w2-malvertising-to-kernel-mode-edr-kill; https://labs.k7computing.com/index.php/resoker-a-telegram-based-remote-access-trojan/; https://research.jfrog.com/post/solana-fakefix/; https://www.zscaler.com/blogs/security-research/targeted-attack-government-entities-middle-east-part-1; https://www.jumpsec.com/guides/inside-a-dprk-bluenoroff-clickfix-kit/; https://www.rapid7.com/blog/post/tr-operation-asterix-crypto-fraud-vishing-phishing/
+        - 'telegra.ph' #Threat actors use Telegraph to store C&C addresses; https://www.malwarebytes.com/blog/threat-intel/2026/08/tracking-pavinloader-across-clickfix-and-fake-download-campaigns
+    filters:
+      - Image|endswith:
+        - 'telegram.exe' # Telegram Desktop
+        - 'chrome.exe'
+        - 'msedge.exe'
+        - 'firefox.exe'
+        - 'opera.exe'
+        - 'brave.exe'
+      - Image|contains|all:
+        - '\Program'
+        - 'Files'
+    condition: selection and not filters
+  falsepositives:
+    - Legitimate domain communication using rare browsers/third party software.
+  level: medium
+level: medium
+created: '2023-02-09T11:09:29Z'
+updated: '2026-11-04T11:07:59.467000Z'

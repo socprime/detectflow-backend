@@ -1,0 +1,83 @@
+id: v7q7VQUjej2e
+name: Suspicious Executions from User Default Folders v2 (via process_creation)
+body: |-
+  title: Suspicious Executions from User Default Folders v2 (via process_creation)
+  id: df03915e-4d53-4fad-94f2-8310906315f9
+  status: stable
+  description: The default Users folder is commonly abused by advesaries for staging of malware files, this execution should be reviewed.
+  author: SOC Prime Team
+  references:
+      - https://medium.com/@DCSO_CyTec/catch-them-while-you-can-5c43007ae99e
+      - https://www.acronis.com/en-us/cyber-protection-center/posts/zola-ransomware-the-many-faces-of-the-proton-family/
+      - https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/apt40-advisory-prc-mss-tradecraft-in-action
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-190a
+      - https://cert.gov.ua/article/4501891
+      - https://cert.gov.ua/article/3718487
+      - https://cert.gov.ua/article/341128
+  tags:
+      - attack.defense_evasion
+      - attack.t1564
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_image:
+          ParentImage|endswith:
+              - '.exe'
+              - '.tmp'
+              - '.src'
+          Image|endswith:
+              - '.exe'
+              - '.tmp'
+              - '.com'
+              - '.scr'
+      selection_usr:
+          Image|contains: '\Users' #ex.:C:\Users\$ENV:UserName\docx.exe"
+      filters:
+          - ParentImage|endswith:
+              - 'explorer.exe'
+              - 'services.exe'
+              - 'taskeng.exe'
+          - ParentImage|contains|all:
+              - '\Program'
+              - 'Files'
+          - Image|endswith:
+              - '\sigma.exe'
+              - '\KeePass.exe'
+          - Image|contains:
+              - '\PortableApps'
+              - '\Downloads'
+              - '\Desktop'
+              - '\Documents'
+              - '\Pictures'
+              - '\Favorites'
+              - '\Music' #https://medium.com/@DCSO_CyTec/catch-them-while-you-can-5c43007ae99e
+              - '\Searches'
+              - '\Contacts'
+              - '\Links'
+              - '\3D Objects'
+              - '\AppData'
+              - '\Anaconda3'
+              - '\PycharmProjects'
+              - '.wdm'
+              #- '.vscode'
+              - '\.' #"C:\Users\xxx\.config\herd\bin\php83\php.exe"
+              - '\OneDrive\'
+              - '\vs-kubernetes'
+              - '\vscode'
+              - '\DriverStore'
+              - 'GoogleCloudDirSync'
+              - '\pipx'
+              - '\.local\bin\' # by git\usr\bin\bash.exe -> C:\Users\xxx\.local\bin\jinja2.exe
+              - 'MobaXterm' #C:\Users\xxx~1.xxx\DOCUME~1\MobaXterm\slash\bin\xkbcomp_w32.exe
+      filters_chain1:
+          ParentImage|endswith: 'eclipse.exe'
+          Image|endswith: '\javaw.exe'
+      condition: (selection_image and selection_usr) and not (filters or filters_chain1)
+  falsepositives:
+      - legitimate application and scripts which reduce default user folders.
+      - files created by user
+  level: low
+level: low
+created: '2022-06-21T09:23:26Z'
+updated: '2025-10-14T10:42:45.510000Z'

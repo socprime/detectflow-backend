@@ -1,0 +1,192 @@
+id: dYOZK3mwAoqj
+name: Possible Data Infiltration / Exfiltration / C2 via Third Party Services / Tools (via cmdline)
+body: |-
+  title: Possible Data Infiltration / Exfiltration / C2 via Third Party Services / Tools (via cmdline)
+  id: 6917c744-03bc-4abe-92c9-7f87a175c8e6
+  status: stable
+  description: Need to exclude approved services! Attackers may utilize third-party services and tools in an effort to aid data infiltration / exfiltration and command and control efforts. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  author: SOC Prime Team
+  references:
+    - https://www.security.com/threat-intelligence/swallowtail-russia-nato-targets
+    - https://www.welivesecurity.com/en/eset-research/gamaredon-2025-leveraging-tunnels-workers-dead-drops-new-alliances/
+    - https://www.huntress.com/blog/akira-ransomware-limewire-data-exfiltration
+    - https://www.security.com/blog-post/stock-exchange-espionage
+    - https://blog.exatrack.com/Tracking_APT28_PixyNetLoader/
+    - https://www.watchguard.com/wgrd-security-hub/secplicity-blog/grandoreiro-malware-campaign-targets-europe-and-latin-america
+    - https://www.security.com/threat-intelligence/iran-seedworm-electronics
+    - https://www.zscaler.com/blogs/security-research/memory-loader-drops-screenconnect
+    - https://thehackernews.com/2026/03/north-korean-hackers-publish-26-npm.html
+    - https://kmsec.uk/blog/dprk-text-steganography/
+    - https://redcanary.com/blog/threat-intelligence/mocha-manakin-nodejs-backdoor/
+    - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-022a
+    - https://news.sophos.com/en-us/2025/09/17/gold-salems-warlock-operation-joins-busy-ransomware-landscape/
+    - https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+    - https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+    - https://www.jamf.com/blog/threat-actors-expand-abuse-of-visual-studio-code/
+    - https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+    - https://www.elastic.co/security-labs/solarwinds-whd-exploitation
+    - https://www.welivesecurity.com/en/eset-research/sednit-reloaded-back-trenches/sigma.yml
+    - https://sect.iij.ad.jp/blog/2026/03/dropbox-api-kimsuky-malware/
+    - https://jp.security.ntt/insights_resources/tech_blog/stoatwaffle_malware_en/
+    - https://www.trendmicro.com/en_us/research/26/c/dissecting-a-warlock-attack.html
+    - https://cocomelonc.github.io/malware/2025/08/28/malware-tricks-51.html
+  tags:
+    - attack.exfiltration
+    - attack.t1537
+    - attack.t1567.002
+    - attack.command_and_control
+    - attack.t1105
+    - attack.t1071.001
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_procs:
+          Image|endswith:
+              - 'curl.exe' # https://www.zscaler.com/blogs/security-research/memory-loader-drops-screenconnect; https://www.security.com/threat-intelligence/swallowtail-russia-nato-targets
+              - 'pwsh.exe'
+              - 'cmd.exe'
+              - 'powershell.exe'
+              - 'appinstaller.exe'
+              - 'bitsadmin.exe'
+              - 'certoc.exe'
+              - 'certreq.exe'
+              - 'certutil.exe'
+              - 'cmdl32.exe'
+              - 'configsecuritypolicy.exe'
+              - 'desktopimgdownldr.exe'
+              - 'devtunnel.exe'
+              - 'diantz.exe'
+              - 'esentutl.exe'
+              - 'excel.exe'
+              - 'expand.exe'
+              - 'extrac32.exe'
+              - 'findstr.exe'
+              - 'finger.exe'
+              - 'ftp.exe'
+              - 'hh.exe'
+              - 'ieexec.exe'
+              - 'imewdbld.exe'
+              - 'installutil.exe'
+              - 'ldifde.exe'
+              - 'makecab.exe'
+              - 'mpcmdrun.exe'
+              - 'msaccess.exe'
+              - 'msiexec.exe' #msiexec /q /i hxxps://files.catbox[.]moe/tmp9fc.msi; https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://www.elastic.co/security-labs/solarwinds-whd-exploitation
+              - 'msedge_proxy.exe'
+              - 'mshta.exe'
+              - 'msohtmed.exe'
+              - 'mspub.exe'
+              - 'msxsl.exe'
+              - 'ngen.exe'
+              - 'onedrivestandaloneupdater.exe'
+              - 'powerpnt.exe'
+              - 'presentationhost.exe'
+              - 'printbrm.exe'
+              - 'protocolhandler.exe'
+              - 'replace.exe'
+              - 'squirrel.exe'
+              - 'update.exe'
+              - 'visio.exe'
+              - 'vslaunchbrowser.exe'
+              - 'winget.exe'
+              - 'winproj.exe'
+              - 'winword.exe'
+              - 'wsl.exe'
+              - 'xsd.exe'
+              - 'xwizard.exe'
+      selection_domains:
+          CommandLine|contains:
+              - 'sendit.sh' # https://www.security.com/threat-intelligence/iran-seedworm-electronics
+              - 'loophole.site'
+              - 'loophole.cloud'
+              - 'workers.dev'
+              - 'glot.io' #https://blog.virustotal.com/2026/02/from-automation-to-infection-how.html
+              - 'filen.io' #https://cert.gov.ua/article/6287250; CERT-UA#19542
+              - 'filen.dev' #https://cert.gov.ua/article/6287250; CERT-UA#19542
+              - 'filen.net' #https://cert.gov.ua/article/6287250; CERT-UA#19542
+              - 'secfileshare.com' #https://cert.gov.ua/article/6284949
+              - 'qaz.im' #CERT-UA#11776
+              - 'qaz.is' #CERT-UA#11776
+              - 'qaz.su' #CERT-UA#11776
+              - 'filedn.eu'
+              - 'onehub.com' #https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/
+              - 'terabox.com'
+              - 'egnyte.com' #ttps://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/
+              - 'sync.com'
+              - 'filebin.net'
+              - 'keep.sh'
+              - 'gitea.com'
+              - 'oshi.at' #OshiUpload
+              - 'ipapi.co' #CERT-UA#7469, but noizy.
+              - 'files.catbox.moe' #CERT-UA#6995, CERT-UA#7183
+              - 'bayfiles.com'
+              - 'usrfiles.com'
+              - 'dropbox.com' # https://www.security.com/blog-post/stock-exchange-espionage
+              - 'dropboxapi.com' # content.dropboxapi.com/2/files/upload; https://sect.iij.ad.jp/blog/2026/03/dropbox-api-kimsuky-malware/
+              - 'mediafire.com' #https://cloud.google.com/blog/topics/threat-intelligence/unc5142-etherhiding-distribute-malware/
+              - 'onedrive.com' #api.onedrive.com; https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+              #- 'wire.com'
+              - 'massive.io'
+              - 'efilecabinet.com'
+              - 'c-v.sh'
+              - 'file.io' #CERT-UA#7469, used unc961 / also covered - ufile.io #https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-022a
+              - '0x0.st'
+              - 'instant.io'
+              - 'copy.com'
+              - 'mega.co.nz'
+              - 'mega.nz'
+              - 'mega.io' #https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/; https://www.picussecurity.com/resource/blog/hunters-international-ransomware
+              - 'mega.io' #https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/; https://sosransomware.com/en/ransomware-groups/worldleaks-between-pure-extortion-and-traditional-ransomware-whats-the-difference/
+              - 'icloud.com'
+              - 'pcloud.com'
+              - 'icedrive.net' #https://cert.gov.ua/article/6284080
+              - 'app.koofr.net' #https://cert.gov.ua/article/6284080; https://www.picussecurity.com/resource/blog/apt28-cyber-threat-profile-and-detailed-ttps
+              - 'WeTransfer.com'
+              - 'Onehub.com'
+              - 'getfilecloud.com'
+              - 'ki.tc'
+              - 'uguu.se'
+              - 'flyle.app'
+              - 'transfer.sh'
+              - 'expirebox.com'
+              - 'disk.yandex.com'
+              - 'filestage.io'
+              - 'zippyshare.com'
+              - 'drive.google.com' #https://any.run/cybersecurity-blog/major-cyber-attacks-november-2025/
+              - 'docs.google.com' #https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.recordedfuture.com/research/purplebravos-targeting-it-software-supply-chain; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and
+              - 'firebase.google.com' #https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and
+              - '.box.com'
+              - 'hubic.com'
+              - 'wikisend.com'
+              - 'dropsend.com'
+              - 'anonymousfiles.io'
+              - 'anonfiles.com'
+              - 'filedropper.com'
+              - 'privatlab.com'
+              - 'dropmefiles.com' #unc961
+              - 'onionshare.org'
+              - 'sendGB.com'
+              - 'volafile.org'
+              - 'openload.co'
+              - 'uploadfiles.io'
+              - 'gofile.io'
+              - 'put.io'
+              - '4shared.com'
+              - 'dropboxusercontent.com' #https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html
+              - 'supabase.co' # https://www.trendmicro.com/en_us/research/26/c/dissecting-a-warlock-attack.html
+              - 'glitch.me'
+              - 'run.app'
+              - 'bitbucket.org' # https://cocomelonc.github.io/malware/2025/08/28/malware-tricks-51.html
+              - 'temspend.com'
+              - 'netlify.com' #https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps
+              - 'netlify.app'
+              - 'vercel.app' #https://kmsec.uk/blog/dprk-text-steganography/; https://jp.security.ntt/insights_resources/tech_blog/stoatwaffle_malware_en/
+      condition: selection_procs and selection_domains
+  falsepositives:
+    - Storage providers approved for business use.
+    - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: medium
+level: medium
+created: '2024-12-26T08:54:11Z'
+updated: '2026-10-20T15:07:21.354000Z'

@@ -1,0 +1,81 @@
+id: HUb21Nwo8vZV
+name: Windows Mail Client Creating Files With Executable Extension (via file_event)
+body: |-
+  title: Windows Mail Client Creating Files With Executable Extension (via file_event)
+  id: a7acf669-2b97-4f3b-b151-8be1d0ca46c6
+  description: Identifies Windows mail clients dropping files with executable extensions, which may be an indicator of phishing.
+  author: SOC Prime Team
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/07/23/email-threat-landscape-q2-2026-trends-and-insights/
+    - https://cert.gov.ua/article/6285731
+    - https://cloud.google.com/blog/topics/threat-intelligence/windows-rogue-remote-desktop-protocol/
+    - https://cert.gov.ua/article/6282946
+    - https://cert.gov.ua/article/6281076
+    - https://www.vmray.com/malware-goes-undetected-by-hiding-malicious-code-in-uncommon-ms-access-format/
+    - https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+    - https://www.securonix.com/blog/deadvax-threat-research-security-advisory/
+  status: stable
+  tags:
+    - attack.t1566.001
+    - attack.initial_access
+  logsource:
+    category: file_event
+    product: windows
+  detection:
+    selection:
+      Image|endswith:
+        - 'thunderbird.exe'
+        - 'OUTLOOK.EXE'
+        - 'WinMail.exe'
+        - 'Mailbird.exe'
+      TargetFilename|endswith:
+       # - '.docm' noisy
+       # - '.xlsm' #https://cert.gov.ua/article/6282946 noisy.
+        - '.wbk'
+        - '.wll'
+        - '.dotm'
+        - '.xlm'
+        - '.xltm'
+        - '.xla'
+        - '.xlam'
+        - '.pptm'
+        - '.msc'
+        - '.mdb'
+        - '.accdb'
+        - '.accde'
+        - '.mmp'
+        - '.rdp' #https://cert.gov.ua/article/6281076
+        - '.chm' #https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+        - '.dot'
+        - '.jse'
+        - '.bat'
+        - '.sct'
+        - '.url'
+        - '.cmd'
+        - '.hta'
+        - '.htm'
+        - '.ps1'
+        #- '.js' #noizy
+        - '.vbs'
+        #- '.dll' #noizy
+        #- '.exe' #noizy
+        - '.au3'
+        - '.vhd' #https://cert.gov.ua/article/6285731
+    filters:
+      - TargetFilename|contains|all:
+        - 'Thunderbird'
+        - 'Profile' #\ThunderbirdPortable\Data\profile\prefs-1.js
+        - 'prefs-'
+        - '.js'
+      - TargetFilename|endswith:
+        - '].js' #noizy stuff, hard to respond [1].js,[2].js
+        - '].exe' #updates #\Windows\INetCache\IE\36OMTP87\Setup[1].exe
+        - 'NewOutlookInstall\NewOutlookInstaller.exe' #\Local\Temp\NewOutlookInstall\NewOutlookInstaller.exe
+    condition: selection and not filters
+  falsepositives:
+    - Legitimate executable file creation.
+    - It is highly recommended to baseline your activity and tune out common business use cases.
+  level: high
+level: high
+created: '2024-08-09T07:37:03Z'
+updated: '2026-09-04T14:15:10.339000Z'

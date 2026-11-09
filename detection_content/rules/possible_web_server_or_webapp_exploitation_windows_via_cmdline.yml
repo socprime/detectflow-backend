@@ -1,0 +1,121 @@
+id: H0PM3eI1slLe
+name: Possible Web Server or WebApp Exploitation [Windows] (via cmdline)
+body: |-
+  title: Possible Web Server or WebApp Exploitation [Windows] (via cmdline)
+  id: be5f785a-0a7f-438e-be60-0a4fb15adcec
+  status: stable
+  description: Abnormal child processes associated with the Internet Information Services (IIS) or Apache HTTP Server may indicate the presence of a web shell or a vulnerability being exploited. Examples of this include the ProxyNotShell vulnerabilities CVE-2022-41040 and CVE-2022-41082. The number and behavior of child processes associated with the w3wp or httpd process depend on the logic or architecture of your web application and it may be necessary to implement additional filtering.
+  references:
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      - https://www.jpcert.or.jp/at/2026/at260030.html
+      - https://blog.securelayer7.net/cve-2026-45659-sharepoint-deserialization-rce/
+      - https://asec.ahnlab.com/en/94847/
+      - https://www.cyber.gc.ca/en/news-events/sharpviewstateking-stealthy-implant-framework#fn1
+      - https://reliaquest.com/blog/threat-spotlight-reliaquests-agentic-ai-uncovers-new-china-linked-cluster-op-512
+      - https://cloud.google.com/blog/topics/threat-intelligence/knowledgedeliver-viewstate-deserialization-vulnerability/
+      - https://www.bitdefender.com/en-us/blog/businessinsights/famoussparrow-apt-targets-azerbaijani-oil-gas-industry
+      - https://www.trendmicro.com/en_us/research/26/d/inside-shadow-earth-053.html
+      - https://www.huntress.com/blog/nezha-china-nexus-threat-actor-tool
+      - https://unit42.paloaltonetworks.com/microsoft-sharepoint-cve-2025-49704-cve-2025-49706-cve-2025-53770/
+      - https://msrc.microsoft.com/blog/2025/07/customer-guidance-for-sharepoint-vulnerability-cve-2025-53770/
+      - https://www.picussecurity.com/resource/blog/cve-2025-53770-critical-unauthenticated-rce-in-microsoft-sharepoint
+      - https://www.microsoft.com/en-us/security/blog/2025/04/09/stopping-attacks-against-on-premises-exchange-server-and-sharepoint-server-with-amsi/
+      - https://thehackernews.com/2024/12/apache-tomcat-vulnerability-cve-2024.html
+      - https://medium.com/@patelvidhi4288/deep-dive-poc-of-cve-2024-50379-exploit-tomcat-vulnerability-9-8-severity-776cfcfcf3ed
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-352a
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://www.rapid7.com/blog/post/2023/11/06/etr-rapid7-observed-exploitation-of-atlassian-confluence-cve-2023-22518/
+      - https://unit42.paloaltonetworks.com/agonizing-serpens-targets-israeli-tech-higher-ed-sectors/
+      - https://www.cybereason.com/blog/research/operation-soft-cell-a-worldwide-campaign-against-telecommunications-providers
+      - https://asec.ahnlab.com/en/55369/
+      - https://unit42.paloaltonetworks.com/manic-menagerie-targets-web-hosting-and-it/
+      - https://starlabs.sg/blog/2023/04-microsoft-exchange-powershell-remoting-deserialization-leading-to-rce-cve-2023-21707/
+      - https://www.microsoft.com/en-us/security/blog/2022/12/12/iis-modules-the-evolution-of-web-shells-and-how-to-detect-them/
+      - https://github.com/testanull/ProxyNotShell-PoC
+      - https://twitter.com/wdormann/status/1593311129874403335
+      - https://securitylabs.datadoghq.com/articles/openssl-november-1-vulnerabilities/
+      - https://twitter.com/thezdi/status/1575871397867712512
+      - https://www.gteltsc.vn/blog/warning-new-attack-campaign-utilized-a-new-0day-rce-vulnerability-on-microsoft-exchange-server-12715.html
+      - https://www.rapid7.com/blog/post/2022/09/29/suspected-post-authentication-zero-day-vulnerabilities-in-microsoft-exchange-server/
+      - https://twitter.com/testanull/status/1542022704920170497
+      - https://expel.io/blog/how-to-find-anomalous-process-relationships-threat-hunting/
+      - https://asec.ahnlab.com/en/53132/
+      - https://unit42.paloaltonetworks.com/threat-brief-moveit-cve-2023-34362/
+      - https://asec.ahnlab.com/ko/64558/
+      - https://asec.ahnlab.com/en/65390/
+      - https://asec.ahnlab.com/en/66088/
+      - https://www.trendmicro.com/en_us/research/25/a/investigating-a-web-shell-intrusion-with-trend-micro--managed-xd.html
+      - https://intezer.com/blog/research/xe-group-exploiting-zero-days/
+      - https://thedfirreport.com/2025/02/24/confluence-exploit-leads-to-lockbit-ransomware/
+      - https://asec.ahnlab.com/en/86687/
+      - https://www.sygnia.co/threat-reports-and-advisories/weaver-ant-tracking-a-china-nexus-cyber-espionage-operation/
+      - https://www.huntress.com/blog/cve-2025-30406-critical-gladinet-centrestack-triofox-vulnerability-exploited-in-the-wild
+      - https://www.cloudsek.com/blog/an-insider-look-at-the-irgc-linked-apt35-operations-ep3-malware-arsenal-tooling
+      - https://research.checkpoint.com/2025/ink-dragons-relay-network-and-offensive-operation/
+      - https://www.huntress.com/blog/active-exploitation-gladinet-centrestack-triofox-insecure-cryptography-vulnerability
+      - https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/joint-advisory-on-altdos-(1).pdf
+  author: SOC Prime Team
+  tags:
+      - attack.persistence
+      - attack.initial_access
+      - attack.t1505.003
+      - attack.t1190
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          - ParentImage|endswith:
+              - 'w3wp.exe' #CVE-2025-53770; https://www.picussecurity.com/resource/blog/cve-2025-53770-critical-unauthenticated-rce-in-microsoft-sharepoint; https://research.checkpoint.com/2025/ink-dragons-relay-network-and-offensive-operation/
+              - 'httpd.exe' #https://www.huntress.com/blog/nezha-china-nexus-threat-actor-tool
+              - 'php-cgi.exe' # https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+          - ParentImage|contains|all:
+              - '.exe'
+              - 'tomcat' #tomcat9.exe # CVE-2024-56337 / CVE-2024-50379
+      filter_chain1:
+          ParentImage|endswith: 'w3wp.exe'
+          Image|endswith:
+              - 'where.exe' #uaisevalPool.config
+              - 'dotnet.exe' #"dotnet.exe" .\CVWebServer.dll --iis --instance Instance001 --mode WebServer
+              - 'php-cgi.exe'
+      filter_chain2:
+          ParentImage|endswith: 'httpd.exe'
+          Image|endswith: '.cgi'
+      filters:
+          - CommandLine|contains|all:
+              - 'REG QUERY'
+              - 'ProductName'
+          - CommandLine|contains:
+              - 'Get-AuthenticodeSignature' #w3wp.exe -> ps -> "Powershell.exe" "(Get-AuthenticodeSignature -FilePath 'C:\CyberArk\Password Vault Web Access\RDPFileSigning\Cyberark.FileSystemAPIWrraper.dll').Status"\u000a
+          - Image|contains:
+              - 'EnergySuite.OrganizationWeb'
+              - '\Exchange Server\' #\Device\HarddiskVolume5\Exchange Server\V15\Bin\OleConverter.exe
+              - '\Microsoft Shared\' #\Device\HarddiskVolume2\Program Files\Common Files\Microsoft Shared\Web Server Extensions\14\BIN\CsiSrvExe.exe
+          - Image|endswith:
+              - 'Select.Html.dep' #
+              - 'rotatelogs.exe' #"C:\Program Files\Apache HTTP Proxy 2.4.46\bin\rotatelogs.exe" -n 10 "C:/Program Files/Apache HTTP Proxy 2.4.46/logs/error.log" 1M
+              - 'conhost.exe'
+              - 'cvtres.exe' #C:\Windows\Microsoft.NET\Framework64\v4.0.30319\cvtres.exe /NOLOGO /READONLY /MACHINE:IX86 "/OUT:C:\Users\xxx\AppData\Local\Temp\RES17BA.tmp" "C:\Users\xxx\AppData\Local\Temp\RES17B9.tmp"
+              - 'wermgr.exe' #w3wp.exe -> wermgr.exe
+              - 'WerFault.exe' #crashes
+              - 'csc.exe'
+              - 'vbc.exe'
+              - 'TranscodingService.exe'
+              - 'w3wp.exe' # If multiple instances of the w3wp.exe process are running on the server, each instance will be assigned a unique instance number.
+              - 'httpd.exe'
+              - 'inetinfo.exe' #This process is used to manage IIS and its related services.
+              - 'aspnet_wp.exe' #This process is used to host ASP.NET web applications.
+              - ':\Windows\System32\conhost.exe' #from sigma baselining
+              - 'OWSTIMER.exe' # https://blog.securelayer7.net/cve-2026-45659-sharepoint-deserialization-rce/
+              - 'SPWriter.exe' # https://blog.securelayer7.net/cve-2026-45659-sharepoint-deserialization-rce/
+              - 'noderunner.exe' # https://blog.securelayer7.net/cve-2026-45659-sharepoint-deserialization-rce/
+              - 'mssearch.exe' # https://blog.securelayer7.net/cve-2026-45659-sharepoint-deserialization-rce/
+              - 'wsstracing.exe' # https://blog.securelayer7.net/cve-2026-45659-sharepoint-deserialization-rce/
+              - 'dllhost.exe' # https://blog.securelayer7.net/cve-2026-45659-sharepoint-deserialization-rce/
+      condition: selection and not (filters or filter_chain1 or filter_chain2)
+  falsepositives:
+      - A web application that uses system binaries like powershell, cmd etc. to perform its tasks is rare.
+  level: high
+level: high
+created: '2021-12-21T11:27:11Z'
+updated: '2026-10-21T10:13:15.676000Z'

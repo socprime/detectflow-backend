@@ -1,0 +1,262 @@
+id: YsMoSUgs4PTb
+name: Possible Account or Group Enumeration / Manipulation (via cmdline)
+body: |-
+  title: Possible Account or Group Enumeration / Manipulation (via cmdline)
+  id: 8a701e5f-a0a6-4f58-9a35-1f29a08e4f79
+  status: stable
+  description: Adversaries may attempt to get a listing/permissions and other info of local system or domain accounts. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives. It is highly recommended to baseline your activity and tune out common business use cases.
+  author: SOC Prime Team
+  references:
+      - https://www.security.com/threat-intelligence/swallowtail-russia-nato-targets
+      - https://www.esentire.com/blog/papercut-mf-zero-day-intrusion-java-loader-web-shell-and-adaptixc2-via-cve-2026-82078-and-cve-2026-81578
+      - https://www.microsoft.com/en-us/security/blog/2026/09/02/impersonating-it-support-threat-actors-turn-remote-session-into-enterprise-wide-access/
+      - https://scamdrill.com/blog/teams-help-desk-impersonation-smb
+      - https://www.security.com/threat-intelligence/node-js-returns-ransomware
+      - https://expel.com/blog/synkloader-when-you-throw-in-everything-but-the-kitchen-sink/
+      - https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/
+      - https://www.zscaler.com/blogs/security-research/c2looper-new-backdoor-likely-tied-ransomware-github-c2
+      - https://blog.deception.pro/blog/clickfix-spacex1337-hok-2026
+      - https://asec.ahnlab.com/en/94685/
+      - https://www.zscaler.com/blogs/security-research/helpdesk-hijackers-teams-vishing-quick-assist-and-gogrpc-backdoor
+      - https://zerobec.com/blog/operation-bluedash-multi-rmm-workplace-phishing
+      - https://asec.ahnlab.com/en/94552/
+      - https://www.zscaler.com/blogs/security-research/targeted-attack-government-entities-middle-east-part-1
+      - https://www.elastic.co/security-labs/mexican-banking-fraud-scmbanker-ref6045
+      - https://www.huntress.com/blog/mimikatz-credential-dumping-defence-impairment
+      - https://thehackernews.com/2026/06/new-sharkloader-malware-deploys-cobalt.html
+      - https://thedfirreport.com/2026/06/29/from-bing-search-to-ransomware-bumblebee-and-adaptixc2-deliver-akira-3/
+      - https://www.picussecurity.com/resource/blog/unc1549-ttps-iranian-apt-targeting-aerospace-and-defense
+      - https://reliaquest.com/blog/threat-spotlight-reliaquests-agentic-ai-uncovers-new-china-linked-cluster-op-512
+      - https://isc.sans.edu/diary/rss/33024
+      - https://hackers-arise.com/digital-forensics-hunting-chinese-apts-abusing-native-windows-tools/
+      - https://www.rapid7.com/blog/post/tr-it-support-dissecting-modelorat-campaign-microsoft-teams-compromise/
+      - https://reliaquest.com/blog/threat-spotlight-clickfix-evolves-with-pysoxy-proxying
+      - https://www.security.com/threat-intelligence/iran-seedworm-electronics
+      - https://hunt.io/blog/iranian-nexus-oman-government-intrusion
+      - https://thehackernews.com/2026/04/lotus-wiper-malware-targets-venezuelan.html
+      - https://www.trendmicro.com/en_us/research/26/d/inside-shadow-earth-053.html
+      - https://www.securonix.com/blog/deepdoor-python-backdoor-and-credential-stealer/
+      - https://zenox.ai/en/lofystealer-malware-mirando-jogadores-de-minecraft/
+      - https://www.huntress.com/blog/nightmare-eclipse-intrusion
+      - https://www.picussecurity.com/resource/blog/notepad-supply-chain-attack-chrysalis-backdoor
+      - https://www.security.com/threat-intelligence/ukraine-russia-attacks
+      - https://cert.gov.ua/article/6284730
+      - https://unit42.paloaltonetworks.com/cybercriminals-attack-financial-sector-across-africa/
+      - https://redcanary.com/blog/threat-intelligence/mocha-manakin-nodejs-backdoor/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-141a
+      - https://www.attackiq.com/2025/05/21/response-to-cisa-advisory-aa25-141a
+      - https://blog.eclecticiq.com/sandworm-apt-targets-ukrainian-users-with-trojanized-microsoft-kms-activation-tools-in-cyber-espionage-campaigns
+      - https://www.cyber.gov.au/about-us/view-all-content/alerts-and-advisories/stopransomware-bianlian-ransomware-group
+      - https://www.cybertriage.com/blog/dfir-breakdown-impacket-remote-execution-activity-atexec/
+      - https://unit42.paloaltonetworks.com/repellent-scorpius-cicada3301-ransomware/
+      - https://research.checkpoint.com/2024/bad-karma-no-justice-void-manticore-destructive-activities-in-israel/
+      - https://cloud.google.com/blog/topics/threat-intelligence/untangling-iran-apt42-operations
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-109a
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-347a
+      - https://www.infosecurity-magazine.com/news/signature-techniques-of-asian-apt/
+      - https://unit42.paloaltonetworks.com/agonizing-serpens-targets-israeli-tech-higher-ed-sectors/
+      - https://unit42.paloaltonetworks.com/threat-brief-cve-2023-4966-netscaler-citrix-bleed/
+      - https://www.sentinelone.com/labs/operation-tainted-love-chinese-apts-target-telcos-in-new-attacks/
+      - https://asec.ahnlab.com/en/55369/
+      - https://www.welivesecurity.com/2023/06/08/asylum-ambuscade-crimeware-or-cyberespionage/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-144a
+      - https://securityintelligence.com/posts/x-force-prevents-zero-day-from-going-anywhere/
+      - https://www.mandiant.com/resources/blog/unc961-multiverse-financially-motivated
+      - https://www.mandiant.com/resources/blog/turla-galaxy-opportunity
+      - https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+      - https://www.mandiant.com/resources/likely-iranian-threat-actor-conducts-politically-motivated-disruptive-activity-against?1
+      - https://www.deepinstinct.com/blog/operation-rusty-flag-a-malicious-campaign-against-azerbaijanian-targets
+      - https://www.secureworks.com/research/gold-melody-profile-of-an-initial-access-broker
+      - https://www.welivesecurity.com/en/eset-research/operation-jacana-spying-guyana-entity/
+      - https://www.microsoft.com/en-us/security/blog/2023/10/18/multiple-north-korean-threat-actors-exploiting-the-teamcity-cve-2023-42793-vulnerability/
+      - https://thedfirreport.com/2023/10/30/netsupport-intrusion-results-in-domain-compromise/
+      - https://thehackernews.com/2023/10/researchers-unveil-toddycats-new-set-of.html
+      - https://unit42.paloaltonetworks.com/threat-brief-cve-2023-4966-netscaler-citrix-bleed/
+      - https://www.esentire.com/blog/nitrogen-campaign-2-0-reloads-with-enhanced-capabilities-leading-to-alphv-blackcat-ransomware
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-319a
+      - https://thedfirreport.com/2023/12/04/sql-brute-force-leads-to-bluesky-ransomware/
+      - https://www.intrinsec.com/akira_ransomware/
+      - https://www.esentire.com/blog/danabots-latest-move-deploying-icedid
+      - https://blog.talosintelligence.com/lazarus_new_rats_dlang_and_telegram/
+      - https://thedfirreport.com/2023/12/18/lets-opendir-some-presents-an-analysis-of-a-persistent-actors-activity/
+      - https://www.trendmicro.com/en_us/research/24/d/earth-freybug.html
+      - https://blogs.blackberry.com/en/2024/04/fin7-targets-the-united-states-automotive-industry
+      - https://decoded.avast.io/janrubin/guptiminer-hijacking-antivirus-updates-for-distributing-backdoors-and-casual-mining/
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-frozenshadow-attack-campaign/
+      - https://asec.ahnlab.com/ko/64558/
+      - https://www.esentire.com/blog/socgholish-sets-sights-on-victim-peers
+      - https://www.elastic.co/security-labs/spring-cleaning-with-latrodectus
+      - https://www.elastic.co/security-labs/dipping-into-danger
+      - https://asec.ahnlab.com/en/66720/
+      - https://www.rapid7.com/blog/post/2024/06/17/malvertising-campaign-leads-to-execution-of-oyster-backdoor/
+      - https://thorcert.notion.site/TTPs-11-Operation-An-Octopus-d875862055ca4b7b815b5e496b219671
+      - https://blogs.blackberry.com/en/2024/07/akira-ransomware-targets-the-latam-airline-industry
+      - https://www.attackiq.com/2024/07/26/response-to-cisa-advisory-aa24-207a/
+      - https://www.securonix.com/blog/from-cobalt-strike-to-mimikatz-slowtempest/
+      - https://www.attackiq.com/2024/08/30/emulating-mallox-ransomware/
+      - https://www.attackiq.com/2024/12/12/emulating-fin7-part-1/
+      - https://doublepulsar.com/handala-attempts-a-supply-chain-hack-via-reutone-001aa3cc684f
+      - https://news.sophos.com/en-us/2025/01/21/sophos-mdr-tracks-two-ransomware-campaigns-using-email-bombing-microsoft-teams-vishing/
+      - https://www.attackiq.com/2025/02/14/emulating-fin7-part-2/
+      - https://www.fortinet.com/blog/threat-research/havoc-sharepoint-with-microsoft-graph-api-turns-into-fud-c2
+      - https://www.trendmicro.com/en_us/research/25/d/earth-kasha-updates-ttps.html
+      - https://thedfirreport.com/2025/07/14/kongtuke-filefix-leads-to-new-interlock-rat-variant/
+      - https://blog.talosintelligence.com/new-chaos-ransomware/
+      - https://www.forescout.com/blog/a-year-later-interlock-ransomware-keeps-leveling-up/
+      - https://asec.ahnlab.com/ko/90717/
+      - https://blog.talosintelligence.com/uncovering-qilin-attack-methods-exposed-through-multiple-cases/
+      - https://www.cloudsek.com/blog/an-insider-look-at-the-irgc-linked-apt35-operations-ep3-malware-arsenal-tooling
+      - https://www.huntress.com/blog/gootloader-threat-detection-woff2-obfuscation
+      - https://thedfirreport.com/2025/11/17/cats-got-your-files-lynx-ransomware/
+      - https://www.attackiq.com/2025/11/14/sandworm/
+      - https://www.huntress.com/blog/velociraptor-misuse-part-one-wsus-up
+      - https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+      - https://www.picussecurity.com/resource/blog/funksec-raas-operations-hacktivism-meets-cybercrime
+      - https://blog.talosintelligence.com/uat-8837/
+      - https://www.picussecurity.com/resource/blog/hunters-international-ransomware
+      - https://www.huntress.com/blog/hacked-construction-apps-bringing-down-jobsite-security
+      - https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-gogitter-gitshellpad-and-goshell
+      - https://blog.talosintelligence.com/uat-8099-new-persistence-mechanisms-and-regional-focus/
+      - https://www.fortinet.com/blog/threat-research/interlock-ransomware-new-techniques-same-old-tricks
+      - https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399
+      - https://www.elastic.co/security-labs/solarwinds-whd-exploitation
+      - https://www.huntress.com/blog/clickfix-matanbuchus-astarionrat-analysis
+      - https://cert.pl/en/posts/2026/02/fake-captcha-in-action/
+      - https://www.magicsword.io/blog/apple-ios-certificate-windows-malware
+      - https://www.recordedfuture.com/research/graycharlie-hijacks-law-firm-sites-suspected-supply-chain-attack
+      - https://www.veracode.com/blog/malicious-npm-package-hiding-in-plain-pixels/
+      - https://thedfirreport.com/2026/02/23/apache-activemq-exploit-leads-to-lockbit-ransomware/
+      - https://blog.deception.pro/blog/clickfix-hok-velvet-tempest-termite
+      - https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492
+      - https://www.bleepingcomputer.com/news/security/how-a-brute-force-attack-unmasked-a-ransomware-infrastructure-network/
+      - https://www.intel471.com/blog/cve-2026-1731-finding-a-critical-rce-in-an-age-of-ai-driven-vulnerability-research
+      - https://www.picussecurity.com/resource/blog/t1059-003-windows-command-shell
+      - https://www.picussecurity.com/resource/blog/t1071-001-web-protocols
+      - https://asec.ahnlab.com/en/92988/
+      - https://www.derp.ca/research/interlock-tooling-teardown/
+      - https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons
+  tags:
+      - attack.discovery
+      - attack.t1087.001
+      - attack.t1087.002
+      - attack.t1033
+      - attack.persistence
+      - attack.t1098.007
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_scope_process_creation:
+          ParentImage|contains: '.exe' #to avoide possible match with image_load, etc.
+      selection:
+          Image|endswith:
+              - 'chcp.com'
+              - 'whoami.exe' #https://cert.gov.ua/article/6284730; https://www.security.com/threat-intelligence/ukraine-russia-attacks; https://www.attackiq.com/2025/11/14/sandworm/; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-gogitter-gitshellpad-and-goshell; https://www.picussecurity.com/resource/blog/t1059-003-windows-command-shell; https://asec.ahnlab.com/en/92988/
+              - 'wmic.exe'
+              - '\net.exe' #https://www.attackiq.com/2025/11/14/sandworm/; https://blog.talosintelligence.com/uat-8837/; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-gogitter-gitshellpad-and-goshell; https://blog.talosintelligence.com/uat-8099-new-persistence-mechanisms-and-regional-focus/; https://cert.pl/en/posts/2026/02/fake-captcha-in-action/; https://www.recordedfuture.com/research/graycharlie-hijacks-law-firm-sites-suspected-supply-chain-attack; https://thedfirreport.com/2026/02/23/apache-activemq-exploit-leads-to-lockbit-ransomware/; https://www.veracode.com/blog/malicious-npm-package-hiding-in-plain-pixels/; https://blog.deception.pro/blog/clickfix-hok-velvet-tempest-termite; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://www.bleepingcomputer.com/news/security/how-a-brute-force-attack-unmasked-a-ransomware-infrastructure-network/; https://www.intel471.com/blog/cve-2026-1731-finding-a-critical-rce-in-an-age-of-ai-driven-vulnerability-research
+              - 'net1.exe' #https://www.recordedfuture.com/research/graycharlie-hijacks-law-firm-sites-suspected-supply-chain-attack; https://www.bleepingcomputer.com/news/security/how-a-brute-force-attack-unmasked-a-ransomware-infrastructure-network/
+              - 'dsquery.exe' #https://cert.gov.ua/article/6284730; https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis; https://blog.talosintelligence.com/uat-8837/; https://www.picussecurity.com/resource/blog/hunters-international-ransomware
+              - 'dsget.exe' #dsget.exe user -samid -display -email -upn; https://blog.talosintelligence.com/uat-8837/
+          CommandLine|contains:
+              - '-filter'
+              - '-limit' #dsquery.exe user -limit 0; https://blog.talosintelligence.com/uat-8837/
+              - '2>&1' #cmd /c "cd /d "C:/<path>/jboss-4.2.3.GA/bin/"&net user" 2>&1
+              - '/all' # https://hunt.io/blog/iranian-nexus-oman-government-intrusion; https://www.security.com/threat-intelligence/iran-seedworm-electronics; https://www.rapid7.com/blog/post/tr-it-support-dissecting-modelorat-campaign-microsoft-teams-compromise/; https://blog.deception.pro/blog/clickfix-spacex1337-hok-2026; https://expel.com/blog/synkloader-when-you-throw-in-everything-but-the-kitchen-sink/; https://www.microsoft.com/en-us/security/blog/2026/09/02/impersonating-it-support-threat-actors-turn-remote-session-into-enterprise-wide-access/; https://www.security.com/threat-intelligence/swallowtail-russia-nato-targets
+              - '-all'
+              - '/upn'
+              - '/fqdn'
+              - 'useraccount'
+              - 'user' #https://cert.gov.ua/article/6284730; https://thedfirreport.com/2025/11/17/cats-got-your-files-lynx-ransomware/; https://www.intel471.com/blog/cve-2026-1731-finding-a-critical-rce-in-an-age-of-ai-driven-vulnerability-research; https://www.picussecurity.com/resource/blog/t1071-001-web-protocols; https://www.picussecurity.com/resource/blog/unc1549-ttps-iranian-apt-targeting-aerospace-and-defense; https://www.zscaler.com/blogs/security-research/targeted-attack-government-entities-middle-east-part-1
+              - 'group' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://www.elastic.co/security-labs/solarwinds-whd-exploitation; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://www.intel471.com/blog/cve-2026-1731-finding-a-critical-rce-in-an-age-of-ai-driven-vulnerability-research; https://www.securonix.com/blog/deepdoor-python-backdoor-and-credential-stealer/; https://reliaquest.com/blog/threat-spotlight-clickfix-evolves-with-pysoxy-proxying
+              - 'accounts'
+              - 'localgroup'
+              - 'domain' #https://www.huntress.com/blog/clickfix-matanbuchus-astarionrat-analysis
+              - '/priv' # https://www.huntress.com/blog/nightmare-eclipse-intrusion; https://reliaquest.com/blog/threat-spotlight-reliaquests-agentic-ai-uncovers-new-china-linked-cluster-op-512; https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/
+              - 'ds_user'
+              - 'ds_group'
+              - 'ds_computer'
+              #- '/domain'
+              - '/dom' #https://unit42.paloaltonetworks.com/cybercriminals-attack-financial-sector-across-africa/; https://www.security.com/threat-intelligence/ukraine-russia-attacks; https://www.zscaler.com/blogs/security-research/c2looper-new-backdoor-likely-tied-ransomware-github-c2; https://www.security.com/threat-intelligence/node-js-returns-ransomware
+              - '/add'
+              #- '/delete' #FPs in big env.
+              - '/active' #https://thehackernews.com/2026/04/lotus-wiper-malware-targets-venezuelan.html
+              - '/expires'
+              - '/passwordreq'
+              - '/scriptpath'
+              - '/times' #https://thehackernews.com/2026/04/lotus-wiper-malware-targets-venezuelan.html
+              - '/workstations'
+              - 'site' #https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
+              - 'session' #https://www.picussecurity.com/resource/blog/funksec-raas-operations-hacktivism-meets-cybercrime; https://www.derp.ca/research/interlock-tooling-teardown/; https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons; https://zenox.ai/en/lofystealer-malware-mirando-jogadores-de-minecraft/
+      selection_ps:
+          CommandLine|contains:
+              - 'Get-LocalGroup'
+              - 'Get-LocalGroupMember' # https://zerobec.com/blog/operation-bluedash-multi-rmm-workplace-phishing
+              - 'Get-LocalUser' #https://blog.eclecticiq.com/sandworm-apt-targets-ukrainian-users-with-trojanized-microsoft-kms-activation-tools-in-cyber-espionage-campaigns
+              - 'Microsoft.ActiveDirectory.Management.dll'
+      selection_rare_images:
+          Image|endswith:
+              - 'quser.exe' #https://unit42.paloaltonetworks.com/cybercriminals-attack-financial-sector-across-africa/; https://blog.talosintelligence.com/uat-8837/
+              - 'qwinsta.exe' #https://thehackernews.com/2026/04/lotus-wiper-malware-targets-venezuelan.html
+              - 'ldifde.exe' #ldifde.exe -f c:\windows\temp\.txt -p subtree; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://hackers-arise.com/digital-forensics-hunting-chinese-apts-abusing-native-windows-tools/
+              - 'csvde.exe' #https://social.technet.microsoft.com/wiki/contents/articles/2113.comma-separated-value-directory-exchange-csvde-utility.aspx
+              - 'whoami.exe' #https://blog.talosintelligence.com/uat-8837/; https://www.picussecurity.com/resource/blog/notepad-supply-chain-attack-chrysalis-backdoor
+              - 'klist.exe'
+      filter_chain_1:
+          ParentImage|endswith: 'powershell.exe'
+          Image|endswith: 'net.exe'
+          CommandLine|endswith: 'accounts'
+      filter_chain_2:
+          ParentImage|endswith: 'net.exe'
+          Image|endswith: 'net1.exe'
+          CommandLine|endswith: 'accounts'
+      filter_chain_3:
+          ParentImage|endswith: 'SRE.exe'
+          Image|endswith: 'cmd.exe'
+          CommandLine|endswith: 'user'
+      filter_chain_4:
+          ParentImage|endswith: 'quser.exe'
+          Image|endswith: 'quser.exe'
+          CommandLine|endswith: '"'
+      filter_chain_5:
+          ParentImage|endswith: 'powershell.exe'
+          Image|endswith: 'quser.exe'
+          CommandLine|endswith: '"C:\Windows\system32\quser.exe"'
+      filters:
+          - CommandLine|endswith:
+              - 'stop wuauserv'
+          - ParentImage|contains|all:
+              - '\Program'
+              - 'Files'
+          - ParentImage|endswith:
+              - '\node.exe'
+              - 'wazuh-agent.exe'
+              - 'cleanmgr.exe'
+              - 'thor64.exe'
+              - 'amazon-ssm-agent.exe'
+              - 'PrinterLogicIdpAuthentication.exe'
+              - 'AwWindowsIpc.exe'
+              - 'EikonBoxNet.exe'
+              - 'TaxBack.exe'
+              - 'MonitoringHost.exe'
+              - 'ssm-agent-worker.exe'
+              - '32\svchost.exe' #task sheduler
+          #- CommandLine:
+          #    - '"net.exe" accounts' #C:\ProgramData\Microsoft\Windows Defender Advanced Threat Protection\DataCollection\
+          #- User|contains:
+          #    - '$'
+          #    - 'SYSTEM'
+          #    - 'SERVICE'
+          #    - 'AUTHORITY'
+          - Image|endswith:
+              - 'tasklist.exe'
+              - '.net.exe' #Battle.net.exe
+      condition: selection_scope_process_creation and (selection or selection_ps or selection_rare_images) and not (filters or filter_chain_1 or filter_chain_2 or filter_chain_3 or filter_chain_4 or filter_chain_5)
+  falsepositives:
+      - Administrative activity.
+      - It is highly recommended to baseline your activity and tune out common business use cases.
+      - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: low
+level: low
+created: '2020-05-18T10:36:08Z'
+updated: '2026-10-20T15:12:22.294000Z'

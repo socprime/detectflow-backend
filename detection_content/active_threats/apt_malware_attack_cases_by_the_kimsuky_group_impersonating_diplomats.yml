@@ -1,0 +1,59 @@
+id: 3ltsjp8BFsA9Tj2-3K8l
+name: APT Malware Attack Cases by the Kimsuky Group Impersonating Diplomats
+created: '2026-10-20T12:00:00Z'
+updated: '2026-10-30T12:58:20Z'
+summary: The Kimsuky group is conducting spear phishing campaigns by impersonating diplomatic personnel to target the education sector. The attacks utilize LNK files and PowerShell scripts to deploy a variety of malware including the PebbleDash backdoor, PrxClient proxy, and RDP Wrapper. These tools are used for remote control, privilege escalation and data exfiltration.
+severity: Critical
+investigation: The investigation identified two distinct attack cases. Case 1 involved LNK files executing PowerShell droppers to install downloader scripts and information-gathering scripts. Case 2 utilized LNK files to launch malicious HTA scripts via Mshta, which established persistence through scheduled tasks.
+response: Update V3 security software to the latest version to prevent infection. Upon detection, isolate infected systems to prevent lateral movement via RDP. Conduct a thorough forensic analysis to identify compromised accounts and exfiltrated data.
+mitigation: Users should exercise extreme caution when handling email attachments and executable files from unknown sources. It is critical to verify the legitimacy of any document or file before execution. Organizations should implement strict controls over macro and script execution via email.
+industries:
+- All
+geographies:
+- Asia Pacific
+- South Korea
+threat_types:
+- APT
+- Malware
+- Phishing
+threat_actors:
+- G0094
+techniques:
+- T1027
+- T1027.006
+- T1027.010
+- T1041
+- T1071.002
+attack_flow: |
+  flowchart TD
+      step_initial_access["T1598.002 - Phishing for Information: Spearphishing Attachment & T1598.003 - Spearphishing Link: Impersonating diplomatic personnel with decoy documents."]
+      step_execution["T1204.002 - User Execution: Malicious File & T1218.005 - System Binary Proxy Execution: Mshta/PowerShell scripts used as droppers for payloads."]
+      rules_for_step_execution("<b>Rule Name</b>: Suspicious Windows DNS Query by Windows Script Host [wscript.exe] (via dns_query)<br/><b>Rule ID</b>: 63f2ae8a-6912-4ea9-ad2c-369f4555a549")
+      step_persistence["T1053.005 - Scheduled Task/Job: Scheduled Task & T1547 - Boot or Logon Autostart Execution: Using 'Windows Templates Update' and registry keys."]
+      step_privilege_escalation["T1548.002 - Abuse Elevation Control Mechanism: Bypass User Account Control & T1068 - Exploitation for Privilege Escalation: Using UACMe and SspiUacBypass."]
+      step_malware_installation["T1055 - Process Injection: PebbleDash backdoor injecting into LSASS via sqliom.Dll."]
+      step_c2["T1219 - Remote Access Tools & T1090.002 - Proxy: External Proxy: Using PrxClient and RDP Wrapper for concurrent sessions."]
+      step_exfiltration["T1056.001 - Input Capture: Keylogging & T1129 - Collection: Using capture.Ps1 to collect and exfiltrate local files."]
+      step_initial_access -->|leads_to| step_execution
+      step_execution -->|leads_to| step_persistence
+      step_persistence -->|leads_to| step_privilege_escalation
+      step_privilege_escalation -->|leads_to| step_malware_installation
+      step_malware_installation -->|enables| step_c2
+      step_c2 -->|enables| step_exfiltration
+      step_execution -.->|detected_by| rules_for_step_execution
+related_high_order_sigma_rules:
+- r0LqNjnpT21W
+related_behavioral_rules:
+- ghBrwugpnrCz
+- xdR0sSRuC7Ep
+- 6qXVCVRzfYi9
+- wXnIjRNfXGQJ
+- lwTxvspCLlJF
+- uZUl3E6NAA32
+- 2zSZM1ruWb8g
+- YsMoSUgs4PTb
+- Z3VKB8NqEBrD
+- RvmzKluPtZqZ
+- b8iBZ54cBsrJ
+- brHJVSBIeRwk
+- fhwLLlUDzPvM

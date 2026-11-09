@@ -1,0 +1,33 @@
+id: 32Sm9Z8BMeMRSNTKrCHB
+name: Windows Privilege Escalation & Persistence (DetectFlow Attack Chains DEMO)
+created: '2026-08-12T11:04:07Z'
+updated: '2026-09-24T05:27:41Z'
+summary: This detection identifies potentially malicious Windows activity associated with privilege escalation, persistence, account manipulation, and defense evasion. It correlates suspicious Windows service creation or modification, scheduled task creation or modification, unauthorized additions to local administrative groups, privileged account password changes and clearing of Windows Security Audit logs. Individually, these events may represent legitimate administrative activity; however, their occurrence can indicate an attacker establishing persistence, obtaining or maintaining elevated privileges, manipulating privileged accounts, or attempting to reduce forensic visibility. The activity should therefore be investigated in the context of the affected host, user, process, and surrounding events to determine whether it represents legitimate administration or malicious post-compromise behavior.
+severity: Medium
+investigation: Not Specified
+response: Not Specified
+mitigation: Not Specified
+industries:
+- All
+geographies:
+- Global
+threat_types:
+- APT
+- Ransomware
+threat_actors: []
+techniques:
+- T1591.003
+- T1591.004
+- T1595
+- T1595.001
+- T1595.002
+attack_flow: null
+related_high_order_sigma_rules:
+- knjkfvZHX16t
+related_behavioral_rules:
+- iIUUKWOhrjVs
+- NFkWexYqKbf1
+- KMehetmJxnYd
+- RoYUM7zalkSx
+- kVHel9C2eWkQ
+- WyIuDh11DVSi

@@ -1,0 +1,65 @@
+id: 1ytG2kdIxU1I
+name: Suspicious Mshta Execution Without HTA File (via cmdline)
+body: |-
+  title: Suspicious Mshta Execution Without HTA File (via cmdline)
+  id: 9387fadc-274f-4326-94f3-cf2eaa539096
+  description: This rule detects the execution of non-.hta files by the mshta.exe binary, which may serve as an indicator of malicious activity.
+  status: stable
+  references:
+    - https://www.malware-traffic-analysis.net/2026/07/31/index.html
+    - https://www.reliaquest.com/blog/threat-spotlight-cyber-attacker-techniques-dec-2024-to-feb-2025/
+    - https://cert.gov.ua/article/6282536
+    - https://www.recordedfuture.com/research/bluealpha-abuses-cloudflare-tunneling-service
+    - https://cert.gov.ua/article/6280129
+    - https://cert.gov.ua/article/5661411
+    - https://cert.gov.ua/article/4697016
+    - https://redcanary.com/blog/intelligence-insights-december-2021/
+    - https://www.seqrite.com/blog/sidecopys-multi-platform-onslaught-leveraging-winrar-zero-day-and-linux-variant-of-ares-rat/
+    - https://asec.ahnlab.com/en/58919/
+    - https://cyble.com/blog/threat-actor-targets-manufacturing-industry-with-malware/
+    - https://www.forcepoint.com/blog/x-labs/xworm-malware-targets-united-kingdom-hospitality-sector
+    - https://any.run/cybersecurity-blog/manufacturing-companies-targeted-with-lumma/
+    - https://medium.com/trac-labs/peaklight-illuminating-the-shadows-02a1bb44885c
+    - https://neonprimetime.blogspot.com/2025/01/cloudlfare-captcha-netsupport-rat.html
+    - https://www.esentire.com/security-advisories/netsupport-rat-clickfix-distribution
+    - https://www.cloudsek.com/blog/lumma-stealer-chronicles-pdf-themed-campaign-using-compromised-educational-institutions-infrastructure
+    - https://labs.k7computing.com/index.php/tracking-emmenhtal/
+    - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/resurgence-of-a-fake-captcha-malware-campaign/
+    - https://blog.sekoia.io/clearfakes-new-widespread-variant-increased-web3-exploitation-for-malware-delivery/
+    - https://www.fortinet.com/blog/threat-research/rolandskimmer-silent-credit-card-thief-uncovered
+    - https://www.security.com/threat-intelligence/shuckworm-ukraine-gammasteel
+    - https://www.cybereason.com/blog/threat-analysis-lummastealer-2.0
+    - https://www.picussecurity.com/resource/blog/lumma-infostealer-continues-its-github-social-engineering-campaign
+    - https://thedfirreport.com/2025/05/19/another-confluence-bites-the-dust-falling-to-elpaco-team-ransomware/
+    - https://www.netskope.com/blog/purehvnc-rat-using-fake-high-level-job-offers-from-fashion-and-beauty-brands
+    - https://www.fortinet.com/blog/threat-research/svg-phishing-hits-ukraine-with-amatera-stealer-pureminer
+    - https://www.trellix.com/blogs/research/sidewinders-shifting-sands-click-once-for-espionage/
+    - https://blog.talosintelligence.com/uncovering-qilin-attack-methods-exposed-through-multiple-cases/
+    - https://www.trendmicro.com/en_us/research/25/k/lumma-stealer-browser-fingerprinting.html
+    - https://isc.sans.edu/diary/rss/32474
+    - https://www.huntress.com/blog/clickfix-malware-buried-in-images
+    - https://www.morphisec.com/blog/pystorerat-a-new-ai-driven-supply-chain-malware-campaign-targeting-it-osint-professionals/
+    - https://www.bluevoyant.com/blog/augmented-marauders-multi-pronged-casbaneiro-campaigns
+  author: SOC Prime Team
+  tags:
+    - attack.defense_evasion
+    - attack.t1218.005
+  logsource:
+    product: windows
+    category: process_creation
+  detection:
+    selection:
+      ParentImage|endswith:
+        - '.exe'
+        - '.tmp'
+        - '.src'
+      Image|endswith: 'mshta.exe'
+    filters:
+      CommandLine|contains: '.hta' #%WINDIR%\System32\mshta.exe %PROGRAMDATA%\scripts\SoftwareProtectionPlatform; cmd.exe /c start "" "mshta" "%CD%\16872_16_2023_03049.lnk"
+    condition: selection and not filters
+  falsepositives:
+    - Unlikely
+  level: high
+level: high
+created: '2021-12-23T15:45:34Z'
+updated: '2026-08-04T07:25:15.552000Z'

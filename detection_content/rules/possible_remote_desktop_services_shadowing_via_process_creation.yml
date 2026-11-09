@@ -1,0 +1,86 @@
+id: brHJVSBIeRwk
+name: Possible Remote Desktop Services Shadowing (via process_creation)
+body: |-
+  title: Possible Remote Desktop Services Shadowing (via process_creation)
+  id: 0c5583a2-c83a-4c56-9304-f7c394cbbada
+  status: stable
+  author: SOC Prime Team
+  description: This feature allows administrators to view sessions, but also it can be used (and abused) by threat actors
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/09/24/beyond-ransomware-tracking-storm-2570-consistent-tradecraft-across-deployments/
+    - https://asec.ahnlab.com/en/94552/
+    - https://www.huntress.com/blog/exposed-rdp-misconfiguration-risks
+    - https://www.huntress.com/blog/komari-c2-agent-abuse
+    - https://www.security.com/threat-intelligence/ukraine-russia-attacks
+    - https://asec.ahnlab.com/ko/62771/
+    - https://symantec-enterprise-blogs.security.com/blogs/threat-intelligence/ransomware-data-exfiltration
+    - https://gist.github.com/MichaelKoczwara/07a877f3df094cafa876834249817c95#file-rdp-txt-L1
+    - https://thedfirreport.com/2022/07/11/select-xmrig-from-sqlserver/
+    - https://thedfirreport.com/2022/02/21/qbot-and-zerologon-lead-to-full-domain-compromise/
+    - https://swarm.ptsecurity.com/remote-desktop-services-shadowing/
+    - https://thedfirreport.com/2024/02/26/seo-poisoning-to-domain-control-the-gootloader-saga-continues/
+    - https://blog.talosintelligence.com/dragon-rank-seo-poisoning/
+    - https://www.huntress.com/blog/akira-ransomware-indicators
+    - https://asec.ahnlab.com/en/87606/
+    - https://www.trellix.com/blogs/research/cfo-spear-phishing-netbird-attack/
+    - https://www.trendmicro.com/en_no/research/25/h/crypto24-ransomware-stealth-attacks.html
+    - https://blog.talosintelligence.com/uat-7237-targets-web-hosting-infra/
+    - https://hunt.io/blog/apt-muddywater-deploys-multi-stage-phishing-to-target-cfos
+    - https://www.picussecurity.com/resource/blog/crypto24-ransomware-uncovered-stealth-persistence-and-enterprise-scale-impact
+    - https://arcticwolf.com/resources/blog/smash-and-grab-aggressive-akira-campaign-targets-sonicwall-vpns/
+    - https://blog.talosintelligence.com/uncovering-qilin-attack-methods-exposed-through-multiple-cases/
+    - https://www.attackiq.com/2025/11/14/sandworm/
+    - https://www.attackiq.com/2026/02/25/emulating-blackbyte-ransomware/
+    - https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+  tags:
+    - attack.defense_evasion
+    - attack.execution
+    - attack.t1059.003
+    - attack.t1112
+  logsource:
+    product: windows
+    category: process_creation
+  detection:
+    selection1:
+      CommandLine|contains|all:
+          - 'reg'
+          - 'add'
+    selection2:
+      CommandLine|contains|all:
+          - 'Shadow'
+          - '4' #View Session without user’s permission
+    selection3:
+      CommandLine|contains|all:
+          - 'CurrentVersion'
+          - 'Policies'
+          - 'System'
+          - 'LocalAccountTokenFilterPolicy'
+          - '1' # Disables UAC Remote connection restriction
+    selection4:
+      CommandLine|contains|all:
+          - 'fDenyTSConnections' # https://www.security.com/threat-intelligence/ukraine-russia-attacks; https://www.attackiq.com/2025/11/14/sandworm/; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server; https://www.huntress.com/blog/komari-c2-agent-abuse; https://www.microsoft.com/en-us/security/blog/2026/09/24/beyond-ransomware-tracking-storm-2570-consistent-tradecraft-across-deployments/
+          - '0' #allowing remote connections
+    selection5_base:
+      CommandLine|contains|all:
+          - 'Terminal'
+          - 'Server'
+    selection5_vars:
+      CommandLine|contains:
+          - 'MaxInstanceCount'
+          - 'fEnableWinStation'
+          - 'TSUserEnabled'
+          - 'TSEnabled'
+          - 'TSAppCompat'
+          - 'IdleWinStationPoolCount'
+          - 'TSAdvertise'
+          - 'AllowTSConnections'
+          - 'EnableConcurrentSessions'
+          - 'fSingleSessionPerUser'
+    condition: (selection1 and selection2 and selection5_base) or (selection1 and selection3) or (selection1 and selection4 and selection5_base) or (selection1 and selection5_base and selection5_vars)
+  falsepositives:
+    - Remote Desktop Protocol version must be 8.1 or higher
+    - Admins activity
+  level: high
+level: high
+created: '2020-11-05T15:49:31Z'
+updated: '2026-09-25T13:26:24.159000Z'

@@ -1,0 +1,48 @@
+id: ZhzqUEsgsBoR
+name: Possible Microsoft Defender Discovery Attempt (via powershell)
+body: |-
+  title: Possible Microsoft Defender Discovery Attempt (via powershell)
+  status: stable
+  description: In an attempt to disable or avoid it, adversaries might attempt to determine whether a compromised system is secured by Microsoft Defender.
+  author: SOC Prime Team
+  references:
+    - https://www.attackiq.com/2023/04/04/emulating-oilrig/
+    - https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2019-ps/defender/Defender.md
+    - https://cybersecurity.att.com/blogs/labs-research/asyncrat-loader-obfuscation-dgas-decoys-and-govno
+    - https://www.esentire.com/blog/mintsloader-stealc-and-boinc-delivery
+  tags:
+    - attack.t1518.001
+    - attack.discovery
+  logsource:
+      product: windows
+      service: powershell
+  detection:
+    selection:
+        ScriptBlockText|contains:
+          #- 'MpComputerStatus' #Get-MpComputerStatus
+          - 'MpThreat'
+          - 'MpThreatCatalog'
+          - 'MpThreatDetection'
+    selection_status:
+        ScriptBlockText|contains|all:
+          - 'MpComputerStatus' #Get-MpComputerStatus'
+          - 'IsVirtualMachine'
+    filters:
+        - ScriptBlockText|contains|all:
+          - 'MonitoringHost.exe'
+          - '-Embedding'
+        - ScriptBlockText|contains:
+          - 'DefenderCommands'
+          - 'SCEPCommands' #defender internal scripts
+          - 'LastThreatStatusChangeTime' #defender internal scripts
+          - '__cmdletization_exceptionHasBeenThrown' #defender internal scripts
+          - 'SignaturesOutOfDateProtectionCode' #defender internal scripts
+          - 'cm9zb2Z0IFdpbmRvd3MgRGVmZW5kZXIgQWR2YW5jZWQgVGhyZWF0IFByb3RlY3Rp' #defender internal scripts sig
+    condition: (selection or selection_status) and not filters
+  falsepositives:
+    - Legitimate administration activity.
+  level: medium
+  id: 0c128c4f-9323-4e7a-9e46-cff7c51f6b92
+level: medium
+created: '2023-04-11T14:22:54Z'
+updated: '2025-01-22T13:42:52.297000Z'

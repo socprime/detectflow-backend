@@ -1,0 +1,31 @@
+id: K6t4wABNUKg2
+name: Possible CVE-2026-109618 / CVE-2026-109619 Exploitation Attempt - PHP Worker Segfault (via syslog)
+body: |-
+  title: Possible CVE-2026-109618 / CVE-2026-109619 Exploitation Attempt - PHP Worker Segfault (via syslog)
+  id: 0b13c412-f141-490d-a99a-4579ae614795
+  status: experimental
+  author: SOC Prime Team
+  description: Detects kernel segfault reports for PHP-related web worker processes (php-fpm, php-cgi, lsphp, frankenphp, apache2, httpd). Memory corruption during multipart request parsing, part of the PHP2Shell remote code execution chain, can crash the PHP worker before any script runs.
+  references:
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+  tags:
+      - attack.initial_access
+      - attack.t1190
+  logsource:
+      product: linux
+      service: syslog
+      definition: Requires kernel log collection (dmesg / kern.log / journald)
+  detection:
+      keywords_segfault:
+          - 'segfault at '
+      keywords_proc:
+          - 'php'
+          - 'apache2['
+          - 'httpd['
+      condition: keywords_segfault and keywords_proc
+  falsepositives:
+      - Buggy PHP extensions or Apache modules crashing workers
+  level: medium
+level: medium
+created: '2026-10-25T18:13:28Z'
+updated: '2026-10-25T18:13:28.579000Z'

@@ -1,0 +1,40 @@
+id: YAXTrTrvQXoi
+name: Gamaredon (Primitive Bear) APT Profile and MITRE ATT&CK Breakdown
+body: |
+  title: Gamaredon (Primitive Bear) APT Profile and MITRE ATT&CK Breakdown
+  description: Gamaredon is a Russia-aligned advanced persistent threat group active since 2013, attributed to the Russian FSB. The group focuses on cyber espionage and data theft, primarily targeting Ukrainian government and defense sectors. They utilize custom malware families such as GammaLoad and GammaSteel alongside various obfuscation and persistence techniques.
+  id: 5b2823dd-1701-415f-a5cf-bd974d46d319
+  status: stable
+  author: SOC Prime Team
+  references:
+    - https://tdm.socprime.com/active-threats/O2G6Wp8BMeMRSNTKXnP0
+  tags:
+  logsource:
+    category: detectflow
+  detection:
+    seq0:
+      ruleid|contains:
+        - c550cc75-398e-4985-a1e9-5088e126e468 #Possible CVE-2025-8088 / CVE-2025-6218 (WinRAR Vulnerability) Exploitation Attempt (via file_event)
+        - e70092a5-1b91-4a90-9a32-8b94307c9147 #Suspicious LOLBAS MSHTA Defense Evasion Behavior by Detection of Associated Commands (via process_creation)
+        - bc139ef2-0c05-4cf7-b7af-3261d2cb2d68 #LOLBAS WScript / CScript (via process_creation)
+        - 5c411f93-3f10-4a48-bf16-20e7bea45769 #Call Suspicious .NET Classes/Methods from Powershell CommandLine (via process_creation)
+        - 4ab60adc-7117-4f20-80de-77ecf2a1ef99 #Call Suspicious .NET Methods from Powershell (via powershell)
+    seq1:
+      ruleid|contains:
+        - 86576778-953f-45ee-a506-87f6cb12cef9 #Possible Persistence Points [ASEPs - Software/NTUSER Hive] (via registry_event)
+        - a762e4b2-8596-4442-bd84-7ec5f224dc8a #Schtasks Points to Suspicious Directory / Binary / Script (via cmdline)
+        - 27a5e681-d455-4567-be1f-f68e7c5d7449 #Suspicious Binary / Scripts in Autostart Location (via file_event)
+        - ce152116-1d05-408a-a1a7-a4091528dc74 #An Archive Was Extracted To Suspicious Directory Using Powershell (via powershell)
+    seq2:
+      ruleid|contains:
+        - 69b6437e-cee7-4b31-a02b-537356cff33d #Download or Upload via Powershell (via cmdline)
+        - 4586d131-5d2a-4582-b028-a5841eea1d35 #Possible Dynamic DNS Service Was Contacted (via dns)
+        - e0ee9a7b-fed3-4467-a012-0b04338e1334 #Possible Data Exfiltration over Rclone Tool (via cmdline)
+    timeframe: 30m
+    condition: chain by hostname
+  falsepositives:
+    - Unknown
+  level: high
+level: high
+created: '2026-07-13T09:06:31Z'
+updated: '2026-11-06T08:02:31.428000Z'

@@ -1,0 +1,45 @@
+id: knjkfvZHX16t
+name: Windows Privilege Escalation & Persistence (DetectFlow Attack Chains DEMO)
+body: |-
+  title: Windows Privilege Escalation & Persistence (DetectFlow Attack Chains DEMO)
+  description: Windows Privilege Escalation & Persistence (DetectFlow Attack Chains DEMO)
+  id: 63c56a0f-afbe-44e8-b83e-814a8daaaf93
+  status: stable
+  author: SOC Prime Team
+  references:
+    - https://tdm.socprime.com/active-threats/32Sm9Z8BMeMRSNTKrCHB
+  tags:
+    - attack.t1543.003
+    - attack.t1059.003
+    - attack.t1053.005
+    - attack.t1098
+    - attack.t1070
+    - attack.t1685.005
+  logsource:
+    category: detectflow
+  detection:
+    seq1:
+      ruleid|contains:
+        - 'b479ee8f-e292-4466-95b3-fa000ba3f724' # ""(EID 4697) Explicit COMSPEC Usage in Service File Path (via audit)""
+        - '0dcdcfa-1709-40fa-bb10-2da285bfe52b' # ""(EID 4697) Suspicious Service Binary Path (via audit)""
+        - '780e6396-d9f4-42b2-8d73-89918e2dab16' # ""(EID 7045) Suspicious Service Binary Path (via system)""
+    seq2:
+      ruleid|contains:
+        - 'c135e89f-a9e5-4cbe-a86c-a25ffa674f1a' #T1059.005 ""(EID 4698 + 4702) Suspicious Scheduled Task (via audit) ""
+    seq3:
+      ruleid|contains:
+        - 'c170f431-47bc-471f-b539-e73d1135bbf3' #T1059.001 ""(EID 4732) A User was Added to a Admins Local Group (via audit)""
+    seq4:
+      ruleid|contains:
+        - 'a961fbe5-1acd-49cc-8233-413b46653f52' #T1053.005 ""(EID 4724) Admin Change the Password for other Admin (via audit)""
+    seq5:
+      ruleid|contains:
+        - '59a4dcb2-102d-4d23-b6ac-93ffcdba070c' #T1053.005 ""(EID 1102) Windows Security Audit Log Cleared (via audit)""
+    timeframe: 10m
+    condition: chain by hostname
+  falsepositives:
+      - Unknown
+  level: high
+level: high
+created: '2026-08-12T11:55:35Z'
+updated: '2026-11-06T08:07:23.227000Z'

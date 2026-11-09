@@ -1,0 +1,54 @@
+id: wSpF1KBdU9k1
+name: Suspicious Process without Arguments (via cmdline)
+body: |-
+  title: Suspicious Process without Arguments (via cmdline)
+  id: ebeae962-2bc6-437b-adaa-dca7f3aed43d
+  status: stable
+  description: Process executions without command-line options may indicate they are targets of Process Injection.
+  references:
+      - https://cert.gov.ua/article/6282536
+      - https://any.run/cybersecurity-blog/psloramyra-malware-technical-analysis/
+      - https://unit42.paloaltonetworks.com/threat-assessment-blacksuit-ransomware-ignoble-scorpius/
+      - https://resource.redcanary.com/rs/003-YRU-314/images/2021-Threat-Detection-Report.pdf
+      - https://www.cloudsek.com/blog/silver-fox-targeting-india-using-tax-themed-phishing-lures
+      - https://www.cloudsek.com/blog/reborn-in-rust-muddywater-evolves-tooling-with-rustywater-implant
+  author: SOC Prime Team
+  tags:
+      - attack.defense_evasion
+      - attack.t1055.012
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith:
+              - '.exe'
+              - '.com'
+              - '.scr'
+              - '.tmp'
+          CommandLine|endswith:
+              - '\RegAsm.exe"'
+              - '\RegAsm.exe"'
+              - '\RegSvcs.exe' #C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegSvcs.exe
+              - '\RegSvcs.exe"' #"C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegSvcs.exe"
+              - '\regsvr32.exe"'
+              - '\regsvr32.exe'
+              - '\rundll32.exe"'
+              - '\rundll32.exe'
+              - '\svchost.exe"'
+              - '\svchost.exe'
+              - 'wefault.exe"'
+              - 'wefault.exe'
+      filters:
+          - ParentImage|endswith:
+              - 'MsMpEng.exe'
+              - 'MRT.exe'
+              - 'setup.exe'
+              - 'sfc.exe' #"C:\Program Files\Cisco\AMP\8.2.1.21650\sfc.exe"
+      condition: selection and not filters
+  falsepositives:
+      - Unknown
+  level: medium
+level: medium
+created: '2021-04-05T12:53:54Z'
+updated: '2026-01-09T08:54:16.392000Z'

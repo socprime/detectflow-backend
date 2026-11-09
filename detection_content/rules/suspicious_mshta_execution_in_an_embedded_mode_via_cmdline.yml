@@ -1,0 +1,28 @@
+id: NCnYA6KzyiLs
+name: Suspicious Mshta Execution in an Embedded Mode (via cmdline)
+body: |-
+  title: Suspicious Mshta Execution in an Embedded Mode (via cmdline)
+  id: 2907aeac-1558-4538-85a6-6ea9af1548a8
+  description: This rule detects the execution of mshta in embedded mode, likely as part of an automation, indirect execution script process, or post-exploitation chain.
+  status: stable
+  references:
+    - https://www.trendmicro.com/en_us/research/24/g/CVE-2024-38112-void-banshee.html
+    - https://tria.ge/240710-1e56ma1ekl/behavioral1
+  author: SOC Prime Team
+  tags:
+    - attack.defense_evasion
+    - attack.t1218.005
+  logsource:
+    product: windows
+    category: process_creation
+  detection:
+    selection:
+      Image|endswith: 'mshta.exe'
+      CommandLine|contains: 'Embedding'
+    condition: selection
+  falsepositives:
+    - Unlikely
+  level: medium
+level: medium
+created: '2024-07-16T07:08:28Z'
+updated: '2024-07-19T12:47:34.979000Z'

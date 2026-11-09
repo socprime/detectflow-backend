@@ -1,0 +1,172 @@
+id: kVvOfPEOcecP
+name: Possible Execution by Use of Short Script Name (via cmdline)
+body: |-
+  title: Possible Execution by Use of Short Script Name (via cmdline)
+  id: 830d6946-1f43-4951-b57f-78af4b01097c
+  status: stable
+  description: Often malicious scripts use short file names (i.e. 1.bat). High likelyhood of false positives and filtering is required.
+  references:
+      - https://www.reversinglabs.com/blog/how-rl-mapped-a-midnight-blizzard-linked-campaign-from-two-hashes
+      - https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
+      - https://thehackernews.com/2026/10/clickfix-smuggles-payloads-through.html
+      - https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection
+      - https://www.huntress.com/blog/rogue-screenconnect-installations
+      - https://www.huntress.com/blog/defcon-phishing-google-doc-malware
+      - https://asec.ahnlab.com/en/94995/
+      - https://www.team-cymru.com/post/beast-ransomware-server-toolkit-analysis
+      - https://www.huntress.com/blog/mimikatz-credential-dumping-defence-impairment
+      - https://thedfirreport.com/2026/06/29/from-bing-search-to-ransomware-bumblebee-and-adaptixc2-deliver-akira-3/
+      - https://www.security.com/blog-post/stock-exchange-espionage
+      - https://asec.ahnlab.com/en/93855/
+      - https://cert.gov.ua/article/6288271
+      - https://asec.ahnlab.com/en/93151/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-266a
+      - https://socradar.io/cve-2025-53690-sitecore-deployments-weepsteel-malware/
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a
+      - https://unit42.paloaltonetworks.com/cybercriminals-attack-financial-sector-across-africa/
+      - https://asec.ahnlab.com/en/87398/
+      - https://labs.withsecure.com/publications/crazyhunter-ransomware
+      - https://news.sophos.com/en-us/2024/11/20/sophos-mdr-blocks-and-tracks-activity-from-probable-iranian-state-actor-muddywater/
+      - https://cert.gov.ua/article/6278706
+      - https://cert.gov.ua/article/6278521
+      - https://www.rapid7.com/blog/post/2024/04/10/stories-from-the-soc-part-2-msix-installer-utilizes-telegram-bot-to-execute-idat-loader/
+      - https://cert.gov.ua/article/6276894
+      - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-325a
+      - https://www.mandiant.com/resources/blog/sandworm-disrupts-power-ukraine-operational-technology
+      - https://cert.gov.ua/article/5628441
+      - https://blogs.blackberry.com/en/2023/08/cuba-ransomware-deploys-new-tools-targets-critical-infrastructure-sector-in-the-usa-and-it-integrator-in-latin-america
+      - https://unit42.paloaltonetworks.com/unit42-sofacy-continues-global-attacks-wheels-new-cannon-trojan/
+      - https://asec.ahnlab.com/ko/59460/
+      - https://unit42.paloaltonetworks.com/new-toolset-targets-middle-east-africa-usa/
+      - https://www.imperva.com/blog/imperva-detects-undocumented-8220-gang-activities/
+      - https://www.seqrite.com/blog/operation-rusticweb-targets-indian-govt-from-rust-based-malware-to-web-service-exfiltration/
+      - https://www.clearskysec.com/wp-content/uploads/2024/01/No-Justice-Wiper.pdf
+      - https://www.securonix.com/blog/securonix-threat-research-security-advisory-new-returgence-attack-campaign-turkish-hackers-target-mssql-servers-to-deliver-domain-wide-mimic-ransomware/
+      - https://asec.ahnlab.com/en/60270/
+      - https://www.microsoft.com/en-us/security/blog/2024/01/17/new-ttps-observed-in-mint-sa[…]-high-profile-individuals-at-universities-and-research-orgs/
+      - https://asec.ahnlab.com/en/60805/
+      - https://blog.talosintelligence.com/new-zardoor-backdoor/
+      - https://www.volexity.com/blog/2024/02/13/charmingcypress-innovating-persistence/
+      - https://www.trendmicro.com/en_us/research/24/b/cve202421412-water-hydra-targets-traders-with-windows-defender-s.html
+      - https://news.sophos.com/en-us/2024/02/23/connectwise-screenconnect-attacks-deliver-malware/
+      - https://thedfirreport.com/2024/02/26/seo-poisoning-to-domain-control-the-gootloader-saga-continues/
+      - https://www.huntress.com/blog/attacking-mssql-servers-pt-ii
+      - https://www.netskope.com/blog/from-delivery-to-execution-an-evasive-azorult-campaign-smuggled-through-google-sites
+      - https://thedfirreport.com/2024/04/01/from-onenote-to-ransomnote-an-ice-cold-intrusion/
+      - https://www.trendmicro.com/en_us/research/24/d/earth-freybug.html
+      - https://www.bitdefender.com/blog/labs/ai-meets-next-gen-info-stealers-in-social-media-malvertising-campaigns/
+      - https://www.esentire.com/blog/unraveling-not-azorult-but-koi-loader-a-precursor-to-koi-stealer
+      - https://blog.talosintelligence.com/suspected-coralraider-continues-to-expand-victimology-using-three-information-stealers/
+      - https://www.fortinet.com/blog/threat-research/zeus-stealer-distributed-via-crafted-minecraft-source-pack
+      - https://www.gdatasoftware.com/blog/2024/05/37906-gotomeeting-loads-remcos
+      - https://www.microsoft.com/en-us/security/blog/2024/05/15/threat-actors-misusing-quick-assist-in-social-engineering-attacks-leading-to-ransomware/
+      - https://www.securonix.com/blog/analysis-and-detection-of-cloudreverser-an-attack-involving-threat-actors-compromising-systems-using-a-sophisticated-cloud-based-malware/
+      - https://www.trellix.com/blogs/research/a-catalog-of-hazardous-av-sites-a-tale-of-malware-hosting/
+      - https://harfanglab.io/en/insidethelab/allasenha-allakore-variant-azure-c2-steal-banking-latin-america/
+      - https://www.trendmicro.com/en_us/research/24/e/decoding-8220-latest-obfuscation-tricks.html
+      - https://go.recordedfuture.com/hubfs/reports/CTA-RU-2024-0530.pdf
+      - https://blog.talosintelligence.com/new-banking-trojan-carnavalheist-targets-brazil/
+      - https://news.sophos.com/en-us/2024/06/05/operation-crimson-palace-a-technical-deep-dive/
+      - https://thedfirreport.com/2024/06/10/icedid-brings-screenconnect-and-csharp-streamer-to-alphv-ransomware-deployment/
+      - https://www.fortinet.com/blog/threat-research/fickle-stealer-distributed-via-multiple-attack-chain
+      - https://www.rapid7.com/blog/post/2024/06/17/malvertising-campaign-leads-to-execution-of-oyster-backdoor/
+      - https://assets.sentinelone.com/sentinellabs/chamelgang-friends-en
+      - https://thedfirreport.com/2024/08/12/threat-actors-toolkit-leveraging-sliver-poshc2-batch-scripts/
+      - https://thedfirreport.com/2024/08/26/blacksuit-ransomware/
+      - https://www.huntress.com/blog/advanced-persistent-threat-targeting-vietnamese-human-rights-defenders
+      - https://www.fortinet.com/blog/threat-research/emansrepo-stealer-multi-vector-attack-chains
+      - https://blog.talosintelligence.com/dragon-rank-seo-poisoning/
+      - https://www.trendmicro.com/en_us/research/24/i/whatsup-gold-rce.html
+      - https://notes.netbytesec.com/2024/10/lemonduck-unleashes-cryptomining.html
+      - https://www.trendmicro.com/en_us/research/24/j/earth-simnavaz-cyberattacks-uae-gulf-regions.html
+      - https://www.seqrite.com/blog/operation-cobalt-whisper-targets-industries-hong-kong-pakistan/
+      - https://blog.talosintelligence.com/gophish-powerrat-dcrat/
+      - https://www.trellix.com/blogs/research/new-stealer-uses-invalid-cert-to-compromise-systems/
+      - https://cert.gov.ua/article/6281632
+      - https://www.huntress.com/blog/the-hunt-for-redcurl-2
+      - https://www.bridewell.com/insights/blogs/detail/who-are-hellcat-ransomware-group
+      - https://www.splunk.com/en_us/blog/security/infostealer-campaign-against-isps.html
+      - https://www.seqrite.com/blog/kimsuky-apt-south-korea-pdf-lures/
+      - https://blog.talosintelligence.com/introducing-toymaker-an-initial-access-broker/
+      - https://thedfirreport.com/2025/04/28/navigating-through-the-fog/
+      - https://unit42.paloaltonetworks.com/lampion-malware-clickfix-lures/
+      - https://asec.ahnlab.com/en/88025/
+      - https://labs.k7computing.com/index.php/a-soraai-clickbait/
+      - https://unit42.paloaltonetworks.com/kimjongrat-stealer-variant-powershell/
+      - https://research.checkpoint.com/2025/before-toolshell-exploring-storm-2603s-previous-ransomware-operations/
+      - https://businessinsights.bitdefender.com/curly-comrades-new-threat-actor-targeting-geopolitical-hotbeds
+      - https://www.trendmicro.com/en_no/research/25/h/crypto24-ransomware-stealth-attacks.html
+      - https://blog.talosintelligence.com/uat-7237-targets-web-hosting-infra/
+      - https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/malicious-screen-connect-campaign-abuses-ai-themed-lures-for-xworm-delivery/
+      - https://hunt.io/blog/asyncrat-screenconnect-open-directory-campaigns
+      - https://www.huntress.com/blog/looking-at-qilin-ransomware-attack
+      - https://www.bitsight.com/blog/brazil-love-new-tactics-lampion
+      - https://govextra.gov.il/national-digital-agency/cyber/research/spearspecter/
+      - https://www.enki.co.kr/en/media-center/blog/kimsuky-s-ongoing-evolution-of-kimjongrat-and-expanding-threats
+      - https://www.trellix.com/blogs/research/the-ghost-in-the-machine-crazyhunters-stealth-tactics/
+      - https://www.fortinet.com/blog/threat-research/interlock-ransomware-new-techniques-same-old-tricks
+      - https://www.rapid7.com/blog/post/tr-chrysalis-backdoor-dive-into-lotus-blossoms-toolkit/
+  author: SOC Prime Team
+  tags:
+      - attack.execution
+      - attack.t1059.007
+      - attack.t1059.005
+      - attack.t1059.003
+      - attack.t1059.001
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection_img:
+          Image|endswith:
+              - '.exe'
+              - '.tmp'
+              - '.src'
+      selection:
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Pp][Ss]1[^a-zA-Z0-9].*' #.ps1; https://asec.ahnlab.com/en/87398/; https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a; https://asec.ahnlab.com/en/93151/; https://cert.gov.ua/article/6288271; https://asec.ahnlab.com/en/93855/; https://www.huntress.com/blog/defcon-phishing-google-doc-malware; https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection; https://www.reversinglabs.com/blog/how-rl-mapped-a-midnight-blizzard-linked-campaign-from-two-hashes
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Vv][Bb][Ee][^a-zA-Z0-9].*' #.vbe
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Vv][Bb][Ss][^a-zA-Z0-9].*' #.vbs; https://asec.ahnlab.com/en/87398/; https://socradar.io/cve-2025-53690-sitecore-deployments-weepsteel-malware/; https://www.huntress.com/blog/rogue-screenconnect-installations; https://thehackernews.com/2026/10/clickfix-smuggles-payloads-through.html
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Jj][Ss][Ee][^a-zA-Z0-9].*' #.jse
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Bb][Aa][Tt][^a-zA-Z0-9].*' #.bat #https://labs.withsecure.com/publications/crazyhunter-ransomware; https://asec.ahnlab.com/en/94995/; https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Cc][Mm][Dd][^a-zA-Z0-9].*' #.cmd
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,2}\.[Pp][Yy][^a-zA-Z0-9].*' # .py
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,2}\.[Aa][Uu]3[^a-zA-Z0-9].*' # .au3
+      filters:
+          - ParentImage|endswith:
+              - 'music\updater\updaterold.exe' #cmd.exe /s /c ""C:\Users\XXX~1\AppData\Local\Temp\TMP169~2.BAT""
+              - 'FWUpdateTool.exe'
+              - 'nssm.exe'
+              #- 'svchost.exe'
+              #- 'Tomcat9.0.64.exe'
+              - 'gpscript.exe'
+              - 'MyQ.exe'
+              - 'CitrixReceiverUpdater.exe'
+              - 'Code.exe'
+              - 'node.exe'
+              - 'h21arcbackup.exe'
+              - 'AWProcessCommands.exe'
+              - 'FreeC.exe'
+              - 'ADPClientService.exe'
+              #- 'services.exe'
+          - CommandLine|contains:
+              - 'vcredist'
+              - 'Tomcat'
+              - 'SAP740Logon'
+              - 'JavaHMS'
+              - 'Newgen\Utilities'
+              - '\SAP\'
+              - 'anaplan-connect-'
+              - 'nodejs'
+              - 'HMS.bat' # Common administrative scripts
+              - 'OmniDocs'
+              - 'apache\scripts\ctl.bat'
+          - CommandLine|contains|all:
+              - 'MMA.ps1' # Common administrative scripts + GPO.
+              - 'sysvol'
+      condition: (selection and selection_img) and not filters
+  falsepositives:
+      - filtering required
+  level: medium
+level: medium
+created: '2020-07-30T17:45:40Z'
+updated: '2026-10-29T09:03:42.868000Z'

@@ -1,0 +1,64 @@
+id: nlpPfZ1wXCm8
+name: FIFO Special File Creation (via cmdline)
+body: |-
+  title: FIFO Special File Creation (via cmdline)
+  id: d5c6360e-6637-44c8-bf60-46018f419a08
+  status: stable
+  description: A named pipes could be used for reverse shell creation.
+  author: SOC Prime Team
+  references:
+      - https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
+      - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      - https://cert.gov.ua/article/6123309
+      - https://www.oreilly.com/library/view/hands-on-red-team/9781788995238/b76e6441-5999-45e4-949e-bd332cb21cce.xhtml
+      - https://podalirius.net/en/articles/unix-reverse-shells-cheatsheet/
+      - https://saucer-man.com/reverse/
+      - https://arcticwolf.com/resources/blog/lorenz-ransomware-chiseling-in/
+      - https://gist.github.com/joe-desimone/ff0cae0aa0d20965d502e7a97cbde3e3
+      - https://thehackernews.com/2025/12/critical-rsc-bugs-in-react-and-nextjs.html
+  tags:
+      - attack.command_and_control
+      - attack.t1095
+      - attack.execution
+      - attack.t1059.004
+  logsource:
+      category: process_creation
+      product: linux
+  detection:
+      selection:
+          - CommandLine|contains|all:
+              - 'mkfifo'
+              - '/tmp' # https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
+          - CommandLine|contains|all:
+              - 'mknod'
+              - '/tmp'
+          - CommandLine|contains|all:
+              - 'mkfifo'
+              - 'bin'
+              - 'sh'
+          #- CommandLine|contains|all:
+          #    - 'cat'
+          #    - 'tmp'
+          #    - 'bin'
+          #    - '2>&1'
+      filters:
+          CommandLine|contains:
+              - 'coolmount'
+              - 'which mkfifo'
+              - 'mode=0700'
+              - 'gitstatus'
+              - '.worker.'
+              - 'dracut'
+              - 'mkinitramfs'
+              - 'ldd '
+              - 'cron.log'
+              - 'cronlog'
+              - 'cronpipe'
+              - '/usr/bin/defaults'
+      condition: selection and not filters
+  falsepositives:
+      - medium, need additional excludes, based on expected activity.
+  level: medium
+level: medium
+created: '2022-07-26T12:50:09Z'
+updated: '2026-10-22T11:30:23.655000Z'

@@ -1,0 +1,106 @@
+id: 8FFmkJ0BFsA9Tj2-S04i
+name: New JanaWare ransomware targets Turkey via Adwind RAT
+created: '2026-04-15T09:04:07Z'
+updated: '2026-10-08T12:29:26Z'
+summary: A threat cluster uses a customized Java‑based Adwind RAT to deliver a ransomware module named JanaWare. The campaign is focused on Turkish users, enforcing locale and IP checks before executing. Samples have been observed since 2020 with recent C2 activity in 2025.
+severity: High
+investigation: The Acronis TRU team analyzed malicious JAR files delivered via phishing emails that launch through Outlook and Chrome. Execution proceeds to javaw.exe which loads the Adwind RAT variant and later the JanaWare ransomware component. The malware uses polymorphic JARs, Tor for C2, and drops a Turkish ransom note.
+response: Isolate infected hosts, terminate javaw.exe and related processes, collect volatile data, and restore files from known good backups. Engage incident response to capture C2 traffic and consider notifying law enforcement for extortion cases.
+mitigation: Block the malicious domain elementsplugin.duckdns.org and associated ports, restrict execution of unsigned Java JAR files, monitor for chrome.exe command lines downloading from Google Drive, and enforce email phishing defenses. Use endpoint detection to detect Adwind RAT process patterns and encrypting activity.
+industries:
+- All
+geographies:
+- Middle East
+- Turkey
+threat_types:
+- Ransomware
+- Phishing
+threat_actors: []
+techniques:
+- T1137.004
+- T1176
+- T1218.001
+attack_flow: |-
+  ```mermaid
+  graph TB
+  %% Class Definitions Section
+  classDef action fill:#99ccff
+  classDef tool fill:#ffcc99
+  classDef malware fill:#ff9999
+  classDef process fill:#ccccff
+  classDef operator fill:#ff9900
+
+  %% Nodes
+  action_phishing["<b>Action</b> - <b>T1566 Phishing</b>: Send phishing email with malicious Google Drive link"]
+  class action_phishing action
+
+  tool_malicious_link["<b>Tool</b> - <b>Name</b>: Malicious Google Drive link"]
+  class tool_malicious_link tool
+
+  action_user_exec["<b>Action</b> - <b>T1204.001 User Execution</b>: Victim clicks link; Chrome downloads malicious JAR"]
+  class action_user_exec action
+
+  process_chrome["<b>Process</b> - Chrome browser"]
+  class process_chrome process
+
+  malware_obf_jar["<b>Malware</b> - Obfuscated JAR (Allatori/Stringer)"]
+  class malware_obf_jar malware
+
+  process_javaw["<b>Process</b> - javaw.exe (JamPlus)"]
+  class process_javaw process
+
+  action_obfuscation["<b>Action</b> - <b>T1027 Obfuscated Files or Information</b>: Uses polymorphic code, junk insertion, dynamic API resolution"]
+  class action_obfuscation action
+
+  action_persistence["<b>Action</b> - <b>T1547.014 Active Setup</b>: Writes registry entry for auto‑start"]
+  class action_persistence action
+
+  action_impair_defense["<b>Action</b> - <b>T1562 Impair Defenses</b>: Disables Microsoft Defender, Windows Update, VSS via PowerShell and registry"]
+  class action_impair_defense action
+
+  process_powershell["<b>Process</b> - PowerShell"]
+  class process_powershell process
+
+  action_recovery_inhibit["<b>Action</b> - <b>T1490 Inhibit System Recovery</b> and <b>T1070.004 File Deletion</b>: Removes shadow copies and deletes files"]
+  class action_recovery_inhibit action
+
+  action_encrypt["<b>Action</b> - <b>T1486 Data Encrypted for Impact</b>: Downloads ransomware module, encrypts files with AES, drops Turkish ransom note"]
+  class action_encrypt action
+
+  malware_ransomware["<b>Malware</b> - Ransomware module"]
+  class malware_ransomware malware
+
+  action_c2_obfusc["<b>Action</b> - <b>T1001 Data Obfuscation</b> and <b>T1102.003 Web Service: One‑Way Communication</b>: Uses Tor for C2 traffic"]
+  class action_c2_obfusc action
+
+  tool_tor["<b>Tool</b> - Tor network"]
+  class tool_tor tool
+
+  action_exfil["<b>Action</b> - <b>T1041 Exfiltration Over C2 Channel</b> and <b>T1020 Automated Exfiltration</b>: Sends selected files through Tor channel"]
+  class action_exfil action
+
+  %% Connections
+  action_phishing -->|delivers| tool_malicious_link
+  tool_malicious_link -->|opened by victim leads to| action_user_exec
+  action_user_exec -->|downloads via| process_chrome
+  process_chrome -->|saves and launches| malware_obf_jar
+  malware_obf_jar -->|executed by| process_javaw
+  process_javaw -->|performs| action_obfuscation
+  process_javaw -->|establishes| action_persistence
+  action_persistence -->|writes registry for| action_impair_defense
+  action_impair_defense -->|uses| process_powershell
+  action_impair_defense -->|enables| action_recovery_inhibit
+  action_recovery_inhibit -->|precedes| action_encrypt
+  action_encrypt -->|loads| malware_ransomware
+  malware_ransomware -->|communicates via| action_c2_obfusc
+  action_c2_obfusc -->|routes through| tool_tor
+  tool_tor -->|enables| action_exfil
+  malware_ransomware -->|exfiltrates data| action_exfil
+  ```
+related_high_order_sigma_rules:
+- p6ndiutIHfyH
+related_behavioral_rules:
+- yyTagB0eNhBh
+- cOXQ5a83SAcU
+- 1pFa98gwHsm3
+- kaS95z4AKog6

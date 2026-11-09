@@ -1,0 +1,32 @@
+id: JDBwUl6IlpeT
+name: Possible Microsoft Defender Discovery Attempt (via cmdline)
+body: |
+  title: Possible Microsoft Defender Discovery Attempt (via cmdline)
+  status: stable
+  description: In an attempt to disable or avoid it, adversaries might attempt to determine
+    whether a compromised system is secured by Microsoft Defender.
+  author: SOC Prime Team
+  references:
+  - https://www.attackiq.com/2023/04/04/emulating-oilrig/
+  - https://github.com/MicrosoftDocs/windows-powershell-docs/blob/main/docset/winserver2019-ps/defender/Defender.md
+  tags:
+  - attack.t1518.001
+  - attack.discovery
+  logsource:
+    product: windows
+    category: process_creation
+  detection:
+    selection:
+      CommandLine|contains:
+      - MpComputerStatus
+      - MpThreat
+      - MpThreatCatalog
+      - MpThreatDetection
+    condition: selection
+  falsepositives:
+  - Legitimate administration activity.
+  level: medium
+  id: 51efd764-d7e7-4c55-ada7-8da7daffe52c
+level: medium
+created: '2023-04-11T14:24:52Z'
+updated: '2024-02-05T11:15:37.544000Z'

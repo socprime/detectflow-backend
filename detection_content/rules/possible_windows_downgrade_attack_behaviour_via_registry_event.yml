@@ -1,0 +1,38 @@
+id: zrb6jXw9VPdA
+name: Possible Windows Downgrade Attack Behaviour (via registry_event)
+body: |-
+  title: Possible Windows Downgrade Attack Behaviour (via registry_event)
+  id: 13d72640-1c8c-432d-bcc0-6e21bfb74edb
+  status: experimental
+  description: Detects potential downgrade attacks by monitoring registry modifications related to windows update configurations. Focuses on changes to registry keys that could allow forced installation of outdated software versions.
+  author: SOC Prime Team
+  references:
+      - https://www.darkreading.com/application-security/windows-downdate-attack-patched-pcs-vulnerable-state
+      - https://www.safebreach.com/blog/downgrade-attacks-using-windows-updates/
+      - https://i.blackhat.com/BH-US-24/Presentations/REVISED_US24-Leviev-Windows-Downdate-Downgrade-Attacks-Using-Windows-Updates-Wednesday.pdf
+      - https://github.com/SafeBreach-Labs/WindowsDowndate/blob/729be8bafe6462a61f75aba46ef03b353f778747/windows_downdate/update_utils.py#L73
+  tags:
+      - attack.defense_evasion
+      - attack.T1689
+  logsource:
+      category: registry_event
+      product: windows
+  detection:
+      selection_reg:
+          - TargetObject|contains|all:
+              - 'CurrentVersion'
+              - 'SideBySide' #HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SideBySide\\Configuration\\PoqexecCmdline
+              - 'Configuration'
+              - 'PoqexecCmdline'
+          - TargetObject|contains|all:
+              - 'COMPONENTS'
+              - 'PendingXmlIdentifier'
+      selection_val:
+          Details|contains: '.xml'
+      condition: selection_reg and selection_val
+  falsepositives:
+      - Legetimate downgrade operations.
+  level: medium
+level: medium
+created: '2024-10-30T13:37:17Z'
+updated: '2026-06-02T13:29:56.501000Z'

@@ -1,0 +1,45 @@
+id: aFXIAUTcVIUJ
+name: LOLBAS regsvcs (via cmdline)
+body: |-
+  title: LOLBAS regsvcs (via cmdline)
+  id: 9de37e2f-fef7-4a88-bf2e-e44b5aac9de3
+  status: stable
+  description: Detects use of regsvcs as a living off the land technique.
+  references:
+      - https://lolbas-project.github.io/lolbas/Binaries/Regsvcs/
+  author: SOC Prime Team
+  tags:
+      - attack.defense_evasion
+      - attack.execution
+      - attack.t1218.009
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith: 'regsvcs.exe'
+          CommandLine|contains:
+              - '.dll'
+              - '.htm'
+              - '.txt'
+              - '.png'
+              - '.jpeg'
+              - '.jpg'
+              - '.pdf'
+              - '.xml'
+              - '.doc'
+              - '.xls'
+              - '.log'
+              - '.tmp'
+              - '.dat'
+              - '.lnk'
+      filters:
+          CommandLine|contains:
+              - '\Program Files'
+      condition: selection and not filters
+  falsepositives:
+      - unknown
+  level: high
+level: high
+created: '2022-08-24T12:42:51Z'
+updated: '2025-01-07T16:32:11.583000Z'

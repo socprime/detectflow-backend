@@ -1,0 +1,85 @@
+id: PFGSlZ0BFsA9Tj2-pG-0
+name: 'The n8n n8mare: How threat actors are misusing AI workflow automation'
+created: '2026-04-16T09:11:43Z'
+updated: '2026-10-08T12:27:32Z'
+summary: Threat actors are abusing the n8n low‑code workflow automation platform to deliver malicious payloads and to fingerprint email recipients. By embedding malicious webhook URLs in phishing emails, they can host executable or MSI installers that install remote‑access tools. The abuse also includes invisible tracking pixels that collect victim data when the email is opened. This campaign demonstrates how legitimate automation services can be weaponized for credential‑free malware delivery.
+severity: Medium
+investigation: Cisco Talos investigated a series of phishing campaigns from October 2025 to March 2026 that used n8n webhook URLs in emails. The emails presented fake OneDrive links that displayed a CAPTCHA before delivering either a malicious .exe or a malicious MSI. The payloads installed modified Datto or ITarian RMM tools and created scheduled tasks for persistence. Talos also identified fingerprinting attempts using image tags that called n8n webhook URLs with victim identifiers.
+response: Alert on detections of n8n webhook URLs in email content or network traffic and isolate affected endpoints. Remove any installed RMM binaries and scheduled tasks, then perform forensic analysis to locate additional persistence mechanisms. Update firewall and proxy rules to restrict access to unauthorized n8n endpoints. Conduct a full IOC sharing cycle with internal and external teams.
+mitigation: Detect high volumes of outbound traffic to n8n domains from unexpected internal hosts and monitor for anomalous webhook URL patterns. Block or sandbox URLs that resolve to unknown subdomains of n8n.cloud. Deploy email security solutions that can detect malicious HTML, CAPTCHAs, and tracking pixels. Share IOCs such as webhook URLs and malicious file hashes with threat intel platforms.
+industries:
+- All
+geographies:
+- Global
+threat_types:
+- Phishing
+- Malware
+threat_actors: []
+techniques:
+- T1567.004
+- T1583.008
+- T1608.001
+attack_flow: |-
+  ```mermaid
+  graph TB
+  %% Class Definitions
+  classDef action fill:#99ccff
+  classDef tool fill:#ffcc99
+  classDef malware fill:#ff9999
+  classDef process fill:#ccccff
+
+  %% Nodes
+  action_phishing["<b>Action</b> - <b>T1566 Phishing</b>: Threat actors send malicious emails containing n8n webhook URLs to lure victims.<br/><b>Description</b>: Phishing attempts to deliver malicious content via email."]
+  class action_phishing action
+
+  tool_webhook["<b>Tool</b> - <b>Name</b>: n8n webhook<br/><b>Description</b>: Custom web endpoint used to deliver payloads."]
+  class tool_webhook tool
+
+  action_user_execution["<b>Action</b> - <b>T1204.001 User Execution: Malicious Link</b>: Victim clicks the webhook link, causing the browser to request the URL.<br/><b>Description</b>: User interacts with malicious content."]
+  class action_user_execution action
+
+  action_exfil_webhook1["<b>Action</b> - <b>T1567.004 Exfiltration Over Webhook</b>: Webhook returns a malicious HTML page with a CAPTCHA and streams a payload (EXE or MSI) while serving tracking pixels.<br/><b>Description</b>: Uses a web service to deliver and exfiltrate data."]
+  class action_exfil_webhook1 action
+
+  malware_payload_exe["<b>Malware</b> - <b>Name</b>: Payload EXE/MSI<br/><b>Description</b>: Executable that runs PowerShell to install a modified RMM tool."]
+  class malware_payload_exe malware
+
+  action_powershell["<b>Action</b> - <b>T1059.001 PowerShell</b>: Downloaded executable runs PowerShell commands to configure and install the modified RMM tool.<br/><b>Description</b>: Command and scripting interpreter."]
+  class action_powershell action
+
+  malware_rmm["<b>Malware</b> - <b>Name</b>: Modified RMM backdoor<br/><b>Description</b>: Remote monitoring and management tool used for persistence."]
+  class malware_rmm malware
+
+  action_service_execution["<b>Action</b> - <b>T1569.002 Service Execution</b>: RMM tool is installed as a Windows service for persistence.<br/><b>Description</b>: Executes via a system service."]
+  class action_service_execution action
+
+  action_scheduled_task["<b>Action</b> - <b>T1053 Scheduled Task/Job</b>: A scheduled task is created to ensure the RMM tool runs persistently.<br/><b>Description</b>: Ensures recurring execution."]
+  class action_scheduled_task action
+
+  action_msi_execution["<b>Action</b> - <b>T1218.007 Msiexec</b>: Malicious MSI is executed via msiexec to deploy the RMM backdoor.<br/><b>Description</b>: System binary proxy execution."]
+  class action_msi_execution action
+
+  action_exfil_webhook2["<b>Action</b> - <b>T1567.004 Exfiltration Over Webhook</b>: Invisible tracking pixel loads the webhook to capture email open events and device information for reconnaissance."]
+  class action_exfil_webhook2 action
+
+  %% Connections
+  action_phishing -->|delivers| tool_webhook
+  tool_webhook -->|triggers| action_user_execution
+  action_user_execution -->|leads to| action_exfil_webhook1
+  action_exfil_webhook1 -->|delivers| malware_payload_exe
+  malware_payload_exe -->|executes| action_powershell
+  action_powershell -->|installs| malware_rmm
+  malware_rmm -->|persists via| action_service_execution
+  action_service_execution -->|creates| action_scheduled_task
+  action_scheduled_task -->|supports| action_msi_execution
+  action_msi_execution -->|deploys| malware_rmm
+  malware_rmm -->|communicates via| action_exfil_webhook2
+  ```
+related_high_order_sigma_rules:
+- UfhULfdvVPtu
+related_behavioral_rules:
+- CYhlbfivbN87
+- kaS95z4AKog6
+- 2FWv97nWNL5L
+- fBQ7QEJX6Wws
+- l29W5ayOJv2Y

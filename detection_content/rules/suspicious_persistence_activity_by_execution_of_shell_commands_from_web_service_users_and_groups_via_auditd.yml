@@ -1,0 +1,43 @@
+id: LBdueSlAhxMe
+name: Suspicious Persistence Activity by Execution Of Shell Commands From Web Service Users And Groups (via auditd)
+body: |-
+  title: Suspicious Persistence Activity by Execution Of Shell Commands From Web Service Users And Groups (via auditd)
+  description: Detects when the effective user or group id associated with common web services has started a shell session. This behavior is indicative of webshell execution.
+  id: ac652c9a-dd0b-11ec-9d64-0242ac120002
+  author: SOC Prime Team
+  status: stable
+  references:
+    - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+    - https://www.wiz.io/blog/artex-in-the-wild-storm-0940-expands-targeting-of-it-and-software-vendors
+    - https://japancyberwatch.com/articles/artex-ai-pentest-tool-japan-breach-wave-gmo-2026
+    - https://ai-coding.wiselychen.com/crowdstrike-artex-korea-banks-open-directory-claude-code/
+    - https://www.crowdstrike.com/en-us/blog/unknown-threat-actor-uses-artex-to-target-south-korean-finance/
+    - https://media.defense.gov/2020/Jun/09/2002313081/-1/-1/0/CSI-DETECT-AND-PREVENT-WEB-SHELL-MALWARE-20200422.PDF
+  tags:
+    - attack.persistence
+    - attack.t1505.003
+  logsource:
+    product: linux
+    service: auditd
+    definition: 'ensure the following rule is in auditd.rules: -a always,exit -F arch=b32 -F uid=33 -S execve; -a always,exit -F arch=b64 -F uid=33 -S execve. Also, ensure that the uid field value is set to the actul uid of the webservice user. Or alternatively use auditd plugins that resolve uid/gid to names such as laurel https://github.com/threathunters-io/laurel'
+  detection:
+    selection_shell_execution:
+      type: 'SYSCALL'
+      comm|endswith: 'sh' # /bin/sh https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      exe|endswith: 'sh'
+    selection_web_service_user:
+      euid:
+        - 'apache'
+        - 'nginx'
+        - '33'
+      egid:
+        - 'apache'
+        - 'nginx'
+        - '33'
+    condition: selection_shell_execution and selection_web_service_user
+  falsepositives:
+    - unlikely
+  level: high
+level: high
+created: '2022-05-26T15:52:33Z'
+updated: '2026-10-26T09:00:41.644000Z'

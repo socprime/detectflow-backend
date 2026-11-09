@@ -1,0 +1,31 @@
+id: LhOtWepFs3VF
+name: Possible VSS Service Autostart Disabled (via cmdline)
+body: |-
+  title: Possible VSS Service Autostart Disabled (via cmdline)
+  id: 928c324e-933e-4e87-9538-362e91137e6d
+  status: stable
+  description: Adversaries may try to disable Volume Shadow Copy Service on the compromised host.
+  references:
+      - https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+  author: SOC Prime Team
+  tags:
+      - attack.impact
+      - attack.t1489
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      selection:
+          Image|endswith: 'sc.exe'
+          CommandLine|contains|all:
+            - 'config' # sc config vss start= disabled
+            - 'vss'
+            - 'start='
+            - 'disabled'
+      condition: selection
+  falsepositives:
+      - Unknown
+  level: high
+level: high
+created: '2026-03-31T08:14:33Z'
+updated: '2026-03-31T08:14:33.713000Z'

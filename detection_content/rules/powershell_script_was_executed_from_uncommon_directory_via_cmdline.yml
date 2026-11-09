@@ -1,0 +1,43 @@
+id: jnppZDVVXPFE
+name: Powershell Script was Executed from Uncommon Directory (via cmdline)
+body: |-
+  title: Powershell Script was Executed from Uncommon Directory (via cmdline)
+  id: 5ed71dac-70f9-4f8d-9cbe-b2c2a6300271
+  status: stable
+  author: SOC Prime Team
+  description: Adversaries may try to execute previously created malicious powershell script in order to perform malicious activity.
+  references:
+    - https://www.sophos.com/en-us/blog/2607_agents_vs_telemetry
+    - https://blogs.blackberry.com/en/2024/01/mexican-banks-and-cryptocurrency-platforms-targeted-with-allakore-rat
+    - https://thehackernews.com/2026/01/russia-aligned-hackers-abuse-viber-to.html
+    - https://www.pointwild.com/threat-intelligence/when-malware-talks-back/
+  tags:
+    - attack.t1059.001
+    - attack.execution
+  logsource:
+    product: windows
+    category: process_creation
+  detection:
+    selection:
+      Image|endswith: 'powershell.exe'
+      CommandLine|contains|all:
+        - '.ps1'
+    selection_dirs:
+      CommandLine|contains:
+        - 'AppData'
+        - 'ProgramData'
+        - 'Temp'
+        - 'Local'
+        - 'Public'
+    filters:
+      ParentImage|endswith:
+        - 'senseir.exe' # Windows Defender
+        - 'sensecm.exe' # Windows Defender
+    condition: selection and selection_dirs
+  falsepositives:
+    - Administrative scripts.
+    - Administrative activity.
+  level: medium
+level: medium
+created: '2024-01-26T14:56:01Z'
+updated: '2026-07-08T09:43:33.926000Z'
