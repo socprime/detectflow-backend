@@ -16,7 +16,7 @@ echo "Kafka topics initialized!"
 # Create default admin user if no users exist
 python -m apps.modules.postgre.init_admin
 
-# Load the bundled SOC Prime content (content/) once per snapshot version. Never fails startup.
+# Load the bundled SOC Prime content (detection_content/) once per snapshot version. Never fails startup.
 python -m apps.modules.postgre.init_content
 
 # Start the server.

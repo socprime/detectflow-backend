@@ -82,7 +82,7 @@ The container entrypoint applies migrations, creates Kafka topics and the first 
 │   ├── services/       # Background services (scheduler, health checks, metrics)
 │   └── templates/      # Flink deployment templates
 ├── alembic/            # Database migrations
-├── content/            # Bundled SOC Prime content (Active Threats, HoS, rules), see content/README.md
+├── detection_content/  # Bundled SOC Prime content (Active Threats, HoS, rules), see detection_content/README.md
 ├── scripts/            # health_check.py, reset_password.py
 ├── tests/
 ├── entrypoint.sh       # Container bootstrap
