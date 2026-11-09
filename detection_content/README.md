@@ -4,8 +4,6 @@ A snapshot of SOC Prime content that a new installation starts with: Active Thre
 Higher-Order Sigma (HoS) rules and Sigma detection rules. The ids are the real SOC Prime TDM
 ids, so once the SOC Prime integration is connected, the regular sync keeps this content up to date.
 
-The content in this folder is licensed under the [Detection Rule License (DRL) 1.1](LICENSE.Detection.Rules.md).
-
 ## Layout
 
 ```
