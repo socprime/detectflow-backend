@@ -1,8 +1,6 @@
-# Bundled content
+## Bundled Detection Content
 
-A snapshot of SOC Prime content that a new installation starts with: Active Threats, their
-Higher-Order Sigma (HoS) rules and Sigma detection rules. The ids are the real SOC Prime TDM
-ids, so once the SOC Prime integration is connected, the regular sync keeps this content up to date.
+A snapshot of SOC Prime content that a new installation starts with, covering the latest cyberattacks, built on 11 years of SOC Prime Detection Intelligence: Active Threats, their Higher Order Sigma rules, and the top-100 most effective behavior detection Sigma rules. The content is deployed automatically when you deploy Prime Detect.
 
 ## Layout
 
@@ -19,10 +17,10 @@ the content.
 
 ## How it is applied
 
-On every start the backend runs `python -m apps.modules.postgre.init_content`, which applies the
+On every start, the backend runs `python -m apps.modules.postgre.init_content`, which applies the
 snapshot once per `VERSION`, with or without the SOC Prime integration:
 
-- Active Threats, their HoS and the Sigma rules those HoS reference go to the Active Threats
+- Active Threats, their HoS, and the Sigma rules those HoS reference go to the Active Threats
   catalog and the **SOC Prime Active Threats** system repository, the same way a SOC Prime sync does.
 - An item is written only when it is missing or newer than the local copy, and nothing is hidden
   or deleted, so content already synced from SOC Prime is never rolled back.
