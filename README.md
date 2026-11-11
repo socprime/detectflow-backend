@@ -1,5 +1,5 @@
 # Prime Detect Backend
-[![Version](https://img.shields.io/badge/version-2.3.2-blue.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-2.3.3-blue.svg)](pyproject.toml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.121%2B-green.svg)](https://fastapi.tiangolo.com/)
 
