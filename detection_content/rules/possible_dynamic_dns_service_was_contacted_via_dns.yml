@@ -6,6 +6,7 @@ body: |-
   status: stable
   description: Identifies requests to the dynamic DNS services, which may be potentially be abused by adversaries in order to, for example, deliver malware. It is highly recommended to baseline your activity and tune out common business use cases.
   references:
+    - https://www.huntress.com/blog/sckit-worm-rogue-screenconnect
     - https://www.welivesecurity.com/en/eset-research/mythicratatoskr-yggdrasil-enabled-backdoor-deployed-uac0099-sandworm-collaboration/
     - https://www.levelblue.com/blogs/spiderlabs-blog/still-circling-inside-the-operator-behind-blind-eagles-github-loader
     - https://www.acronis.com/en/tru/posts/patchcord-new-malware-cluster-targets-afghan-telecom-and-south-asian-critical-infrastructure/
@@ -38,7 +39,9 @@ body: |-
     category: dns
   detection:
     selection:
-      QueryName|endswith:
+      query|endswith:
+        - 'homedns.org' # https://www.huntress.com/blog/sckit-worm-rogue-screenconnect
+        - 'gotdns.org' # https://www.huntress.com/blog/sckit-worm-rogue-screenconnect
         - 'ddns.net' # https://www.noip.com/support/faq/frequently-asked-questions?utm_source=chatgpt.com
         - 'ddnsking.com' # https://www.rapid7.com/blog/post/tr-new-whitepaper-stealthy-bpfdoor-variants/
         - '3utilities.com'
@@ -82,4 +85,4 @@ body: |-
   level: low
 level: low
 created: '2026-01-08T10:12:03Z'
-updated: '2026-10-22T15:09:57.951000Z'
+updated: '2026-11-17T10:10:16.330000Z'

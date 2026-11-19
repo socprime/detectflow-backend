@@ -40,6 +40,7 @@ body: |-
               - '\Desktop\'
               - '\Startup\'
               - '\Users\Public\'
+              - ':\Windows' # Defender exclusion path C:\Windows https://www.seqrite.com/blog/armorsteal-unpacked-breaking-down-a-python-malware-kit-that-steals-data-and-mines-crypto/
       selection_excl_ext:
           CommandLine|contains:
               - '.exe'
@@ -49,6 +50,8 @@ body: |-
               - '.vbs'
               - '.iso'
       selection_excl_proc:
+          CommandLine|contains:
+              - 'xmrig' # Defender exclusion process xmrig.exe https://www.seqrite.com/blog/armorsteal-unpacked-breaking-down-a-python-malware-kit-that-steals-data-and-mines-crypto/
               - 'powershell.exe'
               - 'wscript.exe'
               - 'rundll32.exe'
@@ -61,4 +64,4 @@ body: |-
   level: high
 level: high
 created: '2025-06-30T07:15:42Z'
-updated: '2026-03-02T15:53:16.190000Z'
+updated: '2026-11-09T11:20:49.709000Z'

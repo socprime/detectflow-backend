@@ -6,6 +6,12 @@ body: |-
   status: stable
   description: Persistence points (also called Auto-Start Extensibility Points, or ASEPs) is a recurring task of any investigation potentially involving malware. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
   references:
+      - https://antares-research.com/reports/lotuslite-v2/
+      - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
+      - https://www.huntress.com/blog/sckit-worm-rogue-screenconnect
+      - https://www.huntress.com/blog/the-evolving-tradecraft-of-clickfix
+      - https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
+      - https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/
       - https://www.air.security/blog-posts/solanacry
       - https://www.huntress.com/blog/camera-management-software-compromise-malware
       - https://www.acronis.com/en/tru/posts/the-gentlemen-a-closer-look-at-a-not-so-gentle-ransomware-as-a-service-operation/
@@ -171,7 +177,6 @@ body: |-
       - https://securityintelligence.com/x-force/hive0051-all-in-triple-threat/
       - https://www.splunk.com/en_us/blog/security/under-the-hood-of-snakekeylogger-analyzing-its-loader-and-its-tactics-techniques-and-procedures.html
       - https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060a
-      - https://cert.gov.ua/article/6277849
       - https://cert.gov.ua/article/6276894
       - https://blog.talosintelligence.com/new-sugargh0st-rat/
       - https://cert.gov.ua/article/5391805
@@ -437,7 +442,7 @@ body: |-
               - '\RunServicesOnce'
               - '\RunServices'
           - TargetObject|contains:
-              - '\Run\' #Software\Microsoft\Windows NT\CurrentVersion\Windows\Run ## FOR LOGSOURCES WHICH CONCAT HIVE + KEYS + VALUES
+              - '\Run\' # HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\MigAutoPlay https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation; Run\WindowsUpdateAssist https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/; Software\Microsoft\Windows NT\CurrentVersion\Windows\Run ## FOR LOGSOURCES WHICH CONCAT HIVE + KEYS + VALUES
               - '\Runonce\' #SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce ## FOR LOGSOURCES WHICH CONCAT HIVE + KEYS + VALUES
               - '\RunOnce\' #SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce ## FOR LOGSOURCES WHICH CONCAT HIVE + KEYS + VALUES; https://www.cyfirma.com/research/crysome-rat-an-advanced-persistent-net-remote-access-trojan/
               - '\RunonceEx\' #SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx ## FOR LOGSOURCES WHICH CONCAT HIVE + KEYS + VALUES
@@ -532,7 +537,7 @@ body: |-
               - 'bt\sources\setuphost.exe'
               - 'installing\assistant_installer.exe'
               - 'onedrivesetup.exe'
-              - 'reg.exe'
+              #- 'reg.exe' #excluded every 'reg add ...\CurrentVersion\Run' persistence
               - 'MsiExec.exe'
               - '32\csrss.exe'
               - '32\drvinst.exe'
@@ -552,4 +557,4 @@ body: |-
   level: low
 level: low
 created: '2021-06-09T11:52:57Z'
-updated: '2026-11-04T12:10:18.535000Z'
+updated: '2026-11-16T16:04:06.276000Z'

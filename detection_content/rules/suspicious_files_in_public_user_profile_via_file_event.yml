@@ -7,6 +7,8 @@ body: |-
   description: The Public user profile is commonly abused by advesaries for staging of malware files, this execution should be reviewed.
   author: SOC Prime Team
   references:
+      - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
+      - https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
       - https://hunt.io/blog/philippine-government-employment-agency-records-stolen
       - https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
       - https://dreamgroup.com/blog/darkblinders-inside-an-active-espionage-campaign
@@ -180,7 +182,6 @@ body: |-
       - https://unit42.paloaltonetworks.com/threat-brief-ivanti-cve-2025-0282-cve-2025-0283/
       - https://news.sophos.com/en-us/2025/01/21/sophos-mdr-tracks-two-ransomware-campaigns-using-email-bombing-microsoft-teams-vishing/
       - https://www.seqrite.com/blog/silent-lynx-apt-targeting-central-asian-entities/
-      - https://thedfirreport.com/2025/01/27/cobalt-strike-and-a-pair-of-socks-lead-to-lockbit-ransomware/
       - https://unit42.paloaltonetworks.com/espionage-campaign-targets-south-asian-entities/
       - https://medium.com/@rayssac/infostealer-malware-linked-to-lazarus-group-campaigns-a510ad5f3e4f
       - https://www.welivesecurity.com/en/eset-research/operation-fishmedley/
@@ -290,7 +291,7 @@ body: |-
   detection:
       selection_base:
           Image|contains: '.'
-          TargetFilename|contains: '\Users\Public' #C:\Users\Public\test.vbs
+          TargetFilename|contains: '\Users\Public' # C:\Users\Public\Videos\2025-3-7-10-17\1.jpg https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation; C:\Users\Public\test.vbs
       selection_ext:
           TargetFilename|endswith:
               - '.vbe' # https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
@@ -310,10 +311,10 @@ body: |-
               - '.cmd'
               - '.hta' # https://www.trellix.com/blogs/research/sidecopy-threat-intel-mshta-execution-rat-deployment/
               - '.ps1' #https://www.huntress.com/blog/data-exfiltration-threat-actor-infrastructure-exposed; https://www.pointwild.com/threat-intelligence/desckvb-rat-analysis-from-javascript-loader-to-fileless-net-rat/
-              - '.com'
+              - '.com' #https://cert.gov.ua/article/6281681
               #- '.lnk' #C:\Users\Public\Libraries\OneDrive Update\Exec.lnk
               - '.dll' #C:\Users\Public\dump.dll; # %PUBLIC%\Libraries\rtmpak.dll; https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/; https://sect.iij.ad.jp/blog/2026/02/plugx-executed-via-staticplugin/; https://www.trendmicro.com/en_us/research/26/c/dissecting-a-warlock-attack.html; https://www.elastic.co/security-labs/brushworm-targets-financial-services; https://www.trendmicro.com/en_us/research/26/c/dissecting-a-warlock-attack.html; https://unit42.paloaltonetworks.com/espionage-campaigns-target-se-asian-government-org/; https://hexastrike.com/resources/blog/threat-intelligence/trust-the-tunnel-get-the-trojan-silver-fox-delivers-atlascross-rat-via-weaponized-vpn-installers/; ttps://www.proofpoint.com/us/blog/threat-insight/id-come-running-back-eu-again-ta416-resumes-european-government-espionage; https://asec.ahnlab.com/en/94704/; https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
-              - '.exe' #C:\Users\Public\ad.exe; https://thedfirreport.com/2025/01/27/cobalt-strike-and-a-pair-of-socks-lead-to-lockbit-ransomware/; https://cert.gov.ua/article/6285731; %PUBLIC%\Downloads\GoogleUpdate.exe; %PUBLIC%\Downloads\pkdhj.exe; https://www.esentire.com/blog/new-rust-malware-chaosbot-uses-discord-for-command-and-control; https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/; https://www.trellix.com/blogs/research/the-ghost-in-the-machine-crazyhunters-stealth-tactics/; https://www.acronis.com/en/tru/posts/hunters-international-new-ransomware-based-on-hive-source-code/; https://blog.talosintelligence.com/uat-8099-new-persistence-mechanisms-and-regional-focus/; https://sect.iij.ad.jp/blog/2026/02/plugx-executed-via-staticplugin/; https://www.picussecurity.com/resource/blog/t1059-001-powershell; https://www.bitdefender.com/en-us/blog/businessinsights/apt36-nightmare-vibeware; https://www.picussecurity.com/resource/blog/t1059-003-windows-command-shell; https://unit42.paloaltonetworks.com/boggy-serpens-threat-assessment/]; https://www.cyberproof.com/blog/a-deep-dive-into-pxa-stealer/; https://unit42.paloaltonetworks.com/espionage-campaigns-target-se-asian-government-org/; https://ctrlaltintel.com/research/MuddyWater/; https://www.zscaler.com/blogs/security-research/tropic-trooper-pivots-adaptixc2-and-custom-beacon-listener; https://blog.deception.pro/blog/xworm-sc-hok-may-2026; https://asec.ahnlab.com/en/94552/; https://www.picussecurity.com/resource/blog/the-tradecraft-behind-2026s-least-prevented-ransomware-families; https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/; https://blog.knowbe4.com/anatomy-agent-tesla-bec-attack-in-memory-infostealer; https://www.guidepointsecurity.com/blog/how-play-achieves-encryption/; https://www.microsoft.com/en-us/security/blog/2026/09/01/counterfeit-installers-system-compromise-tracking-deceptive-software-download-campaign/; https://www.security.com/threat-intelligence/warlock-ransomware-critical-infrastructure
+              - '.exe' #C:\Users\Public\ad.exe; https://thedfirreport.com/2025/01/27/cobalt-strike-and-a-pair-of-socks-lead-to-lockbit-ransomware/; https://cert.gov.ua/article/6285731; %PUBLIC%\Downloads\GoogleUpdate.exe; %PUBLIC%\Downloads\pkdhj.exe; https://www.esentire.com/blog/new-rust-malware-chaosbot-uses-discord-for-command-and-control; https://www.sentinelone.com/blog/cybervolk-returns-flawed-volklocker-brings-new-features-with-growing-pains/; https://www.trellix.com/blogs/research/the-ghost-in-the-machine-crazyhunters-stealth-tactics/; https://www.acronis.com/en/tru/posts/hunters-international-new-ransomware-based-on-hive-source-code/; https://blog.talosintelligence.com/uat-8099-new-persistence-mechanisms-and-regional-focus/; https://sect.iij.ad.jp/blog/2026/02/plugx-executed-via-staticplugin/; https://www.picussecurity.com/resource/blog/t1059-001-powershell; https://www.bitdefender.com/en-us/blog/businessinsights/apt36-nightmare-vibeware; https://www.picussecurity.com/resource/blog/t1059-003-windows-command-shell; https://unit42.paloaltonetworks.com/boggy-serpens-threat-assessment/]; https://www.cyberproof.com/blog/a-deep-dive-into-pxa-stealer/; https://unit42.paloaltonetworks.com/espionage-campaigns-target-se-asian-government-org/; https://ctrlaltintel.com/research/MuddyWater/; https://www.zscaler.com/blogs/security-research/tropic-trooper-pivots-adaptixc2-and-custom-beacon-listener; https://blog.deception.pro/blog/xworm-sc-hok-may-2026; https://asec.ahnlab.com/en/94552/; https://www.picussecurity.com/resource/blog/the-tradecraft-behind-2026s-least-prevented-ransomware-families; https://blog.talosintelligence.com/uat-10147-chinese-speaking-adversary-integrates-agentic-ai-into-post-compromise-operations/; https://blog.knowbe4.com/anatomy-agent-tesla-bec-attack-in-memory-infostealer; https://www.guidepointsecurity.com/blog/how-play-achieves-encryption/; https://www.microsoft.com/en-us/security/blog/2026/09/01/counterfeit-installers-system-compromise-tracking-deceptive-software-download-campaign/; https://www.security.com/threat-intelligence/warlock-ransomware-critical-infrastructure; https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
               #- '.pdf' #noizy
               - '.log' # C:\users\public\log.log; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and; https://isc.sans.edu/diary/rss/33300; https://www.seqrite.com/blog/inside-dragonforce-how-a-ransomware-cartels-payload-actually-runs/
               - '.conf' # C:\\Users\\Public\\Libraries\\update.conf
@@ -322,13 +323,12 @@ body: |-
               - '.msi' #https://blog.sekoia.io/meet-iclickfix-a-widespread-wordpress-targeting-framework-using-the-clickfix-tactic/
               #- '.xml' #noizy
               - '.cab'
-              - '.com' #https://cert.gov.ua/article/6281681
               - '.txt' #https://cert.gov.ua/article/6284949; https://www.elastic.co/security-labs/roningloader; https://www.welivesecurity.com/en/eset-research/muddywater-snakes-riverbank/; https://www.fortinet.com/blog/threat-research/udpgangster-campaigns-target-multiple-countries; https://www.bitdefender.com/en-us/blog/businessinsights/apt36-nightmare-vibeware; https://www.huntress.com/blog/data-exfiltration-threat-actor-infrastructure-exposed; https://www.bluevoyant.com/blog/augmented-marauders-multi-pronged-casbaneiro-campaigns; https://www.trendmicro.com/en_us/research/26/e/banana-rat.html; https://www.zscaler.com/blogs/security-research/clickfix-campaign-generated-ai-delivers-smartrat; https://socradar.io/blog/operation-conflict-compass-konni-ukraine-lnk-lure/; https://hunt.io/blog/philippine-government-employment-agency-records-stolen
               - '.doc' #https://cert.gov.ua/article/6318634
               - '.docx' #https://cert.gov.ua/article/6318634
               - '.toml' #C:\Users\Public\systemTemp\config.toml; BackupSpy; https://www.bitdefender.com/en-us/blog/businessinsights/apt36-nightmare-vibeware
               - '.xml' #https://www.security.com/threat-intelligence/asyncrat-libya-oil-cyberattack
-              - '.jpg' #https://blog.sekoia.io/silver-fox-the-only-tax-audit-where-the-fine-print-installs-malware/; https://www.picussecurity.com/resource/blog/unc1549-ttps-iranian-apt-targeting-aerospace-and-defense
+              - '.jpg' # C:\Users\Public\Videos\2025-3-7-10-17\1.jpg https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation; https://blog.sekoia.io/silver-fox-the-only-tax-audit-where-the-fine-print-installs-malware/; https://www.picussecurity.com/resource/blog/unc1549-ttps-iranian-apt-targeting-aerospace-and-defense
       filters:
           Image|endswith:
               - 'elastic-endpoint.exe'
@@ -339,4 +339,4 @@ body: |-
   level: low
 level: low
 created: '2022-04-04T14:49:59Z'
-updated: '2026-10-28T16:14:51.077000Z'
+updated: '2026-11-13T13:02:53.642000Z'

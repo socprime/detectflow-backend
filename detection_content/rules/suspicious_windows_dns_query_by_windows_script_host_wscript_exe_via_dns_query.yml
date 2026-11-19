@@ -20,11 +20,11 @@ body: |-
     selection:
       #EventCode: 22 # Optionally used to reduce SIEM resource consumption.
       Image|endswith: 'wscript.exe'
-      DestinationHostname|contains: '.'
+      QueryName|contains: '.'
     condition: selection
   falsepositives:
     - DNS queries by legitimate scripts.
   level: medium
 level: medium
 created: '2022-03-17T19:39:15Z'
-updated: '2026-07-23T13:04:25.849000Z'
+updated: '2026-11-16T13:54:34.821000Z'

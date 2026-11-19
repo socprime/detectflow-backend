@@ -1,0 +1,50 @@
+id: kVHel9C2eWkQ
+name: Suspicious Service Binary Path (via audit)
+body: |-
+  title: Suspicious Service Binary Path (via audit)
+  id: 60dcdcfa-1709-40fa-bb10-2da285bfe52b
+  description: Adversaries may install a new service that can be configured to execute at startup by using utilities to interact with services. It is highly recommended to baseline your activity and tune out common business use cases.
+  status: stable
+  author: SOC Prime Team
+  references:
+      - https://www.cyfirma.com/research/tinkywinkey-keylogger/
+      - https://labs.withsecure.com/publications/fin7-target-veeam-servers
+      - https://cert.gov.ua/article/4279195
+      - https://cert.gov.ua/article/160530
+      - https://attack.mitre.org/techniques/T1050/
+      - https://socprime.com/detectflow/ # FOR DF DEMO
+  tags:
+      - attack.persistence
+      - attack.t1543.003
+  logsource:
+      product: windows
+      service: security
+  detection:
+      selection:
+          EventID: 4697
+      filters:
+          - SubjectUserName|endswith: '$'
+              #- 'SomeAdministrator'
+          - ServiceFileName|contains:
+              - ':\Windows\'
+              - ':\Program Files'
+              - 'SystemRoot'
+              - 'ystem32\DRIVERS'
+              - 'ccmsetup'
+              - 'oracle\product'
+              - 'SolarWinds\Orion'
+              - 'ystem32\svchost.exe'
+          - ServiceFileName|contains|all:
+              - 'Defender'
+              - 'Microsoft'
+              - 'Updates' #C:\ProgramData\Microsoft\Windows Defender\Definition Updates\'
+              - 'MpKs'
+              - '.sys'
+      condition: selection and not filters
+  falsepositives:
+      - Service with unusual binary path.
+      - The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
+  level: medium
+level: medium
+created: '2020-02-12T14:21:11Z'
+updated: '2026-08-13T10:13:29.717000Z'

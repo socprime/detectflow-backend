@@ -7,6 +7,9 @@ body: |-
   description: Rule to detect system processes execution from untypical paths, which can be an indicator of malicious activity
   author: SOC Prime Team
   references:
+      - https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/
+      - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
+      - https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/
       - https://dreamgroup.com/blog/darkblinders-inside-an-active-espionage-campaign
       - https://checkmarx.com/zero-post/malfex-npm-malware-campaign-three-payloads-and-an-adversary-that-signs-their-work/
       - https://unit42.paloaltonetworks.com/blinder-tunnel-targets-critical-infrastructure/
@@ -87,7 +90,7 @@ body: |-
         - 'SystemSettings.exe'
         - 'calc.exe' # https://www.enki.co.kr/en/media-center/blog/kimsuky-s-advanced-attack-techniques-jsonping-webex-spoofing-and-a-new-httpspy-variant
         - '\smss.exe' # https://www.virustotal.com/gui/file/25802493e7ef64523d6ab13ad6e5555b2b08fd4576ae2edd905ad939d256aa3a/behavior; https://asec.ahnlab.com/en/94552/
-        - '\svchost.exe' # https://www.cyberproof.com/blog/a-deep-dive-into-pxa-stealer/; https://www.darktrace.com/blog/inside-zionsiphon-darktraces-analysis-of-ot-malware-targeting-israeli-water-systems; https://www.welivesecurity.com/en/eset-research/frostyneighbor-fresh-mischief-digital-shenanigans/; https://blog.talosintelligence.com/from-pdb-strings-to-maas-tracking-a-commodity-badiis-ecosystem/; https://www.trendmicro.com/en_us/research/26/g/actor-behind-patriot-bait-used-ai-to-deploy-c2-botnet.html; https://www.proofpoint.com/us/blog/threat-insight/carry-compromise-ta4922-packs-packclient; https://asec.ahnlab.com/en/95230/; https://www.huntress.com/blog/fake-gta6-download-malware-analysis; https://checkmarx.com/zero-post/malfex-npm-malware-campaign-three-payloads-and-an-adversary-that-signs-their-work/
+        - '\svchost.exe' # renamed GameHook binary running as svchost.exe https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/; https://www.cyberproof.com/blog/a-deep-dive-into-pxa-stealer/; https://www.darktrace.com/blog/inside-zionsiphon-darktraces-analysis-of-ot-malware-targeting-israeli-water-systems; https://www.welivesecurity.com/en/eset-research/frostyneighbor-fresh-mischief-digital-shenanigans/; https://blog.talosintelligence.com/from-pdb-strings-to-maas-tracking-a-commodity-badiis-ecosystem/; https://www.trendmicro.com/en_us/research/26/g/actor-behind-patriot-bait-used-ai-to-deploy-c2-botnet.html; https://www.proofpoint.com/us/blog/threat-insight/carry-compromise-ta4922-packs-packclient; https://asec.ahnlab.com/en/95230/; https://www.huntress.com/blog/fake-gta6-download-malware-analysis; https://checkmarx.com/zero-post/malfex-npm-malware-campaign-three-payloads-and-an-adversary-that-signs-their-work/
         - 'gpupdate.exe'
         - 'taskhostw.exe'
         - 'rundll32.exe'
@@ -98,13 +101,13 @@ body: |-
         - '\lsm.exe'
         #- '\dwm.exe'
         - 'spoolsv.exe'
-        - '\csrss.exe' # https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/
+        - '\csrss.exe' # csrss.exe (renamed SoftEther VPN) https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/; https://www.vmray.com/execution-level-analysis-of-a-russian-speaking-multi-operator-intrusion-campaign-operation-standoff/
         - 'wininit.exe'
         - 'fontdrvhost.exe'
         #- '\conhost.exe'
         - 'ctfmon.exe'
         - 'RuntimeBroker.exe' # https://www.mcafee.com/blogs/other-blogs/mcafee-labs/weedhack-minecraft-malware-as-a-service-campaign-research/; https://www.lac.co.jp/lacwatch/report/20260604_004759.html; https://www.jumpsec.com/guides/an-emerging-silver-fox-like-cluster-papermill/; https://unit42.paloaltonetworks.com/blinder-tunnel-targets-critical-infrastructure/; https://dreamgroup.com/blog/darkblinders-inside-an-active-espionage-campaign
-        - 'dllhost.exe'
+        - 'dllhost.exe' # https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
         - 'route.exe'
         - 'winlogon.exe'
         - 'systeminfo.exe'
@@ -112,6 +115,7 @@ body: |-
         - 'timeout.exe'
         - 'explorer.exe'
         - 'mblctr.exe'
+        - 'wlrmdr.exe'
       CommandLine|contains: '.exe' #must exists.
     selection_dotnet:
       ParentImage|endswith:
@@ -145,4 +149,4 @@ body: |-
   level: medium
 level: medium
 created: '2021-09-09T12:22:02Z'
-updated: '2026-10-14T08:56:42.814000Z'
+updated: '2026-11-17T12:19:19.549000Z'
