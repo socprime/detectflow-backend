@@ -7,6 +7,8 @@ body: |-
   description: The Public user profile is commonly abused by advesaries for staging of malware files, this execution should be reviewed.
   author: SOC Prime Team
   references:
+      - https://www.bitdefender.com/en-us/blog/businessinsights/eggstreme-malware-revises-architecture-infrastructure
+      - https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
       - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
       - https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
       - https://www.security.com/threat-intelligence/warlock-ransomware-critical-infrastructure
@@ -257,4 +259,4 @@ body: |-
   level: high
 level: high
 created: '2022-03-23T20:49:19Z'
-updated: '2026-11-13T13:04:03.549000Z'
+updated: '2026-11-19T09:16:11.471000Z'

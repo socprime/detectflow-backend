@@ -6,6 +6,7 @@ body: |-
   status: stable
   description: Often malicious scripts use short file names (i.e. 1.bat). High likelyhood of false positives and filtering is required.
   references:
+      - https://www.huntress.com/blog/geovision-camera-software-xmrig-cryptominer
       - https://www.huntress.com/blog/the-evolving-tradecraft-of-clickfix
       - https://arcticwolf.com/resources/blog/threat-actors-abuse-microsoft-teams-external-chat-for-initial-access/
       - https://www.reversinglabs.com/blog/how-rl-mapped-a-midnight-blizzard-linked-campaign-from-two-hashes
@@ -171,4 +172,4 @@ body: |-
   level: medium
 level: medium
 created: '2020-07-30T17:45:40Z'
-updated: '2026-11-12T09:59:19.318000Z'
+updated: '2026-11-17T14:35:30.908000Z'

@@ -6,6 +6,7 @@ body: |-
   status: stable
   description: Persistence points (also called Auto-Start Extensibility Points, or ASEPs) is a recurring task of any investigation potentially involving malware. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
   references:
+      - https://www.bitdefender.com/en-us/blog/businessinsights/eggstreme-malware-revises-architecture-infrastructure
       - https://antares-research.com/reports/lotuslite-v2/
       - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
       - https://www.huntress.com/blog/sckit-worm-rogue-screenconnect
@@ -557,4 +558,4 @@ body: |-
   level: low
 level: low
 created: '2021-06-09T11:52:57Z'
-updated: '2026-11-16T16:04:06.276000Z'
+updated: '2026-11-19T09:19:14.697000Z'

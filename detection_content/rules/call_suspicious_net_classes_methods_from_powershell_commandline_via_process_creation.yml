@@ -6,6 +6,7 @@ body: |-
   status: stable
   description: Detects suspicious .net methods/classes which are using in offensive purpose.
   references:
+      - https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
       - https://hunt.io/blog/philippine-government-employment-agency-records-stolen
       - https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
       - https://socradar.io/blog/inc-gentlemen-ransomware-ai-infrastructure/
@@ -100,7 +101,7 @@ body: |-
               - 'SuspendThread'
               - 'Runtime.InteropServices.DllImportAttribute'
               - 'Reflection.Emit.AssemblyBuilderAccess'
-              - 'DownloadString' #https://asec.ahnlab.com/en/92160/; https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown; https://socradar.io/blog/operation-conflict-compass-konni-ukraine-lnk-lure/; https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
+              - 'DownloadString' #https://asec.ahnlab.com/en/92160/; https://www.picussecurity.com/resource/blog/gamaredon-primitive-bear-apt-profile-and-mitre-attck-breakdown; https://socradar.io/blog/operation-conflict-compass-konni-ukraine-lnk-lure/; https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware; https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
               - 'DownloadFile' #https://www.picussecurity.com/resource/blog/xhunt-apt-cyber-espionage-operations-targeting-kuwait-and-exchange-servers; https://blog.talosintelligence.com/uat-11795-deploys-novel-starland-rat-and-bespoke-wldr-c2-implant-in-financially-motivated-campaign/; https://www.microsoft.com/en-us/security/blog/2026/08/28/terminalfix-campaign-deploys-reverse-tunnel-through-multistage-intrusion/
               - 'DownloadData' #https://www.attackiq.com/2025/04/09/emulating-catb-ransomware/; https://www.pointwild.com/threat-intelligence/desckvb-rat-analysis-from-javascript-loader-to-fileless-net-rat/
               - 'WebRequest.' #request = HttpWebRequest.Create(uri) as HttpWebRequest;
@@ -150,4 +151,4 @@ body: |-
   level: medium
 level: medium
 created: '2020-03-24T12:02:17Z'
-updated: '2026-11-02T13:17:11.277000Z'
+updated: '2026-11-18T11:51:26.104000Z'

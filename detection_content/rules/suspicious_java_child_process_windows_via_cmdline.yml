@@ -6,6 +6,7 @@ body: |-
   status: stable
   description: This rule identifies potentially malicious child processes spawned by Java-based malware. This may indicate an attempt by the malware to perform malicious actions such as downloading additional payloads, stealing sensitive information, or establishing persistence. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives.
   references:
+      - https://calif.io/java4shell/ #CVE-2026-114938
       - https://www.sysaid.com/blog/service-desk/on-premise-software-security-vulnerability-notification #SysAid On-Prem Software CVE-2023-47246 Vulnerability
       - https://badoption.eu/blog/2023/06/01/zipjar.html#poc
       - https://www.mandiant.com/resources/blog/unc961-multiverse-financially-motivated
@@ -95,4 +96,4 @@ body: |-
   level: medium
 level: medium
 created: '2020-03-25T17:34:24Z'
-updated: '2026-02-24T09:34:11.102000Z'
+updated: '2026-11-18T09:25:34.861000Z'

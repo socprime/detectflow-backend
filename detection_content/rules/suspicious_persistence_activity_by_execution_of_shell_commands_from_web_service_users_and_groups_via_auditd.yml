@@ -7,6 +7,9 @@ body: |-
   author: SOC Prime Team
   status: stable
   references:
+    - https://nginx2root.com/ #CVE-2026-123007 CVE-2026-123633
+    - https://xint.io/blog/nginx2root-remote-code-execution
+    - https://www.wiz.io/blog/nginx-http2-rce-vulnerabilities
     - https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/
     - https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
     - https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/
@@ -19,6 +22,8 @@ body: |-
   tags:
     - attack.persistence
     - attack.t1505.003
+    - attack.execution
+    - attack.t1059.004
   logsource:
     product: linux
     service: auditd
@@ -26,25 +31,29 @@ body: |-
   detection:
     selection_shell_execution:
       type: 'SYSCALL'
-      comm|endswith: 'sh' # web server that starts a shell https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/; bash https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/; /bin/sh https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
-      exe|endswith: 'sh'
+      comm|endswith: 'sh' # /bin/sh, /bin/bash https://xint.io/blog/nginx2root-remote-code-execution; web server that starts a shell https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/; bash https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/; /bin/sh https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      exe|endswith:
+        - 'sh'
+        - '/busybox' # Alpine-based images, /bin/sh -> busybox
     selection_web_service_user:
       euid:
         - 'apache' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
-        - 'nginx'
+        - 'nginx' # -F euid=NGINX_UID -k nginx_worker_exec https://xint.io/blog/nginx2root-remote-code-execution
         - 'www-data' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
         - '33' # www-data (Debian/Ubuntu)
         - '48' # apache (RHEL/CentOS)
+        - '101' # uid=101(nginx) gid=101(nginx) https://www.wiz.io/blog/nginx-http2-rce-vulnerabilities; nginx (official nginx Docker image)
       egid:
         - 'apache'
         - 'nginx'
         - 'www-data'
         - '33'
         - '48'
+        - '101' # gid=101(nginx) https://www.wiz.io/blog/nginx-http2-rce-vulnerabilities
     condition: selection_shell_execution and selection_web_service_user
   falsepositives:
     - unlikely
   level: high
 level: high
 created: '2022-05-26T15:52:33Z'
-updated: '2026-11-17T08:51:01.242000Z'
+updated: '2026-11-18T21:12:24.379000Z'
