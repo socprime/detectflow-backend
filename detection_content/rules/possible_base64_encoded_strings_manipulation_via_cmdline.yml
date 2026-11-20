@@ -7,6 +7,7 @@ body: |-
   description: Base64 is commonly used in malware to disguise text strings, scripts, and binaries. It matches only if the Base64 string contains padding with double "==".
   author: SOC Prime Team
   references:
+      - https://research.checkpoint.com/2026/php2shell-exploitation-on-check-point-gateway/
       - https://www.stormshield.com/news/cti-trigram-campaign/
       - https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
       - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
@@ -46,7 +47,7 @@ body: |-
               - '==' # padding character ex: ZXhpdCxhbHdheXMgLUYgYXJjaD1iNjQgLVMgZXhlY3ZlIiBpbiBhdWRpdF9ydWxlcw==
           - CommandLine|contains|all:
               - 'base64' #https://www.cyfirma.com/research/apt36-python-based-elf-malware-targeting-indian-government-entities/
-              - ' -d' #sh -c echo <base64>|base64 -d|bash; https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks; https://www.microsoft.com/en-us/security/blog/2026/05/22/from-edge-appliance-to-enterprise-compromise-multi-stage-linux-intrusion-via-f5-and-confluence/; https://medium.com/@quirso_de/global-exploitation-of-cve-2026-59310-by-suspected-chinese-nexus-apt-related-cve-2026-59309-443a79e1466d; https://isc.sans.edu/diary/rss/33326; https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-renewed-mass-exploitation-campaign-targeting-oracle-peoplesoft/; https://unit42.paloaltonetworks.com/ai-campaign-targets-linux-infrastructure/; https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
+              - ' -d' #sh -c echo <base64>|base64 -d|bash; https://www.sysdig.com/blog/etherrat-dprk-uses-novel-ethereum-implant-in-react2shell-attacks; https://www.microsoft.com/en-us/security/blog/2026/05/22/from-edge-appliance-to-enterprise-compromise-multi-stage-linux-intrusion-via-f5-and-confluence/; https://medium.com/@quirso_de/global-exploitation-of-cve-2026-59310-by-suspected-chinese-nexus-apt-related-cve-2026-59309-443a79e1466d; https://isc.sans.edu/diary/rss/33326; https://cloud.google.com/blog/topics/threat-intelligence/shinyhunters-renewed-mass-exploitation-campaign-targeting-oracle-peoplesoft/; https://unit42.paloaltonetworks.com/ai-campaign-targets-linux-infrastructure/; https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/; https://research.checkpoint.com/2026/php2shell-exploitation-on-check-point-gateway/
           - CommandLine|contains|all:
               - 'base64' # https://isc.sans.edu/diary/rss/32816https://isc.sans.edu/diary/rss/32816; https://www.microsoft.com/en-us/security/blog/2026/04/02/cookie-controlled-php-webshells-tradecraft-linux-hosting-environments/
               - '--decode'
@@ -77,4 +78,4 @@ body: |-
   level: low
 level: low
 created: '2020-04-30T15:34:44Z'
-updated: '2026-11-13T11:57:29.684000Z'
+updated: '2026-11-18T16:12:37.580000Z'

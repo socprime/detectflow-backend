@@ -7,6 +7,8 @@ body: |-
   description: The Public user profile is commonly abused by advesaries for staging of malware files, this execution should be reviewed.
   author: SOC Prime Team
   references:
+      - https://www.bitdefender.com/en-us/blog/businessinsights/eggstreme-malware-revises-architecture-infrastructure
+      - https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
       - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
       - https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
       - https://hunt.io/blog/philippine-government-employment-agency-records-stolen
@@ -306,7 +308,7 @@ body: |-
               - '.vbs' #https://cert.gov.ua/article/6281681 %PUBLIC%\Documents\UpdateOfficeCore.vbs; https://cert.gov.ua/article/6285731; %PUBLIC%\Downloads\gupdate.vbs; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-sheetcreep-firepower-and; https://www.zscaler.com/blogs/security-research/apt-attacks-target-indian-government-using-gogitter-gitshellpad-and-goshell; https://blog.talosintelligence.com/uat-8099-new-persistence-mechanisms-and-regional-focus/; https://www.trellix.com/blogs/research/purerat-fileless-utilizing-steganography-process-hollowing/; https://asec.ahnlab.com/en/94847/
               - '.js' # https://www.huntress.com/blog/malspam-to-deskcvb-rat-delivery-chain-analysis; https://www.elastic.co/security-labs/threat-command/malicious-browser-extension-kremlin-banking-malware
               - '.jse'
-              - '.bat' #C:\Users\update1.bat; C:\Users\Public\Libraries\check.bat
+              - '.bat' #C:\Users\update1.bat; C:\Users\Public\Libraries\check.bat; https://www.bitdefender.com/en-us/blog/businessinsights/eggstreme-malware-revises-architecture-infrastructure
               - '.url'
               - '.cmd'
               - '.hta' # https://www.trellix.com/blogs/research/sidecopy-threat-intel-mshta-execution-rat-deployment/
@@ -339,4 +341,4 @@ body: |-
   level: low
 level: low
 created: '2022-04-04T14:49:59Z'
-updated: '2026-11-13T13:02:53.642000Z'
+updated: '2026-11-19T09:15:09.476000Z'

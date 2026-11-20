@@ -7,6 +7,7 @@ body: |-
   description: Detects suspicious use of an .lnk extension.
   author: SOC Prime Team
   references:
+      - https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
       - https://www.darktrace.com/blog/cikabika-bot-inside-a-discord-rat#cq=i1
       - https://www.genians.co.kr/en/blog/threat_intelligence/operation-gitpower
       - https://cofense.com/blog/from-payment-plan-to-ransomware-inside-a-global-group-attack
@@ -137,7 +138,7 @@ body: |-
               - '.7z.lnk'
               - '.dat.lnk'
               - '.img.lnk'
-              - '.hwp.lnk'
+              - '.hwp.lnk' # https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
       filters:
           CommandLine|contains|all:
               - 'AppData'
@@ -151,4 +152,4 @@ body: |-
   level: high
 level: high
 created: '2020-04-27T17:39:45Z'
-updated: '2026-11-02T13:18:24.712000Z'
+updated: '2026-11-18T11:53:14.013000Z'

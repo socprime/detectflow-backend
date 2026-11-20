@@ -6,6 +6,8 @@ body: |-
   status: stable
   description: This rule identifies alternative remote access / management tools (e.g. TeamViewer) other than Windows Remote Desktop. It is highly recommended to baseline your activity and tune out common business use cases.
   references:
+    - https://bartblaze.blogspot.com/2026/11/crypto-hardware-wallet-users-under.html
+    - https://www.huntress.com/blog/cve-2026-84869-screenconnect-technician-exploitation
     - https://www.huntress.com/blog/sckit-worm-rogue-screenconnect
     - https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
     - https://www.huntress.com/blog/ahsaycbs-webshells
@@ -188,7 +190,7 @@ body: |-
         - '\remoting_host.exe' # https://www.picussecurity.com/resource/blog/nightspire-ransomware-attack-chain-tools-and-tactics
         - '\rfusclient.exe'
         - '\ROMViewer.exe'
-        - '\ScreenConnect.WindowsClient.exe'
+        - '\ScreenConnect.WindowsClient.exe' # https://www.huntress.com/blog/cve-2026-84869-screenconnect-technician-exploitation
         - '\ScreenConnect.ClientService.exe' #https://www.huntress.com/blog/w2-malvertising-to-kernel-mode-edr-kill; https://www.sophos.com/en-us/blog/qemu-abused-to-evade-detection-and-enable-ransomware-delivery; https://www.cyfirma.com/research/operation-silentcanvas-jpeg-based-multistage-powershell-intrusion/; https://www.microsoft.com/en-us/security/blog/2026/05/26/poisoned-search-results-gpu-mining-cryptojacking-campaign-abusing-screenconnect-microsoft-net-utilities/; https://www.forescout.com/blog/seasonalinvite-new-phishing-campaign-abuses-ecards-and-rmm/; https://www.levelblue.com/blogs/spiderlabs-blog/beyond-fake-updates-from-application-store-themed-phishing-to-large-scale-distribution-of-screenconnect; https://asec.ahnlab.com/en/95001/; https://www.huntress.com/blog/rogue-screenconnect-installations; https://labs.k7computing.com/index.php/from-kms-auto-to-scareware-tracking-a-multi-stage-intrusion-linked-to-apt36/; https://cofense.com/blog/rsvp-to-disaster-how-one-click-installs-a-rat
         - '\smpcview.exe'
         - '\TeamViewer_Desktop.exe'
@@ -237,4 +239,4 @@ body: |-
   level: medium
 level: medium
 created: '2022-04-04T19:32:44Z'
-updated: '2026-11-13T09:30:42.290000Z'
+updated: '2026-11-18T15:20:49.881000Z'

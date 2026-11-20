@@ -6,6 +6,7 @@ body: |-
   status: stable
   description: Adversaries may configure system settings to automatically execute a program or scripts during system boot or logon to maintain persistence or gain higher-level privileges on compromised systems.
   references:
+      - https://www.huntress.com/blog/cve-2026-84869-screenconnect-technician-exploitation
       - https://efficientip.com/blog/clickfix-netsupport-rat/
       - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
       - https://www.welivesecurity.com/en/eset-research/gorbag-orcs-border-harvesting-intelligence-ukraine/
@@ -175,7 +176,7 @@ body: |-
               - '.vbs' #%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\bShark.vbs; https://cert.gov.ua/article/6282517; https://any.run/cybersecurity-blog/february-26-attacks/; https://www.trendmicro.com/en_us/research/26/c/pawn-storm-targets-govt-infra.html; https://www.malwarebytes.com/blog/scams/2026/04/fake-claude-site-installs-malware-that-gives-attackers-access-to-your-computer; https://www.securonix.com/blog/deepdoor-python-backdoor-and-credential-stealer/; https://www.derp.ca/research/yuta-solara-roblox-python-rat/; https://cert.gov.ua/article/6318437; https://www.acronis.com/en/tru/posts/patchcord-new-malware-cluster-targets-afghan-telecom-and-south-asian-critical-infrastructure/; https://blog.deception.pro/blog/hok-dprk-polinrider-sep-2026; https://www.securonix.com/blog/task-stomp-powershell-backdoor-document-theft-remote-access
               - '.js' #https://cert.gov.ua/article/6286219; %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\WindowsSecurityUpdate.js; https://www.trellix.com/blogs/research/malware-as-a-service-redefined-xworm-rat/
               #- '.jse'
-              - '.bat' #C:\Users\<USER>\AppData\Roaming\Microsoft\Windows\Start Menu\bagvaskelse\homoeotypical\officer\Outvaunt\efterbevilges\glathvlen.bat; https://www.seqrite.com/blog/deceptive-layoff-themed-hr-email-distributes-remcos-rat-malware/; https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html; https://www.veracode.com/blog/malicious-npm-package-hiding-in-plain-pixels/; https://www.pointwild.com/threat-intelligence/inside-vidar-2026-from-infection-to-memory-execution-via-jpeg-and-txt-payloads/; https://www.ox.security/blog/new-actors-deploy-shai-hulud-clones-teampcp-copycats-are-here/; https://www.seqrite.com/blog/threat-actors-weaponizing-rar-archives-to-target-thailands-healthcare-sector/; https://www.blackfog.com/medusahvnc-a-hidden-desktop/; https://www.pointwild.com/threat-intelligence/asyncrat-delivered-via-autoit-full-chain-analysis/
+              - '.bat' #C:\Users\<USER>\AppData\Roaming\Microsoft\Windows\Start Menu\bagvaskelse\homoeotypical\officer\Outvaunt\efterbevilges\glathvlen.bat; https://www.seqrite.com/blog/deceptive-layoff-themed-hr-email-distributes-remcos-rat-malware/; https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html; https://www.veracode.com/blog/malicious-npm-package-hiding-in-plain-pixels/; https://www.pointwild.com/threat-intelligence/inside-vidar-2026-from-infection-to-memory-execution-via-jpeg-and-txt-payloads/; https://www.ox.security/blog/new-actors-deploy-shai-hulud-clones-teampcp-copycats-are-here/; https://www.seqrite.com/blog/threat-actors-weaponizing-rar-archives-to-target-thailands-healthcare-sector/; https://www.blackfog.com/medusahvnc-a-hidden-desktop/; https://www.pointwild.com/threat-intelligence/asyncrat-delivered-via-autoit-full-chain-analysis/; https://www.huntress.com/blog/cve-2026-84869-screenconnect-technician-exploitation
               - '.url' #%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\InnoCraft.url ;https://www.trendmicro.com/en_us/research/25/a/lumma-stealers-github-based-delivery-via-mdr.html; https://hunt.io/blog/exposed-byob-c2-infrastructure-multi-stage-malware-deployment
               - '.cmd' # https://phorion.io/blog/offical-claude-code-vsx-compromise/
               - '.hta'
@@ -215,4 +216,4 @@ body: |-
   level: medium
 level: medium
 created: '2020-10-29T12:52:51Z'
-updated: '2026-11-16T12:28:18.991000Z'
+updated: '2026-11-18T11:04:45.312000Z'

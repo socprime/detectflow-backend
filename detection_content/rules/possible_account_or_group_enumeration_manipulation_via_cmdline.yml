@@ -7,6 +7,7 @@ body: |-
   description: Adversaries may attempt to get a listing/permissions and other info of local system or domain accounts. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives. It is highly recommended to baseline your activity and tune out common business use cases.
   author: SOC Prime Team
   references:
+      - https://www.huntress.com/blog/cve-2026-84869-screenconnect-technician-exploitation
       - https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
       - https://www.security.com/threat-intelligence/swallowtail-russia-nato-targets
       - https://www.esentire.com/blog/papercut-mf-zero-day-intrusion-java-loader-web-shell-and-adaptixc2-via-cve-2026-82078-and-cve-2026-81578
@@ -187,7 +188,7 @@ body: |-
               - '/times' #https://thehackernews.com/2026/04/lotus-wiper-malware-targets-venezuelan.html
               - '/workstations'
               - 'site' #https://www.picussecurity.com/resource/blog/apt41-cyber-attacks-history-operations-and-full-ttp-analysis
-              - 'session' #https://www.picussecurity.com/resource/blog/funksec-raas-operations-hacktivism-meets-cybercrime; https://www.derp.ca/research/interlock-tooling-teardown/; https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons; https://zenox.ai/en/lofystealer-malware-mirando-jogadores-de-minecraft/
+              - 'session' #https://www.picussecurity.com/resource/blog/funksec-raas-operations-hacktivism-meets-cybercrime; https://www.derp.ca/research/interlock-tooling-teardown/; https://www.esentire.com/blog/etherrat-sys-info-module-c2-on-ethereum-etherhiding-target-selection-cdn-like-beacons; https://zenox.ai/en/lofystealer-malware-mirando-jogadores-de-minecraft/; https://www.huntress.com/blog/cve-2026-84869-screenconnect-technician-exploitation
       selection_ps:
           CommandLine|contains:
               - 'Get-LocalGroup'
@@ -259,4 +260,4 @@ body: |-
   level: low
 level: low
 created: '2020-05-18T10:36:08Z'
-updated: '2026-11-11T12:08:24.275000Z'
+updated: '2026-11-18T11:07:32.618000Z'

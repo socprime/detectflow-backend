@@ -7,6 +7,8 @@ body: |-
   description: Detects use of WScript as a living off the land technique. It is highly recommended to baseline your activity and tune out common business use cases.
   author: SOC Prime Team
   references:
+      - https://www.bitdefender.com/en-us/blog/businessinsights/eggstreme-malware-revises-architecture-infrastructure
+      - https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
       - https://asec.ahnlab.com/en/96495/
       - https://www.vmray.com/beyond-valleyrat-inside-a-china-nexus-silver-fox-operation/
       - https://www.trellix.com/blogs/research/sirius-backdoor-fileless-campaign-fedex-invoices/
@@ -351,7 +353,7 @@ body: |-
               - '.jpeg'
               - '.txt'
               - '.zip'
-              - 'e:vbscript' #wscript //E.VBScript '%temp%\do.tmp'; https://censys.com/blog/living-off-the-web-how-trust-infrastructure-became-a-malware-delivery-interface; https://harfanglab.io/insidethelab/gamaredon-gammadrop-gammaload/
+              - 'e:vbscript' #wscript //E.VBScript '%temp%\do.tmp'; https://censys.com/blog/living-off-the-web-how-trust-infrastructure-became-a-malware-delivery-interface; https://harfanglab.io/insidethelab/gamaredon-gammadrop-gammaload/; https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
               - '.bat' #wscript.exe E:\syvolume\u643257.bat; https://asec.ahnlab.com/en/91415/; https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html
               - '.wsh' #https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html; https://cofense.com/blog/abusing-windows-file-explorer-and-webdav-for-malware-delivery; https://blog.gdatasoftware.com/2026/03/38399-analysis-kissloader
       selection_parents:
@@ -468,4 +470,4 @@ body: |-
   level: medium
 level: medium
 created: '2022-03-23T20:34:52Z'
-updated: '2026-11-17T10:40:34.714000Z'
+updated: '2026-11-19T09:17:25.675000Z'

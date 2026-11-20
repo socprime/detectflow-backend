@@ -7,6 +7,7 @@ body: |-
   description: Detects use of schtasks as a living off the land technique by looking for tasks that involve other lolbas commonly used to hide the intent of the task.
   author: SOC Prime Team
   references:
+      - https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
       - https://www.microsoft.com/en-us/security/blog/2026/09/01/counterfeit-installers-system-compromise-tracking-deceptive-software-download-campaign/
       - https://www.enki.co.kr/en/media-center/blog/inside-kimsuky-s-abuse-of-legitimate-remote-control-tools-across-northeast-asia
       - https://blog.deception.pro/blog/clickfix-spacex1337-hok-2026
@@ -58,7 +59,7 @@ body: |-
       selection_cmdline:
           CommandLine|contains:
               - 'cmd.exe' # https://www.microsoft.com/en-us/security/blog/2026/09/01/counterfeit-installers-system-compromise-tracking-deceptive-software-download-campaign/
-              - 'powershell' #"C:\Windows\System32\schtasks.exe" /create /tn PdfOpenTask /tr "powershell.exe -WindowStyle Hidden -executionpolicy bypass -noprofile -c Invoke-Expression (Get-Content '%TMP%\temporarydoc.txt' -Raw)" /sc once /st 12:02 /f; https://cert.gov.ua/article/6284949; https://www.huntress.com/blog/data-exfiltration-threat-actor-infrastructure-exposed; https://www.aikido.dev/blog/glassworm-strikes-react-packages-phone-numbers; https://www.huntress.com/blog/pups-grow-fangs; https://blog.talosintelligence.com/cloudz-pheno-infostealer/; https://blog.deception.pro/blog/clickfix-spacex1337-hok-2026
+              - 'powershell' #"C:\Windows\System32\schtasks.exe" /create /tn PdfOpenTask /tr "powershell.exe -WindowStyle Hidden -executionpolicy bypass -noprofile -c Invoke-Expression (Get-Content '%TMP%\temporarydoc.txt' -Raw)" /sc once /st 12:02 /f; https://cert.gov.ua/article/6284949; https://www.huntress.com/blog/data-exfiltration-threat-actor-infrastructure-exposed; https://www.aikido.dev/blog/glassworm-strikes-react-packages-phone-numbers; https://www.huntress.com/blog/pups-grow-fangs; https://blog.talosintelligence.com/cloudz-pheno-infostealer/; https://blog.deception.pro/blog/clickfix-spacex1337-hok-2026; https://www.genians.co.kr/en/blog/threat_intelligence/nodelinkrat
               - 'wscript' # https://www.vmray.com/threat-intelligence-insights-pivoting-off-the-blockchain/; https://www.enki.co.kr/en/media-center/blog/inside-kimsuky-s-abuse-of-legitimate-remote-control-tools-across-northeast-asia
               - 'installutil'
               - 'mavinject'
@@ -124,4 +125,4 @@ body: |-
   level: high
 level: high
 created: '2019-12-05T10:10:09Z'
-updated: '2026-09-02T14:42:07.875000Z'
+updated: '2026-11-18T11:48:35.486000Z'
