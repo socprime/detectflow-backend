@@ -6,6 +6,8 @@ body: |-
   status: stable
   description: Often malicious scripts use short file names (i.e. 1.bat). High likelyhood of false positives and filtering is required.
   references:
+      - https://www.huntress.com/blog/the-evolving-tradecraft-of-clickfix
+      - https://arcticwolf.com/resources/blog/threat-actors-abuse-microsoft-teams-external-chat-for-initial-access/
       - https://www.reversinglabs.com/blog/how-rl-mapped-a-midnight-blizzard-linked-campaign-from-two-hashes
       - https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
       - https://thehackernews.com/2026/10/clickfix-smuggles-payloads-through.html
@@ -123,13 +125,13 @@ body: |-
               - '.tmp'
               - '.src'
       selection:
-          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Pp][Ss]1[^a-zA-Z0-9].*' #.ps1; https://asec.ahnlab.com/en/87398/; https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a; https://asec.ahnlab.com/en/93151/; https://cert.gov.ua/article/6288271; https://asec.ahnlab.com/en/93855/; https://www.huntress.com/blog/defcon-phishing-google-doc-malware; https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection; https://www.reversinglabs.com/blog/how-rl-mapped-a-midnight-blizzard-linked-campaign-from-two-hashes
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Pp][Ss]1[^a-zA-Z0-9].*' #.ps1; https://asec.ahnlab.com/en/87398/; https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a; https://asec.ahnlab.com/en/93151/; https://cert.gov.ua/article/6288271; https://asec.ahnlab.com/en/93855/; https://www.huntress.com/blog/defcon-phishing-google-doc-malware; https://www.malwarebytes.com/blog/threat-intel/2026/09/kothamine-malware-uses-tailscales-tailcat-to-evade-network-detection; https://www.reversinglabs.com/blog/how-rl-mapped-a-midnight-blizzard-linked-campaign-from-two-hashes; https://www.huntress.com/blog/the-evolving-tradecraft-of-clickfix
           - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Vv][Bb][Ee][^a-zA-Z0-9].*' #.vbe
           - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Vv][Bb][Ss][^a-zA-Z0-9].*' #.vbs; https://asec.ahnlab.com/en/87398/; https://socradar.io/cve-2025-53690-sitecore-deployments-weepsteel-malware/; https://www.huntress.com/blog/rogue-screenconnect-installations; https://thehackernews.com/2026/10/clickfix-smuggles-payloads-through.html
           - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Jj][Ss][Ee][^a-zA-Z0-9].*' #.jse
           - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Bb][Aa][Tt][^a-zA-Z0-9].*' #.bat #https://labs.withsecure.com/publications/crazyhunter-ransomware; https://asec.ahnlab.com/en/94995/; https://www.forescout.com/blog/from-clickfix-to-c2-comparative-analysis-of-two-malware-loaders/
           - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,3}\.[Cc][Mm][Dd][^a-zA-Z0-9].*' #.cmd
-          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,2}\.[Pp][Yy][^a-zA-Z0-9].*' # .py
+          - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,2}\.[Pp][Yy][^a-zA-Z0-9].*' # .py ; https://arcticwolf.com/resources/blog/threat-actors-abuse-microsoft-teams-external-chat-for-initial-access/
           - CommandLine|re: '.*[^a-zA-Z0-9\.\_\-][a-zA-Z0-9\.\_\-]{1,2}\.[Aa][Uu]3[^a-zA-Z0-9].*' # .au3
       filters:
           - ParentImage|endswith:
@@ -169,4 +171,4 @@ body: |-
   level: medium
 level: medium
 created: '2020-07-30T17:45:40Z'
-updated: '2026-10-29T09:03:42.868000Z'
+updated: '2026-11-12T09:59:19.318000Z'

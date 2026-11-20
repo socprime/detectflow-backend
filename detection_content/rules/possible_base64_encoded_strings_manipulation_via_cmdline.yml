@@ -7,6 +7,7 @@ body: |-
   description: Base64 is commonly used in malware to disguise text strings, scripts, and binaries. It matches only if the Base64 string contains padding with double "==".
   author: SOC Prime Team
   references:
+      - https://www.stormshield.com/news/cti-trigram-campaign/
       - https://www.microsoft.com/en-us/security/blog/2026/09/30/unauthenticated-command-injection-on-internet-facing-mail-servers-tracking-cve-2026-73570/
       - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
       - https://unit42.paloaltonetworks.com/ai-campaign-targets-linux-infrastructure/
@@ -76,4 +77,4 @@ body: |-
   level: low
 level: low
 created: '2020-04-30T15:34:44Z'
-updated: '2026-10-22T11:31:08.095000Z'
+updated: '2026-11-13T11:57:29.684000Z'

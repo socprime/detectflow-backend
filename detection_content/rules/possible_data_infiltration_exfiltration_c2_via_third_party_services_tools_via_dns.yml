@@ -213,7 +213,7 @@ body: |-
     category: dns
   detection:
     selection:
-      dns_query_name|endswith:
+      query|endswith:
         - 'cdn.imageurlgenerator.com' #https://cert.gov.ua/article/6318634
         - 'easysend.co' #https://cert.gov.ua/article/6318634
         - 'filemail.com' #https://cert.gov.ua/article/6318634
@@ -321,4 +321,4 @@ body: |-
   level: low
 level: low
 created: '2021-07-07T08:55:36Z'
-updated: '2026-10-27T16:59:34.587000Z'
+updated: '2026-11-17T10:13:49.096000Z'

@@ -7,6 +7,7 @@ body: |-
   description: Adversaries may attempt to get a listing/permissions and other info of local system or domain accounts. The reliance on the surrounding environment may necessitate the implementation of additional filtering measures to prevent false positives. It is highly recommended to baseline your activity and tune out common business use cases.
   author: SOC Prime Team
   references:
+      - https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
       - https://www.security.com/threat-intelligence/swallowtail-russia-nato-targets
       - https://www.esentire.com/blog/papercut-mf-zero-day-intrusion-java-loader-web-shell-and-adaptixc2-via-cve-2026-82078-and-cve-2026-81578
       - https://www.microsoft.com/en-us/security/blog/2026/09/02/impersonating-it-support-threat-actors-turn-remote-session-into-enterprise-wide-access/
@@ -72,7 +73,6 @@ body: |-
       - https://www.microsoft.com/en-us/security/blog/2023/10/18/multiple-north-korean-threat-actors-exploiting-the-teamcity-cve-2023-42793-vulnerability/
       - https://thedfirreport.com/2023/10/30/netsupport-intrusion-results-in-domain-compromise/
       - https://thehackernews.com/2023/10/researchers-unveil-toddycats-new-set-of.html
-      - https://unit42.paloaltonetworks.com/threat-brief-cve-2023-4966-netscaler-citrix-bleed/
       - https://www.esentire.com/blog/nitrogen-campaign-2-0-reloads-with-enhanced-capabilities-leading-to-alphv-blackcat-ransomware
       - https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-319a
       - https://thedfirreport.com/2023/12/04/sql-brute-force-leads-to-bluesky-ransomware/
@@ -196,7 +196,7 @@ body: |-
               - 'Microsoft.ActiveDirectory.Management.dll'
       selection_rare_images:
           Image|endswith:
-              - 'quser.exe' #https://unit42.paloaltonetworks.com/cybercriminals-attack-financial-sector-across-africa/; https://blog.talosintelligence.com/uat-8837/
+              - 'quser.exe' # quser.exe https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation; https://unit42.paloaltonetworks.com/cybercriminals-attack-financial-sector-across-africa/; https://blog.talosintelligence.com/uat-8837/
               - 'qwinsta.exe' #https://thehackernews.com/2026/04/lotus-wiper-malware-targets-venezuelan.html
               - 'ldifde.exe' #ldifde.exe -f c:\windows\temp\.txt -p subtree; https://detect.fyi/playbook-hunting-chinese-apt-379a6b950492; https://hackers-arise.com/digital-forensics-hunting-chinese-apts-abusing-native-windows-tools/
               - 'csvde.exe' #https://social.technet.microsoft.com/wiki/contents/articles/2113.comma-separated-value-directory-exchange-csvde-utility.aspx
@@ -259,4 +259,4 @@ body: |-
   level: low
 level: low
 created: '2020-05-18T10:36:08Z'
-updated: '2026-10-20T15:12:22.294000Z'
+updated: '2026-11-11T12:08:24.275000Z'

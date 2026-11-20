@@ -7,6 +7,10 @@ body: |-
   status: stable
   author: SOC Prime Team
   references:
+      - https://socradar.io/blog/4everable2shell-at-a-glance/
+      - https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/
+      - https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
+      - https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/
       - https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
       - https://www.elastic.co/security-labs/wp2shell-wordpress-rce-detection-elastic-defend
       - https://thehackernews.com/2024/12/apache-tomcat-vulnerability-cve-2024.html
@@ -23,8 +27,8 @@ body: |-
     category: process_creation
   detection:
     selection:
-      User|contains:
-        - 'apache'
+      - User|contains:
+        - 'apache' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/; https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/
         - 'nginx'
         - 'lighttpd'
         - 'tomcat' # CVE-2024-56337 / CVE-2024-50379
@@ -33,20 +37,35 @@ body: |-
         - 'hiawatha'
         - 'node' # Node.js process https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
         - 'www'
-        - 'www-data'
-      Image|contains:
-        - '/bash' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+        - 'www-data' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
+        - 'nable' # nable service account, Apache Axis SOAP fault command execution https://socradar.io/blog/4everable2shell-at-a-glance/
+      - ParentImage|endswith:
+        - '/httpd' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
+        - '/apache2' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
+        - '/nginx'
+        - '/caddy'
+        - '/lighttpd'
+        - '/hiawatha'
+        - '/lshttpd'
+        - '/litespeed'
+    selection_shell:
+      Image|endswith:
+        - '/bash' # https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/; interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
         - '/dash'
-        - '/sh' # interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
+        - '/sh' # web server that starts a shell https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/; interactive shell https://webflow.sysdig.com/blog/node2shell-cve-2026-111497-detecting-the-node-js-brotli-rce
         - '/csh'
         - '/ksh'
         - '/zsh'
     filters:
-      CommandLine|contains: 'MISP/app/Console/cake' # Misp
-    condition: selection and not filters
+      CommandLine|contains:
+        - 'MISP/app/Console/cake' # Misp
+        - 'rotatelogs' # CustomLog/ErrorLog "|/usr/sbin/rotatelogs ..."
+        - 'cronolog'
+        - 'sendmail -t' # mod_php mail()
+    condition: (selection and selection_shell) and not filters
   falsepositives:
     - A web server component in network monitoring or management software may perform shell commands as part of normal operation.
   level: medium
 level: medium
 created: '2022-06-08T18:04:41Z'
-updated: '2026-10-25T18:47:34.971000Z'
+updated: '2026-11-17T09:47:32.928000Z'

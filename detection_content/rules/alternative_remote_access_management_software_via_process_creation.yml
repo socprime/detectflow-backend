@@ -6,6 +6,9 @@ body: |-
   status: stable
   description: This rule identifies alternative remote access / management tools (e.g. TeamViewer) other than Windows Remote Desktop. It is highly recommended to baseline your activity and tune out common business use cases.
   references:
+    - https://www.huntress.com/blog/sckit-worm-rogue-screenconnect
+    - https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
+    - https://www.huntress.com/blog/ahsaycbs-webshells
     - https://www.catonetworks.com/blog/cato-ctrl-research-suspected-iranian-muddywater-activity-using-israel-tax-authority-lures-simplehelp/
     - https://www.security.com/threat-intelligence/lindnor-new-backdoor-anubis-ransomware
     - https://www.microsoft.com/en-us/security/blog/2026/10/30/help-desk-impersonation-ad-cs-abuse-investigating-esc1-esc8-intrusion-paths/
@@ -146,12 +149,14 @@ body: |-
         - '\LMIGuardianSvc.exe' # LogMeIn
         - '\TIAgent.exe' # Tiflux, https://www.huntress.com/blog/tiflux-rmm-install
         - '\komari-agent.exe' # https://www.huntress.com/blog/komari-c2-agent-abuse
-        - '\Splashtop_Streamer.exe' #https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/
+        - '\Splashtop_Streamer.exe' # Splashtop remote access https://www.huntress.com/blog/ahsaycbs-webshells; https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/
         - '\SupremoService.exe'
         - '\RustDesk.exe' #https://www.seqrite.com/blog/exploiting-legitimate-remote-access-tools-in-ransomware-campaigns/; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
         - '\rutserv.exe' #%ProgramFiles(x86)%/Remote Utilities - Host/rutserv.exe
-        - '\ngrok.exe' #https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
-        - '\AteraAgent.exe' #https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
+        - '\zerotier-one_x64.exe' # ZEROTIER https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
+        - '\zerotier-one_x86.exe' # ZEROTIER https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation
+        - '\ngrok.exe' # NGROK https://www.picussecurity.com/resource/blog/imperial-kitten-tortoiseshell-apt-ttps-malware-and-attack-simulation; https://hunt.io/blog/thegentlemen-ransomware-toolkit-russian-proton66-server
+        - '\AteraAgent.exe' # Atera remote access https://www.huntress.com/blog/ahsaycbs-webshells; https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
         - '\Atera.exe' #https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
         - '\pdq-connect-agent.exe' #https://redcanary.com/blog/threat-intelligence/phishing-rmm-tools/
         - '\NinjaRMMAgentPatcher.exe'
@@ -168,7 +173,7 @@ body: |-
         - '\action1_agent.exe' #https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools; https://isc.sans.edu/diary/rss/33400
         - '\AA_v3.exe'
         - '\AeroAdmin.exe'
-        - '\AnyDesk.exe' # anydesk.exe https://www.security.com/threat-intelligence/lindnor-new-backdoor-anubis-ransomware; https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a; https://thedfirreport.com/2025/11/17/cats-got-your-files-lynx-ransomware/; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.huntress.com/blog/fake-tech-support-havoc-command-control; https://www.huntress.com/blog/nightspire-ransomware; https://www.intel471.com/blog/threat-hunting-case-study-scattered-spider; https://arcticwolf.com/resources/blog/exploitation-of-cve-2026-0257-leads-to-qilin-ransomware/; https://www.team-cymru.com/post/beast-ransomware-server-toolkit-analysis; https://www.huntress.com/blog/akira-hits-safe-mode-ransomware-rebooting-around-edr; https://www.huntress.com/blog/two-inc-ransom-notes; https://www.huntress.com/blog/threat-actor-compiles-cryptominer; https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a
+        - '\AnyDesk.exe' # AnyDesk remote access https://www.huntress.com/blog/ahsaycbs-webshells; anydesk.exe https://www.security.com/threat-intelligence/lindnor-new-backdoor-anubis-ransomware; https://www.cisa.gov/news-events/cybersecurity-advisories/aa25-203a; https://thedfirreport.com/2025/11/17/cats-got-your-files-lynx-ransomware/; https://www.picussecurity.com/resource/blog/fog-ransomware-2025-deep-dive-into-ttps; https://www.huntress.com/blog/fake-tech-support-havoc-command-control; https://www.huntress.com/blog/nightspire-ransomware; https://www.intel471.com/blog/threat-hunting-case-study-scattered-spider; https://arcticwolf.com/resources/blog/exploitation-of-cve-2026-0257-leads-to-qilin-ransomware/; https://www.team-cymru.com/post/beast-ransomware-server-toolkit-analysis; https://www.huntress.com/blog/akira-hits-safe-mode-ransomware-rebooting-around-edr; https://www.huntress.com/blog/two-inc-ransom-notes; https://www.huntress.com/blog/threat-actor-compiles-cryptominer; https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-293a
         - '\ehorus_display.exe'
         - '\ehorus_launcher.exe'
         - '\dd.exe' #Distant Desktop
@@ -208,7 +213,7 @@ body: |-
         - '\Syncro.Installer.exe'
         - '\Syncro.Service.Runner.exe'
         - '\Syncro.App.Runner.exe'
-        - '\SRService.exe' # https://www.huntress.com/blog/tiflux-rmm-install
+        - '\SRService.exe' # Splashtop remote access https://www.huntress.com/blog/ahsaycbs-webshells; https://www.huntress.com/blog/tiflux-rmm-install
         - '\ToolsIQ.exe' #https://www.huntress.com/blog/active-exploitation-solarwinds-web-help-desk-cve-2025-26399; https://www.microsoft.com/en-us/security/blog/2026/02/06/active-exploitation-solarwinds-web-help-desk/
         - '\xeox-agent_x64.exe' #XEOX; https://www.huntress.com/blog/fake-tech-support-havoc-command-control
         - '\strwinclt.exe' #Splashtop; https://www.huntress.com/blog/daisy-chaining-rogue-rmm-tools
@@ -232,4 +237,4 @@ body: |-
   level: medium
 level: medium
 created: '2022-04-04T19:32:44Z'
-updated: '2026-11-05T14:36:46.680000Z'
+updated: '2026-11-13T09:30:42.290000Z'

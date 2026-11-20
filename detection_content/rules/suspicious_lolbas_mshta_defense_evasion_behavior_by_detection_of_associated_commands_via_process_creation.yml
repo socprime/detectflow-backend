@@ -6,6 +6,8 @@ body: |-
   status: stable
   description: Detects use of mshta as a living off the land technique.
   references:
+      - https://socradar.io/blog/xaocmail-clickfix-phantom53-havox-america-asia-europe/
+      - https://www.vmray.com/beyond-valleyrat-inside-a-china-nexus-silver-fox-operation/
       - https://asec.ahnlab.com/en/96295/
       - https://www.welivesecurity.com/en/eset-research/eset-apt-activity-report-q2-2026-q3-2026/
       - https://www.huntress.com/blog/you-can-run-but-you-cant-hide-defender-exclusions
@@ -166,7 +168,7 @@ body: |-
               - 'ActiveXObject'
               - 'vbscript' #mshta vbscript:close(createobject("wscript.shell").run("powershell $ProgressPreference = 'SilentlyContinue';...; https://www.bitdefender.com/en-us/blog/labs/microsofts-mshta-legacy-malware-windows
               - 'javascript' #https://www.magicsword.io/blog/apple-ios-certificate-windows-malware ; https://blogs.jpcert.or.jp/en/2026/07/apt-c-60_2026.html
-              - 'http' #https://cert.gov.ua/article/6284949 mshta.exe hXXps://secfileshare[.]com/4.hta; https://www.zscaler.com/blogs/security-research/apt37-targets-windows-rust-backdoor-and-python-loader; https://cert.gov.ua/article/6286219; https://cloud.google.com/blog/topics/threat-intelligence/unc1069-targets-cryptocurrency-ai-social-engineering/; https://www.trendmicro.com/en_us/research/26/e/installfix-and-claude-code.html ;https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/; https://isc.sans.edu/diary/rss/33018; https://www.microsoft.com/en-us/security/blog/2026/07/16/acr-stealer-two-observed-intrusion-chains-amid-increased-threat-activity/; https://www.rapid7.com/blog/post/tr-exposed-webdav-malware-delivery-lab-analysis/; https://www.netskope.com/jp/blog/malware-on-the-blockchain-an-ongoing-campaigns-new-webrtc-twist; https://www.cyderes.com/howler-cell/job-offer-attack-chains-analysis
+              - 'http' #https://cert.gov.ua/article/6284949 mshta.exe hXXps://secfileshare[.]com/4.hta; https://www.zscaler.com/blogs/security-research/apt37-targets-windows-rust-backdoor-and-python-loader; https://cert.gov.ua/article/6286219; https://cloud.google.com/blog/topics/threat-intelligence/unc1069-targets-cryptocurrency-ai-social-engineering/; https://www.trendmicro.com/en_us/research/26/e/installfix-and-claude-code.html ;https://blog.synapticsystems.de/uac-0247-malware-targeting-fpv-operators/; https://isc.sans.edu/diary/rss/33018; https://www.microsoft.com/en-us/security/blog/2026/07/16/acr-stealer-two-observed-intrusion-chains-amid-increased-threat-activity/; https://www.rapid7.com/blog/post/tr-exposed-webdav-malware-delivery-lab-analysis/; https://www.netskope.com/jp/blog/malware-on-the-blockchain-an-ongoing-campaigns-new-webrtc-twist; https://www.cyderes.com/howler-cell/job-offer-attack-chains-analysis; https://socradar.io/blog/xaocmail-clickfix-phantom53-havox-america-asia-europe/
               - 'close' #https://www.mcafee.com/blogs/other-blogs/mcafee-labs/astaroth-banking-trojan-abusing-github-for-resilience/
               - 'DavWWWRoot' #mshta \\dbexport.zip\DavWWWRoot\calc_hta.hta
       filters_chain1:
@@ -180,4 +182,4 @@ body: |-
   level: high
 level: high
 created: '2020-05-25T15:19:29Z'
-updated: '2026-11-02T13:15:49.497000Z'
+updated: '2026-11-16T10:25:34.812000Z'

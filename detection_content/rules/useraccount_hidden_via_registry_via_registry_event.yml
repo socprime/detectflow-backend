@@ -6,6 +6,8 @@ body: |-
   status: stable
   description: By adding users to the "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Specialaccounts" registry entry, advesaries can hide accounts created for persistence.
   references:
+      - https://socradar.io/blog/dark-web-profile-n0n-ransomware/
+      - https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/
       - https://socradar.io/blog/n0n-ransomware-ai-assisted-extortion/
       - https://asec.ahnlab.com/en/94552/
       - https://michaelkoczwara.medium.com/adversaries-infrastructure-ransomware-groups-apts-and-red-teams-7a6dd761c50e
@@ -32,11 +34,11 @@ body: |-
               - 'Microsoft'
               - 'CurrentVersion'
               - 'Winlogon'
-              - 'SpecialAccounts'
+              - 'SpecialAccounts' # admin$ hidden from logon UI (CopperAdu) https://research.checkpoint.com/2026/not-all-that-glitters-is-gold-tracking-copperdragons-sparrow-framework-around-the-globe/; https://socradar.io/blog/dark-web-profile-n0n-ransomware/
       condition: selection
   falsepositives:
       - legitimate local accounts created and added to SpecialAccounts.
   level: medium
 level: medium
 created: '2023-09-12T09:19:55Z'
-updated: '2026-10-28T12:28:38.943000Z'
+updated: '2026-11-12T16:27:26.695000Z'

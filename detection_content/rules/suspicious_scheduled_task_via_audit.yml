@@ -7,6 +7,10 @@ body: |-
   status: stable
   author: SOC Prime Team
   references:
+      - https://socradar.io/blog/xaocmail-clickfix-phantom53-havox-america-asia-europe/
+      - https://www.fortinet.com/blog/threat-research/t-sql-being-abused-to-deliver-malware-on-compromised-ms-sql-servers
+      - https://www.vmray.com/beyond-valleyrat-inside-a-china-nexus-silver-fox-operation/
+      - https://www.seqrite.com/blog/armorsteal-unpacked-breaking-down-a-python-malware-kit-that-steals-data-and-mines-crypto/
       - https://www.acronis.com/en/tru/posts/the-gentlemen-a-closer-look-at-a-not-so-gentle-ransomware-as-a-service-operation/
       - https://socradar.io/blog/n0n-ransomware-ai-assisted-extortion/
       - https://www.welivesecurity.com/en/eset-research/mythicratatoskr-yggdrasil-enabled-backdoor-deployed-uac0099-sandworm-collaboration/
@@ -166,11 +170,12 @@ body: |-
               - '.ini' #CERT-UA#7469
               - 'InstallUtil.exe'
               - '\Users' # https://www.recordedfuture.com/research/bluedelta-targets-with-hookedge; https://www.volexity.com/blog/2026/09/09/mind-the-patch-gap-multiple-chinese-threat-actors-chain-0-day-exploits-in-chrome-windows/
-              - 'pythonw.exe' #CERT-UA#10356; https://labs.infoguard.ch/posts/slithering_through_the_noise/; https://expel.com/blog/synkloader-when-you-throw-in-everything-but-the-kitchen-sink/; https://asec.ahnlab.com/en/95171/
-              - 'python.exe'
+              - 'pythonw.exe' #CERT-UA#10356; https://labs.infoguard.ch/posts/slithering_through_the_noise/; https://expel.com/blog/synkloader-when-you-throw-in-everything-but-the-kitchen-sink/; https://asec.ahnlab.com/en/95171/; https://socradar.io/blog/xaocmail-clickfix-phantom53-havox-america-asia-europe/
+              - 'python.exe' # SysCheck2 / SysCheckX / SysHeal tasks start SysMon.py / xm_handler.py https://www.seqrite.com/blog/armorsteal-unpacked-breaking-down-a-python-malware-kit-that-steals-data-and-mines-crypto/
               - 'python3.exe'
               - '.pem' #WikiLoader
               - '.pyw'
+              - '--headless' # SysCheck2 task: conhost.exe --headless ... SysMon.py https://www.seqrite.com/blog/armorsteal-unpacked-breaking-down-a-python-malware-kit-that-steals-data-and-mines-crypto/
               - 'wscript' #https://cert.gov.ua/article/6315762; https://blackpointcyber.com/blog/labubarat-a-rust-based-remote-access-tool-masquerading-as-nvidia-software/; https://isc.sans.edu/diary/rss/33348; https://blackpointcyber.com/blog/chainscript-tracing-a-nodejs-rat-across-the-blockchain/; https://www.securonix.com/blog/task-stomp-powershell-backdoor-document-theft-remote-access
               - 'cscript'
               #- '\ProgramData' #noizy
@@ -227,4 +232,4 @@ body: |-
   level: medium
 level: medium
 created: '2021-08-03T11:44:06Z'
-updated: '2026-10-28T15:07:34.702000Z'
+updated: '2026-11-16T10:24:52.275000Z'

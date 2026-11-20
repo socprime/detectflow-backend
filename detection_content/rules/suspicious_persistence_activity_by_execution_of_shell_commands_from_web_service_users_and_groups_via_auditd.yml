@@ -7,6 +7,9 @@ body: |-
   author: SOC Prime Team
   status: stable
   references:
+    - https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/
+    - https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
+    - https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/
     - https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
     - https://www.wiz.io/blog/artex-in-the-wild-storm-0940-expands-targeting-of-it-and-software-vendors
     - https://japancyberwatch.com/articles/artex-ai-pentest-tool-japan-breach-wave-gmo-2026
@@ -23,21 +26,25 @@ body: |-
   detection:
     selection_shell_execution:
       type: 'SYSCALL'
-      comm|endswith: 'sh' # /bin/sh https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
+      comm|endswith: 'sh' # web server that starts a shell https://www.sentinelone.com/blog/artex-unmasked-the-rise-of-ai-powered-artex-in-cybercrime-espionage/; bash https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/; /bin/sh https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities
       exe|endswith: 'sh'
     selection_web_service_user:
       euid:
-        - 'apache'
+        - 'apache' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
         - 'nginx'
-        - '33'
+        - 'www-data' # unexpected processes spawned by the web server account https://www.netspi.com/blog/executive-blog/critical-vulnerability/apache-http-server-critical-rce-vulnerability-cve-2026-119618/
+        - '33' # www-data (Debian/Ubuntu)
+        - '48' # apache (RHEL/CentOS)
       egid:
         - 'apache'
         - 'nginx'
+        - 'www-data'
         - '33'
+        - '48'
     condition: selection_shell_execution and selection_web_service_user
   falsepositives:
     - unlikely
   level: high
 level: high
 created: '2022-05-26T15:52:33Z'
-updated: '2026-10-26T09:00:41.644000Z'
+updated: '2026-11-17T08:51:01.242000Z'

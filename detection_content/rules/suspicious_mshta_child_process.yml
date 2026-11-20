@@ -7,7 +7,7 @@ body: |
   description: Detects a suspicious process spawning from an "mshta.exe" process, which
     could be indicative of a malicious HTA script execution
   references:
-    - https://www.trustedsec.com/july-2015/malicious-htas/
+    - https://web.archive.org/web/20150906062519/https://www.trustedsec.com/july-2015/malicious-htas/
   author: Michael Haag
   date: 2019-01-16
   modified: 2023-02-06
@@ -52,4 +52,4 @@ body: |
   level: high
 level: high
 created: '2019-01-16T00:00:00Z'
-updated: '2026-04-28T23:20:23Z'
+updated: '2026-11-10T01:36:59Z'
